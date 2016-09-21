@@ -38,6 +38,7 @@ class Gene:
     elements = property(__get_gene_elements)
 
     def mutate(self, prob=0.5):
+        assert 0 <= prob <= 1
         new_dna = []
         for elem in self.dna:
             if random.random() < prob:
