@@ -1,21 +1,5 @@
 from gene import Gene, clone_gene
 
-def crossover(c1, c2, p1, p2=None):
-    assert 0 <= p1 < c2.num_of_genes
-    assert c2.num_of_genes == c1.num_of_genes
-    if p2:
-        assert 0 <= p2 < c2.num_of_genes
-        assert p1 < p2
-        c1_mid = c1.dna[p1:p2]
-        c2_mid = c2.dna[p1:p2]
-        c1.dna = c1.dna[:p1] + c2_mid + c1.dna[p2:]
-        c2.dna = c2.dna[:p1] + c1_mid + c2.dna[p2:]
-    else:
-        c1_rear = c1.dna[p1:]
-        c2_rear = c2.dna[p1:]
-        c1.dna = c1.dna[:p1] + c2_rear
-        c2.dna = c2.dna[:p1] + c1_rear
-
 class Chromosome:
     # Chromosome - a much longer dna sequence containing many genes.
     # __genes - an ordered list of Genes
@@ -52,8 +36,7 @@ class Chromosome:
     dna_total_length = property(__get_dna_total_length)
     dna = property(__get_dna, __set_dna)
 
-    def mutate(self, prob):
-        assert 0 <= prob <= 1
+    def __mutate(self, prob):
         for gene in self.__genes:
             gene.mutate(prob)
 
@@ -68,3 +51,25 @@ class Chromosome:
         self.__genes[p1] = self.__genes[p2]
         self.__genes[p2] = tmp
         pass
+
+    @staticmethod
+    def mutate(self, c, prob):
+        assert 0 <= prob <= 1
+        c.Chromosome__mutate(prob)
+
+    @staticmethod
+    def crossover(c1, c2, p1, p2=None):
+        assert 0 <= p1 < c2.num_of_genes
+        assert c2.num_of_genes == c1.num_of_genes
+        if p2:
+            assert 0 <= p2 < c2.num_of_genes
+            assert p1 < p2
+            c1_mid = c1.dna[p1:p2]
+            c2_mid = c2.dna[p1:p2]
+            c1.dna = c1.dna[:p1] + c2_mid + c1.dna[p2:]
+            c2.dna = c2.dna[:p1] + c1_mid + c2.dna[p2:]
+        else:
+            c1_rear = c1.dna[p1:]
+            c2_rear = c2.dna[p1:]
+            c1.dna = c1.dna[:p1] + c2_rear
+            c2.dna = c2.dna[:p1] + c1_rear
