@@ -65,10 +65,10 @@ class BaseGeneticAlgorithm(ABC):
 
         if now_best_fit > self.best_fitness:
             self.best = now_best.clone()
-            self.best_fitness = now_best_fit
+            self.best_fitness = float(now_best_fit)
         if now_weakest_fit < self.weakest_fitness:
             self.weakest = now_weakest.clone()
-            self.weakest_fitness = now_weakest_fit
+            self.weakest_fitness = float(now_weakest_fit)
 
     def __run(self, generations, prob_mutate, prob_crossover):
         self.__calc_generation_fitness()
