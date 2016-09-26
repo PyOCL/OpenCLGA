@@ -19,6 +19,12 @@ class BaseGeneticAlgorithm(ABC):
         self.weakest = None
         self.weakest_fitness = sys.maxsize
 
+        self.count = 0
+        self.eval_time = 0
+
+    def get_avg_evaluation_time(self):
+        return self.eval_time / float(self.count)
+
     def __get_now_best(self):
         return max(self.__chromosome_to_fitness.items(), key=(lambda x: x[1]))
 
@@ -58,7 +64,11 @@ class BaseGeneticAlgorithm(ABC):
 
     def __calc_generation_fitness(self):
         self.__chromosome_to_fitness.clear();
+
+        s = time.time()
         self.evaluate_fitness(self.__chromosomes)
+        self.count += 1
+        self.eval_time += time.time() - s
 
         now_best, now_best_fit = self.__get_now_best()
         now_weakest, now_weakest_fit = self.__get_now_weakest()

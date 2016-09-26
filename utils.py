@@ -1,6 +1,22 @@
 import random
 from gene import Gene
 from chromosome import Chromosome
+from math import pi, sqrt, asin, cos, sin, pow
+
+def calc_linear_distance(x1, y1, x2, y2):
+    return sqrt((x2 - x1)**2 + (y2 - y1)**2)
+
+def calc_spherical_distance(x1, y1, x2, y2):
+    def rad(deg):
+        return deg * pi / 180.0
+    rad_x1 = rad(x1)
+    rad_x2 = rad(x2)
+    a = rad_x1 - rad_x2
+    b = rad(y1) - rad(y2)
+    s = 2 * asin(sqrt(pow(sin(a/2),2)+cos(rad_x1)*cos(rad_x2)*pow(sin(b/2),2)))
+    s = s * 6378.137
+    s = round( s * 10000 ) / 10000
+    return s
 
 def create_chromosomes_by_cityids(num_of_chromosomes, city_ids):
     chromosomes = []
