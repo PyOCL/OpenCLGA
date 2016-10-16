@@ -11,6 +11,7 @@ class BaseGeneticAlgorithm(ABC):
         self.__population_size = len(chromosomes)
         self.elapsed_time = None
         self.__chromosome_to_fitness = {}
+        self.__c_run_func = self.__run_impl
         self.__c_co_func = Chromosome.crossover
         self.__c_mu_func = Chromosome.mutate
 
@@ -80,7 +81,7 @@ class BaseGeneticAlgorithm(ABC):
             self.weakest = now_weakest.clone()
             self.weakest_fitness = float(now_weakest_fit)
 
-    def __run(self, generations, prob_mutate, prob_crossover):
+    def __run_impl(self, generations, prob_mutate, prob_crossover):
         self.__calc_generation_fitness()
 
         # Steps for each generation
@@ -100,9 +101,12 @@ class BaseGeneticAlgorithm(ABC):
         assert 0 <= prob_mutate <= 1
         assert 0 <= prob_crossover <= 1
         start_time = time.time()
-        self.__run(generations, prob_mutate, prob_crossover)
+        self.__c_run_func(generations, prob_mutate, prob_crossover)
         self.elapsed_time = time.time() - start_time
         return self.best
+
+    def get_chromosomes(self):
+        return self.__chromosomes
 
     @abstractmethod
     def evaluate_fitness(self, chromosomes):
@@ -111,6 +115,9 @@ class BaseGeneticAlgorithm(ABC):
     def update_chromosome_fitness(self, chromosome, fitness):
         # This should be called in an overriden |evaluate_fitness|.
         self.__chromosome_to_fitness[chromosome] = fitness
+
+    def set_customized_run_impl(self, func):
+        self.__c_run_func = func
 
     def set_customized_crossover_func(self, func):
         self.__c_co_func = func
