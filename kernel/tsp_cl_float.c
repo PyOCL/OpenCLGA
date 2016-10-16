@@ -37,9 +37,8 @@ __kernel  void tsp_fitness(global Point* points,
   for (int i = 0; i < chromosome_size; i++) {
     // dist += calc_linear_distance(points[chromosomes[c_start + i + 1]].x, points[chromosomes[c_start + i + 1]].y,
     //                              points[chromosomes[c_start + i]].x, points[chromosomes[c_start + i]].y);
-   dist += calc_spherical_distance(points[chromosomes[c_start + i + 1]].x, points[chromosomes[c_start + i + 1]].y,
-                                   points[chromosomes[c_start + i]].x, points[chromosomes[c_start + i]].y);
-
+    dist += calc_spherical_distance(points[chromosomes[c_start + i + 1]].x, points[chromosomes[c_start + i + 1]].y,
+                                    points[chromosomes[c_start + i]].x, points[chromosomes[c_start + i]].y);
   }
 
   distances[idx] = dist;

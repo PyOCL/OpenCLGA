@@ -25,6 +25,14 @@ class TSPGACL(BaseGeneticAlgorithm):
         self.mem_pool =cl.tools.MemoryPool(cl.tools.ImmediateAllocator(self.queue))
         self.prg = cl.Program(self.ctx, fstr).build();
 
+        pointType = numpy.dtype([('x', numpy.float32), ('y', numpy.float32)])
+        # Add a duplicated city_point[0] in front of the list of city_points.
+        # Makes it easier to access for kernel.
+        expanded_city_points = [self.city_points[0]] + self.city_points
+        self.dev_points = clarray.to_device(self.queue,
+                                            numpy.array(expanded_city_points, dtype=pointType),
+                                            allocator=self.mem_pool)
+
     def calc_distance(self, chromosome):
         # city_ids [1,2,3,4,...N]
         city_ids = [DNAs[0] for DNAs in chromosome.dna]
@@ -66,21 +74,16 @@ class TSPGACL(BaseGeneticAlgorithm):
         distances = numpy.zeros(num_of_chromosomes, dtype=numpy.float32)
 
         mf = cl.mem_flags
-        # Add a duplicated city_point[0] in front of the list of city_points.
-        # Makes it easier to access for kernel.
-        expanded_city_points = [self.city_points[0]] + self.city_points
-        pointType = numpy.dtype([('x', numpy.float32), ('y', numpy.float32)])
-        dev_points = clarray.to_device(self.queue,
-                                       numpy.array(expanded_city_points, dtype=pointType),
-                                       allocator=self.mem_pool)
+
         dev_chromosomes = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR,
                                     hostbuf=numpy.array(chromosomesArray, dtype=numpy.int32))
         dev_distances = cl.Buffer(self.ctx, mf.WRITE_ONLY,
                                   distances.nbytes)
+        cl.enqueue_copy(self.queue, dev_distances, distances)
         exec_evt = self.prg.tsp_fitness(self.queue,
                                         (num_of_chromosomes,),
                                         (1,),
-                                        dev_points.data,
+                                        self.dev_points.data,
                                         dev_chromosomes,
                                         dev_distances,
                                         numpy.int32(len(self.city_points)+1),
