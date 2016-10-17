@@ -64,15 +64,18 @@ class TSPGACL(BaseGeneticAlgorithm):
         num_of_chromosomes = len(chromosomes)
         distances = numpy.zeros(num_of_chromosomes, dtype=numpy.float32)
         survivors = numpy.zeros(num_of_chromosomes, dtype=numpy.bool)
+        np_chromosomes = numpy.array(chromosomesArray, dtype=numpy.int32)
 
         mf = cl.mem_flags
+        # Random number should be given by Host program because OpenCL doesn't have a random number
+        # generator. We just include one, Noise.cl.
         rnum = [random.randint(1, (int)(time()))]
         dev_rnum = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
                              hostbuf=numpy.array(rnum, dtype=numpy.int32))
 
 
         dev_chromosomes = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
-                                    hostbuf=numpy.array(chromosomesArray, dtype=numpy.int32))
+                                    hostbuf=np_chromosomes)
         dev_distances = cl.Buffer(self.ctx, mf.WRITE_ONLY, distances.nbytes)
         dev_survivors = cl.Buffer(self.ctx, mf.WRITE_ONLY, survivors.nbytes)
 
@@ -91,7 +94,8 @@ class TSPGACL(BaseGeneticAlgorithm):
                                                numpy.float32(prob_mutate),
                                                numpy.float32(prob_crossover))
         exec_evt.wait()
-        cl.enqueue_read_buffer(self.queue, dev_distances, distances).wait()
+        cl.enqueue_read_buffer(self.queue, dev_distances, distances)
+        cl.enqueue_read_buffer(self.queue, dev_chromosomes, np_chromosomes).wait()
         # Steps for each generation
         # 1 - select survivors
         # 2 - reproduce new individuals by crossover
@@ -103,7 +107,13 @@ class TSPGACL(BaseGeneticAlgorithm):
         #     self.__chromosomes = self.__reproduce(survivors, prob_crossover)
         #     self.__start_mutation(prob_mutate)
         # self.__calc_generation_fitness()
-        pprint(distances)
+        minDistance = min(value for value in distances)
+        minIndex = list(distances).index(minDistance)
+        print("Shortest Length: %f @ %d"%(minDistance, minIndex))
+
+        startGeneId = minIndex * chromosomes[0].num_of_genes
+        endGeneId = (minIndex + 1) * chromosomes[0].num_of_genes
+        print("Shortest Path: " + " => ".join(str(v) for v in np_chromosomes[startGeneId:endGeneId]))
         print(">>>>>>>>>>>>>>>>>>>>>>>>>> BYE")
         pass
 
