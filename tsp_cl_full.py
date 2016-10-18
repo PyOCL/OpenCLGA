@@ -111,8 +111,8 @@ class TSPGACL(BaseGeneticAlgorithm):
         minIndex = list(distances).index(minDistance)
         print("Shortest Length: %f @ %d"%(minDistance, minIndex))
 
-        startGeneId = minIndex * chromosomes[0].num_of_genes
-        endGeneId = (minIndex + 1) * chromosomes[0].num_of_genes
+        startGeneId = minIndex * (chromosomes[0].num_of_genes + 1)
+        endGeneId = (minIndex + 1) * (chromosomes[0].num_of_genes + 1)
         print("Shortest Path: " + " => ".join(str(v) for v in np_chromosomes[startGeneId:endGeneId]))
         print(">>>>>>>>>>>>>>>>>>>>>>>>>> BYE")
         pass
