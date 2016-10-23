@@ -18,6 +18,18 @@ uint rand_range(uint* holder, uint range)
 }
 
 // holder - A lenght 1 array which stores the last rand value.
+// Returns a random uint value in the range except aExcluded.
+uint rand_range_exclude(uint* holder, uint range, uint aExcluded)
+{
+  uint r = rand(holder) % range;
+  while (r == aExcluded) {
+    r = rand(holder) % range;
+  }
+  return r;
+}
+
+
+// holder - A lenght 1 array which stores the last rand value.
 // Returns a random float value from 0.0~1.0
 float rand_prob(uint* holder)
 {

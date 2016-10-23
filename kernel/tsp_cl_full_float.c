@@ -48,12 +48,19 @@ int find_survied_idx(uint* ra, global bool* surviors, int chromosome_count)
   return s_idx;
 }
 
-void print_chrosome(int idx, global int* chromosomes, int chromosome_size)
+void print_chrosomes(int idx, global int* chromosomes, int chromosome_size,
+                    int chromosomes_count)
 {
-  printf("idx(%d) - ", idx);
-  int start = idx * chromosome_size;
-  for (int i = 0; i < chromosome_size; i++) {
-      printf("idx(%d)-%d,", idx, chromosomes[start+i]);
+  if (idx != 0) {
+    return;
+  }
+  for (int c = 0; c < chromosomes_count; c++) {
+    int start = c * chromosome_size;
+    printf("Chromosome[%d]:", c);
+    for (int i = 0; i < chromosome_size; i++) {
+        printf("->(%d)", chromosomes[start+i]);
+    }
+    printf("\n");
   }
   printf("\n");
 }
@@ -61,7 +68,6 @@ void print_chrosome(int idx, global int* chromosomes, int chromosome_size)
 void chromosome_swap(int idx, global int* chromosomes, int chromosome_size,
                      int cp, int p1)
 {
-  // print_chrosome(idx, chromosomes, chromosome_size);
   int c1 = idx * chromosome_size;
   uint temp_p = chromosomes[c1+cp];
   uint temp_1 = chromosomes[c1+p1];
@@ -73,7 +79,6 @@ void chromosome_swap(int idx, global int* chromosomes, int chromosome_size,
   if (p1 == 0) {
     chromosomes[c1 + chromosome_size-1] = temp_p;
   }
-  // print_chrosome(idx, chromosomes, chromosome_size);
 }
 
 void reproduce(int idx, int chromosome_size, int chromosome_count,
@@ -88,11 +93,10 @@ void reproduce(int idx, int chromosome_size, int chromosome_count,
   float p_v =  rand_prob(ra);
   // printf(" >>>>> not live - idx(%d)/ c1idx(%d), p_v(%f)\n", idx, c1_idx, p_v);
   if (p_v < p_c) {
-    // print_chrosome(idx, chromosomes, chromosome_size);
     for (int i = 0; i < chromosome_size; i++) {
       chromosomes[c_start + i] = chromosomes[c1_start + i];
     }
-    // print_chrosome(c1_idx, chromosomes, chromosome_size);
+
     uint c2_idx = find_survied_idx(ra, survivors, chromosome_count);
     // do crossover here
     uint cross_point = rand_range(ra, chromosome_size-1);
@@ -100,7 +104,6 @@ void reproduce(int idx, int chromosome_size, int chromosome_count,
     for (int i = 0; i < chromosome_size-1; i++) {
       if (chromosomes[c_start + i] == chromosomes[c2_start + cross_point]) {
         // printf("  <<<<< not live idx(%d)- c2_idx(%d) / cp(%u) / i(%d) \n", idx, c2_idx, cross_point, i);
-        // print_chrosome(c2_idx, chromosomes, chromosome_size);
         chromosome_swap(idx, chromosomes, chromosome_size, cross_point, i);
         break;
       }
@@ -112,9 +115,16 @@ void reproduce(int idx, int chromosome_size, int chromosome_count,
   }
 }
 
-void mutate()
+void mutate(int idx, int chromosome_size, int chromosome_count,
+            global int* chromosomes, float aProb_m, uint* rand_holder)
 {
-
+  for (int i = 0; i < chromosome_size-1; i++) {
+    float prob_m =  rand_prob(rand_holder);
+    if (prob_m < aProb_m) {
+      uint j = rand_range_exclude(rand_holder, chromosome_size-1, i);
+      chromosome_swap(idx, chromosomes, chromosome_size, i, j);
+    }
+  }
 }
 
 void calc_min_max(float* min, float* max, global float* distances, int chromosome_count)
@@ -151,7 +161,7 @@ __kernel void tsp_one_generation(global Point* points,
   calc_fitness(idx, points, chromosomes, distances, chromosome_size, chromosome_count);
   // Barrier for the calculation of all chromosomes fitness.
   barrier(CLK_GLOBAL_MEM_FENCE);
-  printf("[FirstRound] idx(%d), fit(%f), rand(%u)\n", idx, distances[idx], rand(ra));
+  // printf("[FirstRound] idx(%d), fit(%f), rand(%u)\n", idx, distances[idx], rand(ra));
 
   // No need to calculate survivor list with all kernels. We use the first kernel to do it.
   if (0 == idx) {
@@ -163,7 +173,7 @@ __kernel void tsp_one_generation(global Point* points,
 
     // Calculate surviors indice.
     float threshold = min[0] + (max[0] - min[0]) / 2;
-    if (idx == 0) printf("[Thresholde] (%f) \n", threshold);
+    // if (idx == 0) printf("[Thresholde] (%f) \n", threshold);
     for (int i = 0; i < chromosome_count; i++) {
       int live = false;
       if (distances[i] <= threshold) {
@@ -181,8 +191,18 @@ __kernel void tsp_one_generation(global Point* points,
                 prob_crossover, ra);
       calc_fitness(idx, points, chromosomes, distances, chromosome_size, chromosome_count);
   }
+  // printf("[AfterReproduce&Crossover] idx(%d), fit(%f) \n", idx, distances[idx]);
 
-  // Barrier for the calculation of all chromosomes fitness.
-  printf("[AfterReproduce&Crossover] idx(%d), fit(%f) \n", idx, distances[idx]);
-  // TBD.
+  // // Barrier for printing chromses after reproduce/crossover.
+  // barrier(CLK_GLOBAL_MEM_FENCE);
+  // print_chrosomes(idx, chromosomes, chromosome_size, chromosome_count);
+
+  mutate(idx, chromosome_size, chromosome_count, chromosomes,
+         prob_mutate, ra);
+
+  // // Barrier for next round.
+  // barrier(CLK_GLOBAL_MEM_FENCE);
+  // calc_fitness(idx, points, chromosomes, distances, chromosome_size, chromosome_count);
+  // printf("[AfterMutation] idx(%d), fit(%f) \n", idx, distances[idx]);
+  // print_chrosomes(idx, chromosomes, chromosome_size, chromosome_count);
 }

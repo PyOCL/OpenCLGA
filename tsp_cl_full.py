@@ -81,32 +81,25 @@ class TSPGACL(BaseGeneticAlgorithm):
 
         cl.enqueue_copy(self.queue, dev_distances, distances)
 
-        exec_evt = self.prg.tsp_one_generation(self.queue,
-                                               (num_of_chromosomes,),
-                                               (num_of_chromosomes,),
-                                               self.dev_points.data,
-                                               dev_chromosomes,
-                                               dev_distances,
-                                               dev_survivors,
-                                               dev_rnum,
-                                               numpy.int32(len(self.city_points)+1),
-                                               numpy.int32(num_of_chromosomes),
-                                               numpy.float32(prob_mutate),
-                                               numpy.float32(prob_crossover))
-        exec_evt.wait()
+        exec_evt = None
+        for i in range(generations):
+            exec_evt = self.prg.tsp_one_generation(self.queue,
+                                                   (num_of_chromosomes,),
+                                                   (num_of_chromosomes,),
+                                                   self.dev_points.data,
+                                                   dev_chromosomes,
+                                                   dev_distances,
+                                                   dev_survivors,
+                                                   dev_rnum,
+                                                   numpy.int32(len(self.city_points)+1),
+                                                   numpy.int32(num_of_chromosomes),
+                                                   numpy.float32(prob_mutate),
+                                                   numpy.float32(prob_crossover))
+        if exec_evt:
+            exec_evt.wait()
         cl.enqueue_read_buffer(self.queue, dev_distances, distances)
         cl.enqueue_read_buffer(self.queue, dev_chromosomes, np_chromosomes).wait()
-        # Steps for each generation
-        # 1 - select survivors
-        # 2 - reproduce new individuals by crossover
-        # 3 - mutate
-        # 4 - calculate all chromosomes's fitness
-        # for gen in range(1, generations + 1):
-        #     self.__calc_generation_fitness()
-        #     survivors = self.__select(self.__chromosomes)
-        #     self.__chromosomes = self.__reproduce(survivors, prob_crossover)
-        #     self.__start_mutation(prob_mutate)
-        # self.__calc_generation_fitness()
+
         minDistance = min(value for value in distances)
         minIndex = list(distances).index(minDistance)
         print("Shortest Length: %f @ %d"%(minDistance, minIndex))
@@ -119,12 +112,12 @@ class TSPGACL(BaseGeneticAlgorithm):
         print(">>>>>>>>>>>>>>>>>>>>>>>>>> BYE")
         pass
 
-def run(num_cities=10, num_chromosomes=10, generations=2):
+def run(num_cities=20, num_chromosomes=100, generations=5000):
     random.seed(100)
     city_ids = list(range(1, num_cities + 1))
     city_info = {city_id: (random.random() * 100, random.random() * 100) for city_id in city_ids}
 
-    rs = random.randint(1, (int)(time()))
+    rs = random.randint(1, 1)
     random.seed(rs)
 
     chromosomes = create_chromosomes_by_cityids(num_chromosomes, city_ids)

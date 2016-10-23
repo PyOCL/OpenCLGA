@@ -25,8 +25,8 @@ class TSPGA(BaseGeneticAlgorithm):
         for s, e in paired_city_ids:
             x1, y1 = self.city_info[s]
             x2, y2 = self.city_info[e]
-            # dist = calc_linear_distance(x1, y1, x2, y2)
-            dist = calc_spherical_distance(x1, y1, x2, y2)
+            dist = calc_linear_distance(x1, y1, x2, y2)
+            # dist = calc_spherical_distance(x1, y1, x2, y2)
             total_dist += dist
 
         return total_dist
