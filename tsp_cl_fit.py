@@ -7,7 +7,8 @@ from time import time
 from itertools import tee
 from pyopencl import array as clarray
 from utils import create_chromosomes_by_cityids, custom_mutate, custom_crossover,\
-                calc_spherical_distance, calc_linear_distance
+                calc_spherical_distance, calc_linear_distance, init_rand_seed,\
+                get_params
 from algorithm import BaseGeneticAlgorithm
 from pprint import pprint
 
@@ -94,13 +95,10 @@ class TSPGACL(BaseGeneticAlgorithm):
         for idx, distance in enumerate(distances):
             self.update_chromosome_fitness(chromosomes[idx], -1*distance)
 
-def run(num_cities=20, num_chromosomes=500, generations=5000):
-    random.seed(100)
+def run(num_cities, num_chromosomes, generations):
+    init_rand_seed()
     city_ids = list(range(1, num_cities + 1))
     city_info = {city_id: (random.random() * 100, random.random() * 100) for city_id in city_ids}
-
-    rs = random.randint(1, 1)
-    random.seed(rs)
 
     chromosomes = create_chromosomes_by_cityids(num_chromosomes, city_ids)
 
@@ -117,4 +115,5 @@ def run(num_cities=20, num_chromosomes=500, generations=5000):
     print("best distance =", tsp_ga_cl.calc_distance(best))
     print("avg eval time :", tsp_ga_cl.get_avg_evaluation_time(), "seconds.")
 if __name__ == '__main__':
-    run()
+    cites, chromosomes, gens = get_params()
+    run(num_cities=cites, num_chromosomes=chromosomes, generations=gens)

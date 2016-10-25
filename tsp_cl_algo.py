@@ -9,7 +9,8 @@ from time import clock
 from itertools import tee
 from pyopencl import array as clarray
 from utils import create_chromosomes_by_cityids, custom_mutate, custom_crossover,\
-                calc_spherical_distance, calc_linear_distance
+                calc_spherical_distance, calc_linear_distance, init_rand_seed,\
+                get_params
 from algorithm import BaseGeneticAlgorithm
 from pprint import pprint
 
@@ -59,7 +60,7 @@ class TSPGACL(BaseGeneticAlgorithm):
             assert lenght_of_chromosome == c.num_of_genes
             for g in c.dna:
                 chromosomesArray += g
-            chromosomesArray += c.dna[0]
+            # chromosomesArray += c.dna[0]
 
         num_of_chromosomes = len(chromosomes)
         distances = numpy.zeros(num_of_chromosomes, dtype=numpy.float32)
@@ -99,7 +100,7 @@ class TSPGACL(BaseGeneticAlgorithm):
                                                    dev_rnum,
                                                    dev_best,
                                                    dev_weakest,
-                                                   numpy.int32(len(self.city_points)+1),
+                                                   numpy.int32(len(self.city_points)),
                                                    numpy.int32(num_of_chromosomes),
                                                    numpy.float32(prob_mutate),
                                                    numpy.float32(prob_crossover))
@@ -114,18 +115,15 @@ class TSPGACL(BaseGeneticAlgorithm):
 
         # We had convert chromosome to a cyclic gene. So, the num_of_genes in CL is more than python
         # by one.
-        startGeneId = minIndex * (chromosomes[0].num_of_genes + 1)
-        endGeneId = (minIndex + 1) * (chromosomes[0].num_of_genes + 1)
-        self.best = [v for v in np_chromosomes[startGeneId:endGeneId-1]]
+        startGeneId = minIndex * (chromosomes[0].num_of_genes)
+        endGeneId = (minIndex + 1) * (chromosomes[0].num_of_genes)
+        self.best = [v for v in np_chromosomes[startGeneId:endGeneId]]
         self.best_fitness = minDistance
 
-def run(num_cities=20, num_chromosomes=100, generations=5000):
-    random.seed(100)
+def run(num_cities, num_chromosomes, generations):
+    init_rand_seed()
     city_ids = list(range(1, num_cities + 1))
     city_info = {city_id: (random.random() * 100, random.random() * 100) for city_id in city_ids}
-
-    rs = random.randint(1, 1)
-    random.seed(rs)
 
     chromosomes = create_chromosomes_by_cityids(num_chromosomes, city_ids)
 
@@ -141,4 +139,5 @@ def run(num_cities=20, num_chromosomes=100, generations=5000):
     assert len(set(best)) == num_cities, "Duplicated city in the sequence."
 
 if __name__ == '__main__':
-    run()
+    cites, chromosomes, gens = get_params()
+    run(num_cities=cites, num_chromosomes=chromosomes, generations=gens)

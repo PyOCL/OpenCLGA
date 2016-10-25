@@ -31,11 +31,23 @@ void calc_fitness(int idx,
   float dist = 0.0;
   int c_start = idx * chromosome_size;
   for (int i = 0; i < chromosome_size-1; i++) {
-    dist += calc_linear_distance(points[chromosomes[c_start + i + 1]].x, points[chromosomes[c_start + i + 1]].y,
-                                 points[chromosomes[c_start + i]].x, points[chromosomes[c_start + i]].y);
-  //  dist += calc_spherical_distance(points[chromosomes[c_start + i + 1]].x, points[chromosomes[c_start + i + 1]].y,
-  //                                  points[chromosomes[c_start + i]].x, points[chromosomes[c_start + i]].y);
+    dist += calc_linear_distance(points[chromosomes[c_start + i + 1]].x,
+                                 points[chromosomes[c_start + i + 1]].y,
+                                 points[chromosomes[c_start + i]].x,
+                                 points[chromosomes[c_start + i]].y);
+    // dist += calc_spherical_distance(points[chromosomes[c_start + i + 1]].x,
+    //                                 points[chromosomes[c_start + i + 1]].y,
+    //                                 points[chromosomes[c_start + i]].x,
+    //                                 points[chromosomes[c_start + i]].y);
   }
+  dist += calc_linear_distance(points[chromosomes[c_start]].x,
+                               points[chromosomes[c_start]].y,
+                               points[chromosomes[c_start + chromosome_size - 1]].x,
+                               points[chromosomes[c_start + chromosome_size - 1]].y);
+  // dist += calc_spherical_distance(points[chromosomes[c_start]].x,
+  //                                 points[chromosomes[c_start]].y,
+  //                                 points[chromosomes[c_start + chromosome_size - 1]].x,
+  //                                 points[chromosomes[c_start + chromosome_size - 1]].y);
   distances[idx] = dist;
 }
 
@@ -49,14 +61,14 @@ int find_survied_idx(uint* ra, global bool* surviors, int chromosome_count)
 }
 
 void print_chrosomes(int idx, global int* chromosomes, int chromosome_size,
-                    int chromosomes_count)
+                    int chromosomes_count, global float* distances)
 {
   if (idx != 0) {
     return;
   }
   for (int c = 0; c < chromosomes_count; c++) {
     int start = c * chromosome_size;
-    printf("Chromosome[%d]:", c);
+    printf("Chromosome[%d]/dist[%f]:", c, distances[c]);
     for (int i = 0; i < chromosome_size; i++) {
         printf("->(%d)", chromosomes[start+i]);
     }
@@ -70,15 +82,8 @@ void chromosome_swap(int idx, global int* chromosomes, int chromosome_size,
 {
   int c1 = idx * chromosome_size;
   uint temp_p = chromosomes[c1+cp];
-  uint temp_1 = chromosomes[c1+p1];
-  chromosomes[c1+cp] = temp_1;
+  chromosomes[c1+cp] = chromosomes[c1+p1];
   chromosomes[c1+p1] = temp_p;
-  if (cp == 0) {
-    chromosomes[c1 + chromosome_size-1] = temp_1;
-  }
-  if (p1 == 0) {
-    chromosomes[c1 + chromosome_size-1] = temp_p;
-  }
 }
 
 void reproduce(int idx, int chromosome_size, int chromosome_count,
@@ -99,9 +104,9 @@ void reproduce(int idx, int chromosome_size, int chromosome_count,
 
     uint c2_idx = find_survied_idx(ra, survivors, chromosome_count);
     // do crossover here
-    uint cross_point = rand_range(ra, chromosome_size-1);
+    uint cross_point = rand_range(ra, chromosome_size);
     int c2_start = c2_idx * chromosome_size;
-    for (int i = 0; i < chromosome_size-1; i++) {
+    for (int i = 0; i < chromosome_size; i++) {
       if (chromosomes[c_start + i] == chromosomes[c2_start + cross_point]) {
         // printf("  <<<<< not live idx(%d)- c2_idx(%d) / cp(%u) / i(%d) \n", idx, c2_idx, cross_point, i);
         chromosome_swap(idx, chromosomes, chromosome_size, cross_point, i);
@@ -118,10 +123,10 @@ void reproduce(int idx, int chromosome_size, int chromosome_count,
 void mutate(int idx, int chromosome_size, int chromosome_count,
             global int* chromosomes, float aProb_m, uint* rand_holder)
 {
-  for (int i = 0; i < chromosome_size-1; i++) {
+  for (int i = 0; i < chromosome_size; i++) {
     float prob_m =  rand_prob(rand_holder);
     if (prob_m < aProb_m) {
-      uint j = rand_range_exclude(rand_holder, chromosome_size-1, i);
+      uint j = rand_range_exclude(rand_holder, chromosome_size, i);
       chromosome_swap(idx, chromosomes, chromosome_size, i, j);
     }
   }
@@ -175,9 +180,10 @@ __kernel void tsp_one_generation(global Point* points,
     best_global[0] = min(min_local[0], best_global[0]);
     weakest_global[0] = max(max_local[0], weakest_global[0]);
     // Calculate surviors indice.
-    float threshold = weakest_global[0] - (weakest_global[0] - best_global[0]) / 2;
+    // NOTE: Tuning the threshold to get better surviors !
+    float threshold = weakest_global[0] - (weakest_global[0] - best_global[0]) / 1.1;
     // printf("[Thresholde] (%f) / best_global(%f) / weakest_fitness(%f)\n",
-    //   threshold, best_global[0], weakest_global[0]);
+      // threshold, best_global[0], weakest_global[0]);
     for (int i = 0; i < chromosome_count; i++) {
       survivors[i] = distances[i] <= threshold ? true : false;
     }
@@ -195,7 +201,7 @@ __kernel void tsp_one_generation(global Point* points,
 
   // Barrier for mutation.
   barrier(CLK_GLOBAL_MEM_FENCE);
-  // print_chrosomes(idx, chromosomes, chromosome_size, chromosome_count);
+  // print_chrosomes(idx, chromosomes, chromosome_size, chromosome_count, distances);
 
   mutate(idx, chromosome_size, chromosome_count, chromosomes,
          prob_mutate, ra);
@@ -204,5 +210,5 @@ __kernel void tsp_one_generation(global Point* points,
   // barrier(CLK_GLOBAL_MEM_FENCE);
   // calc_fitness(idx, points, chromosomes, distances, chromosome_size, chromosome_count);
   // printf("[AfterMutation] idx(%d), fit(%f) \n", idx, distances[idx]);
-  // print_chrosomes(idx, chromosomes, chromosome_size, chromosome_count);
+  // print_chrosomes(idx, chromosomes, chromosome_size, chromosome_count, distances);
 }

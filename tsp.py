@@ -3,7 +3,8 @@ import random
 from itertools import tee
 from time import time
 from utils import create_chromosomes_by_cityids, custom_mutate, custom_crossover,\
-                  calc_linear_distance, calc_spherical_distance
+                  calc_linear_distance, calc_spherical_distance, init_rand_seed,\
+                  get_params
 from algorithm import BaseGeneticAlgorithm
 
 class TSPGA(BaseGeneticAlgorithm):
@@ -40,13 +41,10 @@ def print_all_chromosomes(cs):
     for c in cs:
         print(c.dna)
 
-def run(num_cities=20, num_chromosomes=500, generations=5000):
-    random.seed(100)
+def run(num_cities, num_chromosomes, generations):
+    init_rand_seed()
     city_ids = list(range(1, num_cities + 1))
     city_info = {city_id: (random.random() * 100, random.random() * 100) for city_id in city_ids}
-
-    rs = random.randint(1, 1)
-    random.seed(rs)
 
     chromosomes = create_chromosomes_by_cityids(num_chromosomes, city_ids)
     # print_all_chromosomes(chromosomes)
@@ -61,11 +59,12 @@ def run(num_cities=20, num_chromosomes=500, generations=5000):
 
     best = tsp_ga.get_best()
     best_dist = tsp_ga.calc_distance(best)
+    print("best distance =", best_dist)
     print("run took", tsp_ga.elapsed_time, "seconds")
     print("best =", best.dna)
-    for g in best.dna:
-        print(city_info[g[0]])
-    print("best distance =", best_dist)
-    print("avg eval time :", tsp_ga.get_avg_evaluation_time(), "seconds.")
+    # for g in best.dna:
+    #     print(city_info[g[0]])
+    # print("avg eval time :", tsp_ga.get_avg_evaluation_time(), "seconds.")
 if __name__ == '__main__':
-    run()
+    cites, chromosomes, gens = get_params()
+    run(num_cities=cites, num_chromosomes=chromosomes, generations=gens)

@@ -3,6 +3,12 @@ from gene import Gene
 from chromosome import Chromosome
 from math import pi, sqrt, asin, cos, sin, pow
 
+def get_params():
+    return 20, 200, 5000
+
+def init_rand_seed():
+    random.seed(119)
+
 def calc_linear_distance(x1, y1, x2, y2):
     return sqrt((x2 - x1)**2 + (y2 - y1)**2)
 
