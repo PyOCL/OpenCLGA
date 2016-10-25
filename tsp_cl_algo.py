@@ -21,7 +21,7 @@ class TSPGACL(BaseGeneticAlgorithm):
 
         self.ctx = cl.create_some_context()
         self.queue = cl.CommandQueue(self.ctx)
-        f = open('kernel/tsp_cl_full_float.c', 'r')
+        f = open('kernel/tsp_cl_algo.c', 'r')
         fstr = "".join(f.readlines())
         f.close()
         self.mem_pool =cl.tools.MemoryPool(cl.tools.ImmediateAllocator(self.queue))

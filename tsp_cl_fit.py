@@ -19,7 +19,7 @@ class TSPGACL(BaseGeneticAlgorithm):
 
         self.ctx = cl.create_some_context()
         self.queue = cl.CommandQueue(self.ctx)
-        f = open('kernel/tsp_cl_float.c', 'r')
+        f = open('kernel/tsp_cl_fitness.c', 'r')
         fstr = "".join(f.readlines())
         f.close()
         self.mem_pool =cl.tools.MemoryPool(cl.tools.ImmediateAllocator(self.queue))
@@ -110,8 +110,8 @@ def run(num_cities=20, num_chromosomes=500, generations=5000):
 
     prob_mutate = 0.10
     prob_cross = 0.50
-    best = tsp_ga_cl.run(generations, prob_mutate, prob_cross)
-
+    tsp_ga_cl.run(generations, prob_mutate, prob_cross)
+    best = tsp_ga_cl.get_best()
     print("run took", tsp_ga_cl.elapsed_time, "seconds")
     print("best =", best.dna)
     print("best distance =", tsp_ga_cl.calc_distance(best))
