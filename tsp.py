@@ -36,6 +36,10 @@ class TSPGA(BaseGeneticAlgorithm):
             fitness = -1 * self.calc_distance(chromosome)
             self.update_chromosome_fitness(chromosome, fitness)
 
+def print_all_chromosomes(cs):
+    for c in cs:
+        print(c.dna)
+
 def run(num_cities=20, num_chromosomes=500, generations=5000):
     random.seed(100)
     city_ids = list(range(1, num_cities + 1))
@@ -45,6 +49,7 @@ def run(num_cities=20, num_chromosomes=500, generations=5000):
     random.seed(rs)
 
     chromosomes = create_chromosomes_by_cityids(num_chromosomes, city_ids)
+    # print_all_chromosomes(chromosomes)
 
     tsp_ga = TSPGA(city_info, chromosomes)
     tsp_ga.set_customized_crossover_func(custom_crossover)
@@ -57,6 +62,8 @@ def run(num_cities=20, num_chromosomes=500, generations=5000):
     best_dist = tsp_ga.calc_distance(best)
     print("run took", tsp_ga.elapsed_time, "seconds")
     print("best =", best.dna)
+    for g in best.dna:
+        print(city_info[g[0]])
     print("best distance =", best_dist)
     print("avg eval time :", tsp_ga.get_avg_evaluation_time(), "seconds.")
 if __name__ == '__main__':
