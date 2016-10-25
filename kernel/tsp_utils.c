@@ -5,8 +5,10 @@
 uint rand(uint* holder)
 {
   uint b = ParallelRNG(holder[0]);
-  holder[0] = b;
-  return b;
+  uint c = ParallelRNG2(b, holder[0]);
+  uint d = ParallelRNG3(c, b, holder[0]);
+  holder[0] = c;
+  return d;
 }
 
 // holder - A lenght 1 array which stores the last rand value.
