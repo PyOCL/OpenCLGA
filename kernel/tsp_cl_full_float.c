@@ -193,7 +193,7 @@ __kernel void tsp_one_generation(global Point* points,
   }
   // printf("[AfterReproduce&Crossover] idx(%d), fit(%f) \n", idx, distances[idx]);
 
-
+  // Barrier for mutation.
   barrier(CLK_GLOBAL_MEM_FENCE);
   // print_chrosomes(idx, chromosomes, chromosome_size, chromosome_count);
 
