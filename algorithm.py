@@ -103,7 +103,12 @@ class BaseGeneticAlgorithm(ABC):
         start_time = time.time()
         self.__c_run_func(generations, prob_mutate, prob_crossover)
         self.elapsed_time = time.time() - start_time
+
+    def get_best(self):
         return self.best
+
+    def get_best_fitness(self):
+        return self.best_fitness
 
     def get_chromosomes(self):
         return self.__chromosomes

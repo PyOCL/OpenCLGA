@@ -144,6 +144,8 @@ __kernel void tsp_one_generation(global Point* points,
                                  global float* distances,
                                  global bool* survivors,
                                  global int* input_rand,
+                                 global float* best_global,
+                                 global float* weakest_global,
                                  int chromosome_size,
                                  int chromosome_count,
                                  float prob_mutate,
@@ -165,21 +167,19 @@ __kernel void tsp_one_generation(global Point* points,
 
   // No need to calculate survivor list with all kernels. We use the first kernel to do it.
   if (0 == idx) {
-    float min[1];
-    float max[1];
-    min[0] = INT_MAX;
-    max[0] = 0.0;
-    calc_min_max(min, max, distances, chromosome_count);
-
+    float min_local[1];
+    float max_local[1];
+    min_local[0] = INT_MAX;
+    max_local[0] = 0.0;
+    calc_min_max(min_local, max_local, distances, chromosome_count);
+    best_global[0] = min(min_local[0], best_global[0]);
+    weakest_global[0] = max(max_local[0], weakest_global[0]);
     // Calculate surviors indice.
-    float threshold = min[0] + (max[0] - min[0]) / 2;
-    // if (idx == 0) printf("[Thresholde] (%f) \n", threshold);
+    float threshold = weakest_global[0] - (weakest_global[0] - best_global[0]) / 2;
+    // printf("[Thresholde] (%f) / best_global(%f) / weakest_fitness(%f)\n",
+    //   threshold, best_global[0], weakest_global[0]);
     for (int i = 0; i < chromosome_count; i++) {
-      int live = false;
-      if (distances[i] <= threshold) {
-        live = true;
-      }
-      survivors[i] = live;
+      survivors[i] = distances[i] <= threshold ? true : false;
     }
   }
   // Barrier for survivor list.
@@ -193,8 +193,8 @@ __kernel void tsp_one_generation(global Point* points,
   }
   // printf("[AfterReproduce&Crossover] idx(%d), fit(%f) \n", idx, distances[idx]);
 
-  // // Barrier for printing chromses after reproduce/crossover.
-  // barrier(CLK_GLOBAL_MEM_FENCE);
+
+  barrier(CLK_GLOBAL_MEM_FENCE);
   // print_chrosomes(idx, chromosomes, chromosome_size, chromosome_count);
 
   mutate(idx, chromosome_size, chromosome_count, chromosomes,

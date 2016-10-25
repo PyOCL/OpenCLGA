@@ -57,8 +57,9 @@ def run(num_cities=20, num_chromosomes=500, generations=5000):
 
     prob_mutate = 0.10
     prob_cross = 0.50
-    best = tsp_ga.run(generations, prob_mutate, prob_cross)
+    tsp_ga.run(generations, prob_mutate, prob_cross)
 
+    best = tsp_ga.get_best()
     best_dist = tsp_ga.calc_distance(best)
     print("run took", tsp_ga.elapsed_time, "seconds")
     print("best =", best.dna)
