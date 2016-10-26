@@ -27,11 +27,13 @@ class TSPGACL(BaseGeneticAlgorithm):
         f.close()
         self.mem_pool =cl.tools.MemoryPool(cl.tools.ImmediateAllocator(self.queue))
 
-        strInc = '-I '
         modifiedlstPath = []
         for path in ["kernel"]:
             escapedPath = path.replace(' ', '^ ') if sys.platform.startswith('win') else path.replace(' ', '\\ ')
-            modifiedlstPath.append(strInc + escapedPath)
+            # After looking into the source code of pyopencl/__init__.py
+            # "-I" and folder path should be sepearetd. And " should not included in string path.
+            modifiedlstPath.append('-I')
+            modifiedlstPath.append(os.path.join(os.getcwd(), escapedPath))
         self.prg = cl.Program(self.ctx, fstr).build(modifiedlstPath);
 
         pointType = numpy.dtype([('x', numpy.float32), ('y', numpy.float32)])
