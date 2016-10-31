@@ -34,3 +34,10 @@ Option B. My personal experience (just to install all required stuff in a quick 
         
         2) http://www.lfd.uci.edu/~gohlke/pythonlibs/#pyopencl
      
+# Issues to be addressed
+
+1. A better random number generator for OpenCL kernel.
+
+2. The capability of customized mutation/crossover/fitness calculation for the GA algorithm in OpenCL kernel.
+
+3. Dynamic workgroup size(global/local workitem) management.
