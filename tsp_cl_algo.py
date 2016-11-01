@@ -10,7 +10,7 @@ from itertools import tee
 from pyopencl import array as clarray
 from utils import create_chromosomes_by_cityids, custom_mutate, custom_crossover,\
                 calc_spherical_distance, calc_linear_distance, init_rand_seed,\
-                get_params
+                get_params, plot_result
 from algorithm import BaseGeneticAlgorithm
 from pprint import pprint
 
@@ -139,6 +139,8 @@ def run(num_cities, num_chromosomes, generations):
     best = tsp_ga_cl.get_best()
     print("Shortest Path: " + " => ".join(str(d) for d in best))
     assert len(set(best)) == num_cities, "Duplicated city in the sequence."
+
+    plot_result(city_info, best)
 
 if __name__ == '__main__':
     cites, chromosomes, gens = get_params()

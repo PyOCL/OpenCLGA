@@ -53,3 +53,19 @@ def custom_crossover(c1, c2, point):
         if c1.dna[i] == c2.dna[point]:
             c1.swap(point, i)
             break
+
+def plot_result(city_info, city_ids):
+    import matplotlib.pyplot as plt
+    x = []
+    y = []
+    for c_id in city_ids:
+        x.append(city_info[c_id][0])
+        y.append(city_info[c_id][1])
+    x.append(x[0])
+    y.append(y[0])
+    print(x)
+    print(y)
+    plt.plot(x, y, 'ro-')
+    plt.ylabel('y')
+    plt.xlabel('x')
+    plt.show()

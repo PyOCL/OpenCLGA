@@ -4,7 +4,7 @@ from itertools import tee
 from time import time
 from utils import create_chromosomes_by_cityids, custom_mutate, custom_crossover,\
                   calc_linear_distance, calc_spherical_distance, init_rand_seed,\
-                  get_params
+                  get_params, plot_result
 from algorithm import BaseGeneticAlgorithm
 
 class TSPGA(BaseGeneticAlgorithm):
@@ -62,9 +62,11 @@ def run(num_cities, num_chromosomes, generations):
     print("best distance =", best_dist)
     print("run took", tsp_ga.elapsed_time, "seconds")
     print("best =", best.dna)
-    # for g in best.dna:
-    #     print(city_info[g[0]])
+
+    result_ids = [g[0] for g in best.dna]
+    plot_result(city_info, result_ids)
     # print("avg eval time :", tsp_ga.get_avg_evaluation_time(), "seconds.")
+
 if __name__ == '__main__':
     cites, chromosomes, gens = get_params()
     run(num_cities=cites, num_chromosomes=chromosomes, generations=gens)
