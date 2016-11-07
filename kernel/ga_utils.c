@@ -1,4 +1,16 @@
+#ifndef __ga_utils__
+#define __ga_utils__
+
 #include "Noise.cl"
+
+void chromosome_swap(int idx, global int* chromosomes, int chromosome_size,
+                     int cp, int p1)
+{
+  int c1 = idx * chromosome_size;
+  uint temp_p = chromosomes[c1+cp];
+  chromosomes[c1+cp] = chromosomes[c1+p1];
+  chromosomes[c1+p1] = temp_p;
+}
 
 // holder - A lenght 1 array which stores the last rand value.
 // Returns a random uint value.
@@ -46,3 +58,5 @@ void init_rand(int idx, uint* holder)
 {
   holder[0] = ParallelRNG(idx);
 }
+
+#endif

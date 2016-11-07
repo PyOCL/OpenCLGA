@@ -1,4 +1,5 @@
-#include "tsp_utils.c"
+#include "ga_utils.c"
+#include "ga_mutation.c"
 
 typedef struct {
   float x;
@@ -77,15 +78,6 @@ void print_chrosomes(int idx, global int* chromosomes, int chromosome_size,
   printf("\n");
 }
 
-void chromosome_swap(int idx, global int* chromosomes, int chromosome_size,
-                     int cp, int p1)
-{
-  int c1 = idx * chromosome_size;
-  uint temp_p = chromosomes[c1+cp];
-  chromosomes[c1+cp] = chromosomes[c1+p1];
-  chromosomes[c1+p1] = temp_p;
-}
-
 void reproduce(int idx, int chromosome_size, int chromosome_count,
                global int* chromosomes, global bool* survivors, float p_c,
                uint* ra)
@@ -116,18 +108,6 @@ void reproduce(int idx, int chromosome_size, int chromosome_count,
   } else {
     for (int i = 0; i < chromosome_size; i++) {
       chromosomes[c_start + i] = chromosomes[c1_start + i];
-    }
-  }
-}
-
-void mutate(int idx, int chromosome_size, int chromosome_count,
-            global int* chromosomes, float aProb_m, uint* rand_holder)
-{
-  for (int i = 0; i < chromosome_size; i++) {
-    float prob_m =  rand_prob(rand_holder);
-    if (prob_m < aProb_m) {
-      uint j = rand_range_exclude(rand_holder, chromosome_size, i);
-      chromosome_swap(idx, chromosomes, chromosome_size, i, j);
     }
   }
 }
@@ -203,8 +183,8 @@ __kernel void tsp_one_generation(global Point* points,
   barrier(CLK_GLOBAL_MEM_FENCE);
   // print_chrosomes(idx, chromosomes, chromosome_size, chromosome_count, distances);
 
-  mutate(idx, chromosome_size, chromosome_count, chromosomes,
-         prob_mutate, ra);
+  tsp_mutation(idx, chromosome_size, chromosome_count, chromosomes,
+               prob_mutate, ra);
 
   // // Barrier for next round.
   // barrier(CLK_GLOBAL_MEM_FENCE);
