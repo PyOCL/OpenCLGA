@@ -12,6 +12,18 @@ void chromosome_swap(int idx, global int* chromosomes, int chromosome_size,
   chromosomes[c1+p1] = temp_p;
 }
 
+void calc_min_max_fitness(global float* fitnesses, int num_of_chromosomes, float* min, float* max)
+{
+  for (int i = 0; i < num_of_chromosomes; i++) {
+    if (fitnesses[i] > max[0]) {
+      max[0] = fitnesses[i];
+    }
+    if (fitnesses[i] < min[0]) {
+      min[0] = fitnesses[i];
+    }
+  }
+}
+
 // holder - A lenght 1 array which stores the last rand value.
 // Returns a random uint value.
 uint rand(uint* holder)
@@ -41,7 +53,6 @@ uint rand_range_exclude(uint* holder, uint range, uint aExcluded)
   }
   return r;
 }
-
 
 // holder - A lenght 1 array which stores the last rand value.
 // Returns a random float value from 0.0~1.0
