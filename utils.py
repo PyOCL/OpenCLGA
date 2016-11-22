@@ -63,8 +63,7 @@ def plot_result(city_info, city_ids):
         y.append(city_info[c_id][1])
     x.append(x[0])
     y.append(y[0])
-    print(x)
-    print(y)
+
     plt.plot(x, y, 'ro-')
     plt.ylabel('y')
     plt.xlabel('x')
