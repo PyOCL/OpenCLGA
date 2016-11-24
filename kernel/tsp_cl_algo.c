@@ -22,12 +22,34 @@ float calc_spherical_distance(float x1, float y1, float x2, float y2)
   return s;
 }
 
-void calc_fitness(int idx,
-                  global Point* points,
-                  global int* chromosomes,
-                  global float* distances,
-                  int chromosome_size,
-                  int chromosome_count)
+void calc_spherical_fitness(int idx,
+                            global Point* points,
+                            global int* chromosomes,
+                            global float* distances,
+                            int chromosome_size,
+                            int chromosome_count)
+{
+  float dist = 0.0;
+  int c_start = idx * chromosome_size;
+  for (int i = 0; i < chromosome_size-1; i++) {
+    dist += calc_spherical_distance(points[chromosomes[c_start + i + 1]].x,
+                                    points[chromosomes[c_start + i + 1]].y,
+                                    points[chromosomes[c_start + i]].x,
+                                    points[chromosomes[c_start + i]].y);
+  }
+  dist += calc_spherical_distance(points[chromosomes[c_start]].x,
+                                  points[chromosomes[c_start]].y,
+                                  points[chromosomes[c_start + chromosome_size - 1]].x,
+                                  points[chromosomes[c_start + chromosome_size - 1]].y);
+  distances[idx] = dist;
+}
+
+void calc_linear_fitness(int idx,
+                         global Point* points,
+                         global int* chromosomes,
+                         global float* distances,
+                         int chromosome_size,
+                         int chromosome_count)
 {
   float dist = 0.0;
   int c_start = idx * chromosome_size;
@@ -36,19 +58,11 @@ void calc_fitness(int idx,
                                  points[chromosomes[c_start + i + 1]].y,
                                  points[chromosomes[c_start + i]].x,
                                  points[chromosomes[c_start + i]].y);
-    // dist += calc_spherical_distance(points[chromosomes[c_start + i + 1]].x,
-    //                                 points[chromosomes[c_start + i + 1]].y,
-    //                                 points[chromosomes[c_start + i]].x,
-    //                                 points[chromosomes[c_start + i]].y);
   }
   dist += calc_linear_distance(points[chromosomes[c_start]].x,
                                points[chromosomes[c_start]].y,
                                points[chromosomes[c_start + chromosome_size - 1]].x,
                                points[chromosomes[c_start + chromosome_size - 1]].y);
-  // dist += calc_spherical_distance(points[chromosomes[c_start]].x,
-  //                                 points[chromosomes[c_start]].y,
-  //                                 points[chromosomes[c_start + chromosome_size - 1]].x,
-  //                                 points[chromosomes[c_start + chromosome_size - 1]].y);
   distances[idx] = dist;
 }
 
@@ -118,7 +132,7 @@ void reproduce(global int* chromosomes, global bool* survivors,
   }
 
   // NOTE: [Kilik] I don't think we need this calculation.
-  // calc_fitness(idx, points, chromosomes, distances, size_of_chromosome, num_of_chromosomes);
+  // calc_linear_fitness(idx, points, chromosomes, distances, size_of_chromosome, num_of_chromosomes);
 }
 
 void update_survivors(global float* fitnesses, global float* global_best,
@@ -169,7 +183,8 @@ __kernel void tsp_one_generation(global Point* points,
   uint ra[1];
   init_rand(idx+input_rand[0], ra);
 
-  calc_fitness(idx, points, chromosomes, distances, chromosome_size, chromosome_count);
+  calc_linear_fitness(idx, points, chromosomes, distances, chromosome_size, chromosome_count);
+  // calc_spherical_fitness(idx, points, chromosomes, distances, chromosome_size, chromosome_count);
   // Barrier for the calculation of all chromosomes fitness.
   barrier(CLK_GLOBAL_MEM_FENCE);
   // printf("[FirstRound] idx(%d), fit(%f), rand(%u)\n", idx, distances[idx], rand(ra));
@@ -189,7 +204,5 @@ __kernel void tsp_one_generation(global Point* points,
          prob_mutate, ra);
   // // Barrier for next round.
   // barrier(CLK_GLOBAL_MEM_FENCE);
-  // calc_fitness(idx, points, chromosomes, distances, chromosome_size, chromosome_count);
-  // printf("[AfterMutation] idx(%d), fit(%f) \n", idx, distances[idx]);
   // print_chrosomes(idx, chromosomes, chromosome_size, chromosome_count, distances);
 }
