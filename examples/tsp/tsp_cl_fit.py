@@ -1,3 +1,9 @@
+# We need to put ancenstor directory in sys.path to let us import utils and algorithm
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+# start to import what we want.
 import os
 import math
 import random
@@ -20,7 +26,7 @@ class TSPGACL(BaseGeneticAlgorithm):
 
         self.ctx = cl.create_some_context()
         self.queue = cl.CommandQueue(self.ctx)
-        f = open('kernel/tsp_cl_fitness.c', 'r')
+        f = open('../../kernel/tsp_cl_fitness.c', 'r')
         fstr = "".join(f.readlines())
         f.close()
         self.mem_pool =cl.tools.MemoryPool(cl.tools.ImmediateAllocator(self.queue))

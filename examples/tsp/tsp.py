@@ -1,3 +1,9 @@
+# We need to put ancenstor directory in sys.path to let us import utils and algorithm
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+# start to import what we want.
 import math
 import random
 from itertools import tee

@@ -1,3 +1,9 @@
+# We need to put ancenstor directory in sys.path to let us import utils and algorithm
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+# start to import what we want.
 import json
 import math
 import random
@@ -72,10 +78,10 @@ def run(num_chromosomes, generations):
     print("best distance =", best_dist)
     print("run took", tsp_ga.elapsed_time, "seconds")
     print("best =", [cities[g[0] - 1]["name"] for g in best.dna])
-    json.dump()
+
     result_ids = [g[0] for g in best.dna]
     utils.plot_result(city_info, result_ids)
     print("avg eval time :", tsp_ga.get_avg_evaluation_time(), "seconds.")
 
 if __name__ == '__main__':
-    run(num_chromosomes=100, generations=500)
+    run(num_chromosomes=10, generations=50)
