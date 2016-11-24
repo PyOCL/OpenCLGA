@@ -69,8 +69,14 @@ void calc_linear_fitness(int idx,
 int find_survied_idx(uint* ra, global bool* surviors, int chromosome_count)
 {
   uint s_idx = rand_range(ra, chromosome_count);
-  while (!surviors[s_idx]) {
-    s_idx = rand_range(ra, chromosome_count);
+  int runs = 0;
+  // NOTE: Avoid infinite while loop
+  while (runs < chromosome_count) {
+    uint adj_s_idx = (s_idx + runs) >= chromosome_count ? runs : s_idx;
+    if (surviors[adj_s_idx]) {
+      return adj_s_idx;
+    }
+    runs++;
   }
   return s_idx;
 }
