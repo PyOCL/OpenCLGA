@@ -100,7 +100,6 @@ class TSPGACL(BaseGeneticAlgorithm):
 
         exec_evt = None
         for i in range(generations):
-            print("tsp run one generation")
             exec_evt = self.prg.tsp_one_generation(self.queue,
                                                    (num_of_chromosomes,),
                                                    (num_of_chromosomes,),
@@ -116,7 +115,6 @@ class TSPGACL(BaseGeneticAlgorithm):
                                                    numpy.float32(prob_mutate),
                                                    numpy.float32(prob_crossover))
         if exec_evt:
-            print("wait for last generation to be finished")
             exec_evt.wait()
         print("ok")
         cl.enqueue_read_buffer(self.queue, dev_distances, distances)
@@ -158,7 +156,7 @@ def run(num_chromosomes, generations):
     tsp_ga_cl = TSPGACL(city_info, chromosomes)
 
     prob_mutate = 0.10
-    prob_cross = 0.50
+    prob_cross = 0.60
     tsp_ga_cl.run(generations, prob_mutate, prob_cross)
 
     print("run took", tsp_ga_cl.elapsed_time, "seconds")
@@ -168,4 +166,4 @@ def run(num_chromosomes, generations):
     plot_result(city_info, best)
 
 if __name__ == '__main__':
-    run(num_chromosomes=2, generations=2)
+    run(num_chromosomes=500, generations=1000)
