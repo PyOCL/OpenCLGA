@@ -11,14 +11,12 @@ import pyopencl as cl
 import numpy
 import sys
 import json
+import utils
 from time import time
 from time import clock
 from pathlib import Path
 from itertools import tee
 from pyopencl import array as clarray
-from utils import create_chromosomes_by_cityids, custom_mutate, custom_crossover,\
-                calc_spherical_distance, calc_linear_distance, init_rand_seed,\
-                get_params, plot_result
 from algorithm import BaseGeneticAlgorithm
 from pprint import pprint
 
@@ -52,8 +50,8 @@ class TSPGACL(BaseGeneticAlgorithm):
                                             numpy.array(expanded_city_points, dtype=pointType),
                                             allocator=self.mem_pool)
 
-        self.set_customized_crossover_func(custom_crossover)
-        self.set_customized_mutate_func(custom_mutate)
+        self.set_customized_crossover_func(utils.custom_crossover)
+        self.set_customized_mutate_func(utils.custom_mutate)
         self.set_customized_run_impl(self.run_impl)
 
     def evaluate_fitness(self, chromosomes):
@@ -116,7 +114,7 @@ class TSPGACL(BaseGeneticAlgorithm):
                                                    numpy.float32(prob_crossover))
         if exec_evt:
             exec_evt.wait()
-        print("ok")
+
         cl.enqueue_read_buffer(self.queue, dev_distances, distances)
         cl.enqueue_read_buffer(self.queue, dev_chromosomes, np_chromosomes).wait()
 
@@ -151,7 +149,7 @@ def run(num_chromosomes, generations):
     city_ids = list(range(1, len(cities) + 1))
     random.seed()
 
-    chromosomes = create_chromosomes_by_cityids(num_chromosomes, city_ids)
+    chromosomes = utils.create_chromosomes_by_shuffling(num_chromosomes, city_ids, "City: {0}")
 
     tsp_ga_cl = TSPGACL(city_info, chromosomes)
 
@@ -161,9 +159,9 @@ def run(num_chromosomes, generations):
 
     print("run took", tsp_ga_cl.elapsed_time, "seconds")
     best = tsp_ga_cl.get_best()
-    print("Shortest Path: " + " => ".join(str(d) for d in best))
+    print("Shortest Path: " + " => ".join(cities[g - 1]["name"] for g in best))
 
-    plot_result(city_info, best)
+    utils.plot_result(city_info, best)
 
 if __name__ == '__main__':
     run(num_chromosomes=500, generations=1000)

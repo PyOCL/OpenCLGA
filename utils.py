@@ -24,15 +24,15 @@ def calc_spherical_distance(x1, y1, x2, y2):
     s = round( s * 10000 ) / 10000
     return s
 
-def create_chromosomes_by_cityids(num_of_chromosomes, city_ids):
+def create_chromosomes_by_shuffling(num_of_chromosomes, candidates, name_template="{0}"):
     chromosomes = []
 
     for x in range(num_of_chromosomes):
         genes = []
         random.seed(x)
-        random.shuffle(city_ids)
-        for city_id in city_ids:
-            g = Gene([city_id], elements=set(city_ids), name='city %s'%str(x))
+        random.shuffle(candidates)
+        for item in candidates:
+            g = Gene([item], elements=set(candidates), name=name_template.format(str(item)))
             genes.append(g)
 
         c = Chromosome(genes)
