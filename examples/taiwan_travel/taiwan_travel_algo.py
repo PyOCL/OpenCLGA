@@ -139,10 +139,10 @@ def read_all_cities(file_name):
     for group in cities_groups.keys():
         for city_key in cities_groups[group]:
             city = cities_groups[group][city_key]
-            cities.append({"x": float(city["Latitude"]), "y": float(city["Longitude"]),
+            cities.append({"x": float(city["Longitude"]), "y": float(city["Latitude"]),
                            "address": city["Address"], "name": city["Name"]})
             city_id = len(cities)
-            city_info[city_id] = (float(city["Latitude"]), float(city["Longitude"]))
+            city_info[city_id] = (float(city["Longitude"]), float(city["Latitude"]))
 
     return cities, city_info
 
