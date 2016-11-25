@@ -8,7 +8,7 @@ import math
 import random
 from itertools import tee
 from time import time
-from utils import create_chromosomes_by_cityids, custom_mutate, custom_crossover,\
+from utils import create_chromosomes_by_shuffling, custom_mutate, custom_crossover,\
                   calc_linear_distance, calc_spherical_distance, init_rand_seed,\
                   get_params, plot_result
 from algorithm import BaseGeneticAlgorithm
@@ -52,7 +52,7 @@ def run(num_cities, num_chromosomes, generations):
     city_ids = list(range(1, num_cities + 1))
     city_info = {city_id: (random.random() * 100, random.random() * 100) for city_id in city_ids}
 
-    chromosomes = create_chromosomes_by_cityids(num_chromosomes, city_ids)
+    chromosomes = create_chromosomes_by_shuffling(num_chromosomes, city_ids)
     # print_all_chromosomes(chromosomes)
 
     tsp_ga = TSPGA(city_info, chromosomes)

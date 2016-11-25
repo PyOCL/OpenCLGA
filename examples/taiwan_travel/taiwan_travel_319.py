@@ -63,7 +63,7 @@ def run(num_chromosomes, generations):
     city_ids = list(range(1, len(cities) + 1))
     random.seed()
 
-    chromosomes = utils.create_chromosomes_by_cityids(num_chromosomes, city_ids)
+    chromosomes = utils.create_chromosomes_by_shuffling(num_chromosomes, city_ids)
 
     tsp_ga = TSPGA(cities, city_info, chromosomes)
     tsp_ga.set_customized_crossover_func(utils.custom_crossover)
@@ -77,7 +77,7 @@ def run(num_chromosomes, generations):
     best_dist = tsp_ga.calc_distance(best)
     print("best distance =", best_dist)
     print("run took", tsp_ga.elapsed_time, "seconds")
-    print("best =", [cities[g[0] - 1]["name"] for g in best.dna])
+    print("best =", [g.name for g in best.genes])
 
     result_ids = [g[0] for g in best.dna]
     utils.plot_result(city_info, result_ids)

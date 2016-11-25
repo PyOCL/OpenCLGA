@@ -31,10 +31,14 @@ class Chromosome:
         for i, gene in enumerate(self.__genes):
             gene.dna = dna[i]
 
+    def __get_genes(self):
+        return self.__genes
+
     name = property(__get_name)
     num_of_genes = property(__get_number_of_genes)
     dna_total_length = property(__get_dna_total_length)
     dna = property(__get_dna, __set_dna)
+    genes = property(__get_genes)
 
     def __mutate(self, prob):
         for gene in self.__genes:
