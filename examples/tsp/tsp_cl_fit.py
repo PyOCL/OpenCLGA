@@ -12,9 +12,9 @@ import numpy
 from time import time
 from itertools import tee
 from pyopencl import array as clarray
-from utils import create_chromosomes_by_shuffling, custom_mutate, custom_crossover,\
-                calc_spherical_distance, calc_linear_distance, init_rand_seed,\
-                get_params
+from utils import create_chromosomes_by_shuffling, mutate_by_swapping_gene,\
+                crossover_by_swapping_gene, calc_spherical_distance, calc_linear_distance,\
+                init_rand_seed, get_testing_params
 from algorithm import BaseGeneticAlgorithm
 from pprint import pprint
 
@@ -102,15 +102,15 @@ class TSPGACL(BaseGeneticAlgorithm):
             self.update_chromosome_fitness(chromosomes[idx], -1*distance)
 
 def run(num_cities, num_chromosomes, generations):
-    init_rand_seed()
+    init_testing_rand_seed()
     city_ids = list(range(1, num_cities + 1))
     city_info = {city_id: (random.random() * 100, random.random() * 100) for city_id in city_ids}
 
     chromosomes = create_chromosomes_by_shuffling(num_chromosomes, city_ids)
 
     tsp_ga_cl = TSPGACL(city_info, chromosomes)
-    tsp_ga_cl.set_customized_crossover_func(custom_crossover)
-    tsp_ga_cl.set_customized_mutate_func(custom_mutate)
+    tsp_ga_cl.set_customized_crossover_func(crossover_by_swapping_gene)
+    tsp_ga_cl.set_customized_mutate_func(mutate_by_swapping_gene)
 
     prob_mutate = 0.10
     prob_cross = 0.50
@@ -121,5 +121,5 @@ def run(num_cities, num_chromosomes, generations):
     print("best distance =", tsp_ga_cl.calc_distance(best))
     print("avg eval time :", tsp_ga_cl.get_avg_evaluation_time(), "seconds.")
 if __name__ == '__main__':
-    cites, chromosomes, gens = get_params()
+    cites, chromosomes, gens = get_testing_params()
     run(num_cities=cites, num_chromosomes=chromosomes, generations=gens)

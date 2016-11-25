@@ -66,8 +66,8 @@ def run(num_chromosomes, generations):
     chromosomes = utils.create_chromosomes_by_shuffling(num_chromosomes, city_ids)
 
     tsp_ga = TSPGA(cities, city_info, chromosomes)
-    tsp_ga.set_customized_crossover_func(utils.custom_crossover)
-    tsp_ga.set_customized_mutate_func(utils.custom_mutate)
+    tsp_ga.set_customized_crossover_func(utils.crossover_by_swapping_gene)
+    tsp_ga.set_customized_mutate_func(utils.mutate_by_swapping_gene)
 
     prob_mutate = 0.10
     prob_cross = 0.50

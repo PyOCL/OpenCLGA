@@ -8,9 +8,9 @@ import math
 import random
 from itertools import tee
 from time import time
-from utils import create_chromosomes_by_shuffling, custom_mutate, custom_crossover,\
-                  calc_linear_distance, calc_spherical_distance, init_rand_seed,\
-                  get_params, plot_result
+from utils import create_chromosomes_by_shuffling, mutate_by_swapping_gene,\
+                  crossover_by_swapping_gene, calc_linear_distance, calc_spherical_distance,\
+                  init_testing_rand_seed, get_testing_params, plot_result
 from algorithm import BaseGeneticAlgorithm
 
 class TSPGA(BaseGeneticAlgorithm):
@@ -48,7 +48,7 @@ def print_all_chromosomes(cs):
         print(c.dna)
 
 def run(num_cities, num_chromosomes, generations):
-    init_rand_seed()
+    init_testing_rand_seed()
     city_ids = list(range(1, num_cities + 1))
     city_info = {city_id: (random.random() * 100, random.random() * 100) for city_id in city_ids}
 
@@ -56,8 +56,8 @@ def run(num_cities, num_chromosomes, generations):
     # print_all_chromosomes(chromosomes)
 
     tsp_ga = TSPGA(city_info, chromosomes)
-    tsp_ga.set_customized_crossover_func(custom_crossover)
-    tsp_ga.set_customized_mutate_func(custom_mutate)
+    tsp_ga.set_customized_crossover_func(crossover_by_swapping_gene)
+    tsp_ga.set_customized_mutate_func(mutate_by_swapping_gene)
 
     prob_mutate = 0.10
     prob_cross = 0.50
@@ -74,5 +74,5 @@ def run(num_cities, num_chromosomes, generations):
     # print("avg eval time :", tsp_ga.get_avg_evaluation_time(), "seconds.")
 
 if __name__ == '__main__':
-    cites, chromosomes, gens = get_params()
+    cites, chromosomes, gens = get_testing_params()
     run(num_cities=cites, num_chromosomes=chromosomes, generations=gens)

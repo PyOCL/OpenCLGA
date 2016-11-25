@@ -14,9 +14,9 @@ from time import time
 from time import clock
 from itertools import tee
 from pyopencl import array as clarray
-from utils import create_chromosomes_by_shuffling, custom_mutate, custom_crossover,\
+from utils import create_chromosomes_by_shuffling,\
                 calc_spherical_distance, calc_linear_distance, init_rand_seed,\
-                get_params, plot_result
+                get_testing_params, plot_result
 from algorithm import BaseGeneticAlgorithm
 from pprint import pprint
 
@@ -50,8 +50,6 @@ class TSPGACL(BaseGeneticAlgorithm):
                                             numpy.array(expanded_city_points, dtype=pointType),
                                             allocator=self.mem_pool)
 
-        self.set_customized_crossover_func(custom_crossover)
-        self.set_customized_mutate_func(custom_mutate)
         self.set_customized_run_impl(self.run_impl)
 
     def evaluate_fitness(self, chromosomes):
@@ -129,7 +127,7 @@ class TSPGACL(BaseGeneticAlgorithm):
         self.best_fitness = minDistance
 
 def run(num_cities, num_chromosomes, generations):
-    init_rand_seed()
+    init_testing_rand_seed()
     city_ids = list(range(1, num_cities + 1))
     city_info = {city_id: (random.random() * 100, random.random() * 100) for city_id in city_ids}
 
@@ -149,5 +147,5 @@ def run(num_cities, num_chromosomes, generations):
     plot_result(city_info, best)
 
 if __name__ == '__main__':
-    cites, chromosomes, gens = get_params()
+    cites, chromosomes, gens = get_testing_params()
     run(num_cities=cites, num_chromosomes=chromosomes, generations=gens)

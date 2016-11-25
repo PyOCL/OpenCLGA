@@ -3,10 +3,10 @@ from gene import Gene
 from chromosome import Chromosome
 from math import pi, sqrt, asin, cos, sin, pow
 
-def get_params():
+def get_testing_params():
     return 20, 200, 5000
 
-def init_rand_seed():
+def init_testing_rand_seed():
     random.seed(119)
 
 def calc_linear_distance(x1, y1, x2, y2):
@@ -39,7 +39,7 @@ def create_chromosomes_by_shuffling(num_of_chromosomes, candidates, name_templat
 
     return chromosomes
 
-def custom_mutate(c1, prob):
+def mutate_by_swapping_gene(c1, prob):
     ori_candidates = range(c1.num_of_genes)
     for idx1 in ori_candidates:
         if random.random() < prob:
@@ -47,7 +47,7 @@ def custom_mutate(c1, prob):
             idx2 = random.sample(candidates_remain, 1)[0]
             c1.swap(idx1, idx2)
 
-def custom_crossover(c1, c2, point):
+def crossover_by_swapping_gene(c1, c2, point):
     for i in range(c1.num_of_genes):
         if c1.dna[i] == c2.dna[point]:
             c1.swap(point, i)

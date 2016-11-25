@@ -50,8 +50,6 @@ class TSPGACL(BaseGeneticAlgorithm):
                                             numpy.array(expanded_city_points, dtype=pointType),
                                             allocator=self.mem_pool)
 
-        self.set_customized_crossover_func(utils.custom_crossover)
-        self.set_customized_mutate_func(utils.custom_mutate)
         self.set_customized_run_impl(self.run_impl)
 
     def evaluate_fitness(self, chromosomes):
