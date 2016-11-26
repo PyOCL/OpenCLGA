@@ -33,7 +33,7 @@ class TSPGACL(BaseGeneticAlgorithm):
         kernel_folder = '../../kernel' if os.getcwd() == os.path.dirname(os.path.abspath(__file__)) else 'kernel'
         lstPaths = [kernel_folder]
 
-        f = open(os.path.join(kernel_folder, 'tsp_cl_algo.c'), 'r')
+        f = open(os.path.join(kernel_folder, 'ga_algo.c'), 'r')
         fstr = "".join(f.readlines())
         f.close()
         self.mem_pool =cl.tools.MemoryPool(cl.tools.ImmediateAllocator(self.queue))
@@ -101,20 +101,20 @@ class TSPGACL(BaseGeneticAlgorithm):
 
         exec_evt = None
         for i in range(generations):
-            exec_evt = self.prg.tsp_one_generation(self.queue,
-                                                   (num_of_chromosomes,),
-                                                   (num_of_chromosomes,),
-                                                   self.dev_points.data,
-                                                   dev_chromosomes,
-                                                   dev_distances,
-                                                   dev_survivors,
-                                                   dev_rnum,
-                                                   dev_best,
-                                                   dev_weakest,
-                                                   numpy.int32(len(self.city_points)),
-                                                   numpy.int32(num_of_chromosomes),
-                                                   numpy.float32(prob_mutate),
-                                                   numpy.float32(prob_crossover))
+            exec_evt = self.prg.ga_one_generation(self.queue,
+                                                  (num_of_chromosomes,),
+                                                  (num_of_chromosomes,),
+                                                  self.dev_points.data,
+                                                  dev_chromosomes,
+                                                  dev_distances,
+                                                  dev_survivors,
+                                                  dev_rnum,
+                                                  dev_best,
+                                                  dev_weakest,
+                                                  numpy.int32(len(self.city_points)),
+                                                  numpy.int32(num_of_chromosomes),
+                                                  numpy.float32(prob_mutate),
+                                                  numpy.float32(prob_crossover))
         if exec_evt:
             exec_evt.wait()
 
