@@ -28,13 +28,18 @@ class TSPGACL(BaseGeneticAlgorithm):
 
         self.ctx = cl.create_some_context()
         self.queue = cl.CommandQueue(self.ctx)
-        f = open('../../kernel/tsp_cl_algo.c', 'r')
+
+        # Define kernel_folder from where the program being exectued.
+        kernel_folder = '../../kernel' if os.getcwd() == os.path.dirname(os.path.abspath(__file__)) else 'kernel'
+        lstPaths = [kernel_folder]
+
+        f = open(os.path.join(kernel_folder, 'tsp_cl_algo.c'), 'r')
         fstr = "".join(f.readlines())
         f.close()
         self.mem_pool =cl.tools.MemoryPool(cl.tools.ImmediateAllocator(self.queue))
 
         modifiedlstPath = []
-        for path in ["../../kernel"]:
+        for path in lstPaths:
             escapedPath = path.replace(' ', '^ ') if sys.platform.startswith('win') else path.replace(' ', '\\ ')
             # After looking into the source code of pyopencl/__init__.py
             # "-I" and folder path should be sepearetd. And " should not included in string path.
@@ -128,7 +133,8 @@ class TSPGACL(BaseGeneticAlgorithm):
         self.best_fitness = minDistance
 
 def read_all_cities(file_name):
-    cities_text = Path(file_name).read_text(encoding="UTF-8")
+    file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), file_name)
+    cities_text = Path(file_path).read_text(encoding="UTF-8")
     cities_groups = json.loads(cities_text);
     cities = []
     city_info = {}

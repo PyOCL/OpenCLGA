@@ -44,7 +44,8 @@ class TSPGA(BaseGeneticAlgorithm):
             self.update_chromosome_fitness(chromosome, fitness)
 
 def read_all_cities(file_name):
-    cities_text = Path(file_name).read_text(encoding="UTF-8")
+    file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), file_name)
+    cities_text = Path(file_path).read_text(encoding="UTF-8")
     cities_groups = json.loads(cities_text);
     cities = []
     city_info = {}
