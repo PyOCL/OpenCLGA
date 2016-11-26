@@ -3,6 +3,24 @@
 
 #include "Noise.cl"
 
+void print_chromosomes(global int* chromosomes, int size_of_chromosome,
+                       int num_of_chromosomes, global float* fitnesses)
+{
+  int idx = get_global_id(0);
+  if (idx > 0) {
+    return;
+  }
+  for (int c = 0; c < num_of_chromosomes; c++) {
+    int start = c * size_of_chromosome;
+    printf("Chromosome[%d]/dist[%f]:", c, fitnesses[c]);
+    for (int i = 0; i < size_of_chromosome; i++) {
+        printf("->(%d)", chromosomes[start+i]);
+    }
+    printf("\n");
+  }
+  printf("\n");
+}
+
 void chromosome_swap(int idx, global int* chromosomes, int chromosome_size,
                      int cp, int p1)
 {

@@ -81,23 +81,6 @@ int find_survied_idx(uint* ra, global bool* surviors, int chromosome_count)
   return s_idx;
 }
 
-void print_chrosomes(int idx, global int* chromosomes, int chromosome_size,
-                    int chromosomes_count, global float* distances)
-{
-  if (idx != 0) {
-    return;
-  }
-  for (int c = 0; c < chromosomes_count; c++) {
-    int start = c * chromosome_size;
-    printf("Chromosome[%d]/dist[%f]:", c, distances[c]);
-    for (int i = 0; i < chromosome_size; i++) {
-        printf("->(%d)", chromosomes[start+i]);
-    }
-    printf("\n");
-  }
-  printf("\n");
-}
-
 void reproduce(global int* chromosomes, global bool* survivors,
                int num_of_chromosomes, int size_of_chromosome,
                float prob_crossover,
@@ -193,7 +176,10 @@ __kernel void tsp_one_generation(global Point* points,
   // calc_spherical_fitness(idx, points, chromosomes, distances, chromosome_size, chromosome_count);
   // Barrier for the calculation of all chromosomes fitness.
   barrier(CLK_GLOBAL_MEM_FENCE);
-  // printf("[FirstRound] idx(%d), fit(%f), rand(%u)\n", idx, distances[idx], rand(ra));
+
+  // NOTE: To print chromosomes for each round.
+  // print_chromosomes(chromosomes, chromosome_size, chromosome_count, distances);
+  // barrier(CLK_GLOBAL_MEM_FENCE);
 
   update_survivors(distances, best_global, weakest_global, chromosome_count, survivors);
   // Barrier for survivor list.
@@ -204,11 +190,7 @@ __kernel void tsp_one_generation(global Point* points,
   // Barrier for mutation, we need to make sure to reproduction for all chromosomes
   // is done to prevent mutation with weak chromosomes.
   barrier(CLK_GLOBAL_MEM_FENCE);
-  // print_chrosomes(idx, chromosomes, chromosome_size, chromosome_count, distances);
 
   mutate(idx, chromosome_size, chromosome_count, chromosomes,
          prob_mutate, ra);
-  // // Barrier for next round.
-  // barrier(CLK_GLOBAL_MEM_FENCE);
-  // print_chrosomes(idx, chromosomes, chromosome_size, chromosome_count, distances);
 }
