@@ -64,9 +64,12 @@ class TSPGACL(BaseGeneticAlgorithm):
         lenght_of_chromosome = 0
         chromosomesArray = []
         chromosomes = self.get_chromosomes()
+        gene_elements = []
         for c in chromosomes:
             if lenght_of_chromosome == 0:
                 lenght_of_chromosome = c.num_of_genes
+            if len(gene_elements) == 0:
+                gene_elements = list(c.gene_elements)
             # Each chromosome's length should be the same
             assert lenght_of_chromosome == c.num_of_genes
             for g in c.dna:
@@ -77,6 +80,7 @@ class TSPGACL(BaseGeneticAlgorithm):
         distances = numpy.zeros(num_of_chromosomes, dtype=numpy.float32)
         survivors = numpy.zeros(num_of_chromosomes, dtype=numpy.bool)
         np_chromosomes = numpy.array(chromosomesArray, dtype=numpy.int32)
+        np_gene_elements = numpy.array(gene_elements, dtype=numpy.int32)
 
         mf = cl.mem_flags
         # Random number should be given by Host program because OpenCL doesn't have a random number
@@ -92,6 +96,8 @@ class TSPGACL(BaseGeneticAlgorithm):
         dev_weakest = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
                                 hostbuf=numpy.array(weakest_fit, dtype=numpy.float32))
 
+        dev_gene_elements = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR,
+                                      hostbuf=np_gene_elements)
         dev_chromosomes = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
                                     hostbuf=np_chromosomes)
         dev_distances = cl.Buffer(self.ctx, mf.WRITE_ONLY, distances.nbytes)
@@ -105,6 +111,8 @@ class TSPGACL(BaseGeneticAlgorithm):
                                                   (num_of_chromosomes,),
                                                   (num_of_chromosomes,),
                                                   self.dev_points.data,
+                                                  dev_gene_elements,
+                                                  numpy.int32(len(gene_elements)),
                                                   dev_chromosomes,
                                                   dev_distances,
                                                   dev_survivors,

@@ -34,11 +34,17 @@ class Chromosome:
     def __get_genes(self):
         return self.__genes
 
+    def __get_gene_elements(self):
+        for gene in self.__genes:
+            return gene.elements
+        return []
+
     name = property(__get_name)
     num_of_genes = property(__get_number_of_genes)
     dna_total_length = property(__get_dna_total_length)
     dna = property(__get_dna, __set_dna)
     genes = property(__get_genes)
+    gene_elements = property(__get_gene_elements)
 
     def __mutate(self, prob):
         for gene in self.__genes:

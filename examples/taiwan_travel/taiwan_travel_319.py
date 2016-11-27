@@ -85,4 +85,4 @@ def run(num_chromosomes, generations):
     print("avg eval time :", tsp_ga.get_avg_evaluation_time(), "seconds.")
 
 if __name__ == '__main__':
-    run(num_chromosomes=10, generations=50)
+    run(num_chromosomes=500, generations=1000)

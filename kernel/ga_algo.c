@@ -101,6 +101,8 @@ void calc_ga_fitness(int idx,
 }
 
 __kernel void ga_one_generation(global Point* points,
+                                global int* gene_elements,
+                                int len_gene_elements,
                                 global int* chromosomes,
                                 global float* distances,
                                 global bool* survivors,
@@ -139,6 +141,6 @@ __kernel void ga_one_generation(global Point* points,
   // is done to prevent mutation with weak chromosomes.
   barrier(CLK_GLOBAL_MEM_FENCE);
 
-  mutate(idx, chromosome_size, chromosome_count, chromosomes,
-         prob_mutate, ra);
+  mutate(idx, chromosome_size, chromosome_count, gene_elements, len_gene_elements,
+         chromosomes, prob_mutate, ra);
 }
