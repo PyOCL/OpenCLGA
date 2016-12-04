@@ -7,7 +7,8 @@ class Chromosome:
     # dna - an listed of Gene's dna
     # dna_total_length - sum of the lenght of all genes's dna
     def __init__(self, genes, name=""):
-        assert all(isinstance(gene, Gene) for gene in genes)
+        length_of_gene = genes[0].length
+        assert all(isinstance(gene, Gene) and gene.length == length_of_gene for gene in genes)
         self.__genes = genes
         self.__name = name
 
