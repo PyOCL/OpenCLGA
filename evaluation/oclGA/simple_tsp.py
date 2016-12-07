@@ -41,4 +41,4 @@ def run(num_chromosomes, generations):
     utils.plot_result(city_info, best)
 
 if __name__ == '__main__':
-    run(num_chromosomes=80, generations=10)
+    run(num_chromosomes=1000, generations=10)

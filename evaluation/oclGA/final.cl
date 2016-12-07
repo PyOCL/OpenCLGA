@@ -1,4 +1,4 @@
-#define POPULATION_SIZE 80
+#define POPULATION_SIZE 1000
 #define POPULATE_FUNCTION shuffler_chromosome_populate
 #define CHROMOSOME_TYPE __ShufflerChromosome
 

@@ -3,6 +3,17 @@
 
 #include "ga_utils.c"
 
+void shuffler_chromosome_check_duplicate(global __ShufflerChromosome* chromosome) {
+  for (int i = 0; i < SHUFFLER_CHROMOSOME_GENE_SIZE; i++) {
+    for (int j = i + 1; j < SHUFFLER_CHROMOSOME_GENE_SIZE; j++) {
+      if (chromosome->genes[i] == chromosome->genes[j]) {
+        printf("after chromosome element duplicated @%d, %d\n", i, j);
+        return;
+      }
+    }
+  }
+}
+
 // functions for populate
 void shuffler_chromosome_populate(global __ShufflerChromosome* chromosome, uint* rand_holder) {
   int gene_elements[] = SIMPLE_GENE_ELEMENTS;
@@ -21,17 +32,6 @@ void shuffler_chromosome_swap(global __ShufflerChromosome* chromosome, int cp, i
   int temp_p = chromosome->genes[cp];
   chromosome->genes[cp] = chromosome->genes[p1];
   chromosome->genes[p1] = temp_p;
-}
-
-void shuffler_chromosome_check_duplicate(global __ShufflerChromosome* chromosome) {
-  for (int i = 0; i < SHUFFLER_CHROMOSOME_GENE_SIZE; i++) {
-    for (int j = i + 1; j < SHUFFLER_CHROMOSOME_GENE_SIZE; j++) {
-      if (chromosome->genes[i] == chromosome->genes[j]) {
-        printf("after chromosome element duplicated @%d, %d\n", i, j);
-        return;
-      }
-    }
-  }
 }
 
 void shuffler_chromosome_mutate(global __ShufflerChromosome* chromosome, float prob_mutate,
@@ -140,6 +140,7 @@ void shuffler_chromosome_crossover(int idx, global __ShufflerChromosome* chromos
   barrier(CLK_GLOBAL_MEM_FENCE);
 
   shuffler_chromosome_reproduce(idx, chromosomes, survivors, POPULATION_SIZE, prob_crossover, ra);
+  shuffler_chromosome_check_duplicate(chromosomes + idx);
 }
 
 #endif
