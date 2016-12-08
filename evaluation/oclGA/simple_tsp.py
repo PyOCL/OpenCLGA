@@ -4,45 +4,15 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 # start to import what we want.
-import math
 import random
-import pyopencl as cl
-import numpy
-import sys
-import json
 import utils
-from time import time
-from time import clock
-from pathlib import Path
-from itertools import tee
 from pyopencl import array as clarray
 from ocl_ga import OpenCLGA
 from shuffler_chromosome import ShufflerChromosome
 from simple_gene import SimpleGene
-from pprint import pprint
-
-def read_all_cities(file_name):
-    file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), file_name)
-    cities_text = Path(file_path).read_text(encoding="UTF-8")
-    cities_groups = json.loads(cities_text);
-    cities = []
-    city_info = {}
-    city_infoX = []
-    city_infoY = []
-    for group in cities_groups.keys():
-        for city_key in cities_groups[group]:
-            city = cities_groups[group][city_key]
-            cities.append({"x": float(city["Longitude"]), "y": float(city["Latitude"]),
-                           "address": city["Address"], "name": city["Name"]})
-            city_id = len(cities)
-            city_info[city_id - 1] = (float(city["Longitude"]), float(city["Latitude"]))
-            city_infoX.append(float(city["Longitude"]))
-            city_infoY.append(float(city["Latitude"]))
-
-    return cities, city_info, city_infoX, city_infoY
 
 def run(num_chromosomes, generations):
-    num_cities = 10
+    num_cities = 20
     random.seed(119)
     city_ids = list(range(0, num_cities))
     city_info = {city_id: (random.random() * 100, random.random() * 100) for city_id in city_ids}
@@ -71,4 +41,4 @@ def run(num_chromosomes, generations):
     utils.plot_result(city_info, best)
 
 if __name__ == '__main__':
-    run(num_chromosomes=100, generations=1000)
+    run(num_chromosomes=1000, generations=1000)
