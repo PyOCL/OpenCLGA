@@ -49,32 +49,27 @@ void shuffler_chromosome_mutate(global __ShufflerChromosome* chromosome, float p
 // functions for crossover: find_survied_idx, shuffler_chromosome_reproduce,
 //                          shuffler_chromosome_crossover
 
-int shuffler_chromosome_find_survied_idx(uint* ra, global bool* surviors, int chromosome_count)
+int shuffler_chromosome_find_survied_idx(uint* ra, int* surviors, int survivor_count)
 {
-  uint s_idx = rand_range(ra, chromosome_count);
-  int runs = 0;
-  // NOTE: Avoid infinite while loop
-  while (runs < chromosome_count) {
-    uint adj_s_idx = (s_idx + runs) >= chromosome_count ? runs : s_idx;
-    if (surviors[adj_s_idx]) {
-      return adj_s_idx;
-    }
-    runs++;
+  if (survivor_count == 0) {
+    return -1;
   }
-  return s_idx;
+  return surviors[rand_range(ra, survivor_count)];
 }
 
 void shuffler_chromosome_reproduce(int idx, global __ShufflerChromosome* chromosomes,
-                                   global bool* survivors, int num_of_chromosomes,
-                                   float prob_crossover, uint* ra)
+                                   int* survivors, int survivor_count,
+                                   int num_of_chromosomes, float prob_crossover, uint* ra)
 {
   // NOTE: Only dead chromosome needs to be reproduced.
   if (survivors[idx]) {
     return;
   }
 
-  uint c1_idx = shuffler_chromosome_find_survied_idx(ra, survivors, num_of_chromosomes);
-
+  uint c1_idx = shuffler_chromosome_find_survied_idx(ra, survivors, survivor_count);
+  if (c1_idx == -1) {
+    return;
+  }
   float prob =  rand_prob(ra);
   // printf(" >>>>> not live - idx(%d)/ c1idx(%d), prob(%f)\n", idx, c1_idx, p_v);
   if (prob <= prob_crossover) {
@@ -82,7 +77,10 @@ void shuffler_chromosome_reproduce(int idx, global __ShufflerChromosome* chromos
       chromosomes[idx].genes[i] = chromosomes[c1_idx].genes[i];
     }
 
-    uint c2_idx = shuffler_chromosome_find_survied_idx(ra, survivors, num_of_chromosomes);
+    uint c2_idx = shuffler_chromosome_find_survied_idx(ra, survivors, survivor_count);
+    if (c2_idx == -1) {
+      return;
+    }
     if (c1_idx != c2_idx) {
       // do crossover here
       uint cross_point = rand_range(ra, SHUFFLER_CHROMOSOME_GENE_SIZE);
@@ -138,8 +136,18 @@ void shuffler_chromosome_crossover(int idx, global __ShufflerChromosome* chromos
                                        survivors);
   // Barrier for survivor list.
   barrier(CLK_GLOBAL_MEM_FENCE);
+  int survivor_count = 0;
+  int survivor_indice[POPULATION_SIZE];
+  for (int i = 0; i < POPULATION_SIZE; i++) {
+    if (survivors[i]) {
+      survivor_indice[survivor_count++] = i;
+    }
+  }
 
-  shuffler_chromosome_reproduce(idx, chromosomes, survivors, POPULATION_SIZE, prob_crossover, ra);
+  if (!survivors[idx]) {
+    shuffler_chromosome_reproduce(idx, chromosomes, survivor_indice, survivor_count,
+                                  POPULATION_SIZE, prob_crossover, ra);
+  }
   shuffler_chromosome_check_duplicate(chromosomes + idx);
 }
 
