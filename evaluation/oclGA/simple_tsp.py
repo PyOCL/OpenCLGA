@@ -30,7 +30,7 @@ def run(num_chromosomes, generations):
     tsp_ga_cl = OpenCLGA(sample, generations, num_chromosomes, fstr, "simple_tsp_fitness",\
                          ["../../kernel"])
 
-    prob_mutate = 0.80
+    prob_mutate = 0.10
     prob_cross = 0.60
     tsp_ga_cl.run(prob_mutate, prob_cross)
 
@@ -41,4 +41,4 @@ def run(num_chromosomes, generations):
     utils.plot_result(city_info, best)
 
 if __name__ == '__main__':
-    run(num_chromosomes=1000, generations=5000)
+    run(num_chromosomes=1000, generations=1000)
