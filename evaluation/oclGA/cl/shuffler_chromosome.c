@@ -39,7 +39,7 @@ void shuffler_chromosome_mutate(global __ShufflerChromosome* chromosome, float p
 {
   for (int i = 0; i < SHUFFLER_CHROMOSOME_GENE_SIZE; i++) {
     float prob_m =  rand_prob(rand_holder);
-    if (prob_m < prob_mutate) {
+    if (prob_m <= prob_mutate) {
       uint j = rand_range_exclude(rand_holder, SHUFFLER_CHROMOSOME_GENE_SIZE, i);
       shuffler_chromosome_swap(chromosome, i, j);
     }
@@ -70,13 +70,14 @@ void shuffler_chromosome_reproduce(int idx, global __ShufflerChromosome* chromos
   if (c1_idx == -1) {
     return;
   }
+  // Clone the genes of survival chromosome to the dead one.
+  for (int i = 0; i < SHUFFLER_CHROMOSOME_GENE_SIZE; i++) {
+    chromosomes[idx].genes[i] = chromosomes[c1_idx].genes[i];
+  }
+
   float prob =  rand_prob(ra);
   // printf(" >>>>> not live - idx(%d)/ c1idx(%d), prob(%f)\n", idx, c1_idx, p_v);
   if (prob <= prob_crossover) {
-    for (int i = 0; i < SHUFFLER_CHROMOSOME_GENE_SIZE; i++) {
-      chromosomes[idx].genes[i] = chromosomes[c1_idx].genes[i];
-    }
-
     uint c2_idx = shuffler_chromosome_find_survied_idx(ra, survivors, survivor_count);
     if (c2_idx == -1) {
       return;
@@ -92,16 +93,15 @@ void shuffler_chromosome_reproduce(int idx, global __ShufflerChromosome* chromos
         }
       }
     }
-  } else {
-    for (int i = 0; i < SHUFFLER_CHROMOSOME_GENE_SIZE; i++) {
-      chromosomes[idx].genes[i] = chromosomes[c1_idx].genes[i];
-    }
   }
 }
 
-void shuffler_chromosome_update_survivors(int idx, global float* fitnesses,
-                      global float* global_best, global float* global_weakest,
-                      int num_of_chromosomes, global bool* survivors)
+void shuffler_chromosome_update_survivors(int idx,
+                                          global float* fitnesses,
+                                          global float* global_best,
+                                          global float* global_weakest,
+                                          int num_of_chromosomes,
+                                          global bool* survivors)
 {
   // NOTE: No need to calculate survivor list with all kernels.
   //       We use the first kernel to do it.
