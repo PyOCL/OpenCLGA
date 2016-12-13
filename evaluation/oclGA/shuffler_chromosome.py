@@ -4,8 +4,8 @@ class ShufflerChromosome:
     kernel_file = "shuffler_chromosome.c"
 
     populate_function = "shuffler_chromosome_populate"
-    crossover_function = "shuffler_chromosome_crossover"
-    mutation_function = "shuffler_chromosome_mutate"
+    crossover_function = "shuffler_chromosome_two_item_crossover"
+    mutation_function = "shuffler_chromosome_single_gene_mutate"
     struct_name = "__ShufflerChromosome"
     chromosome_size_define = "SHUFFLER_CHROMOSOME_GENE_SIZE"
 
