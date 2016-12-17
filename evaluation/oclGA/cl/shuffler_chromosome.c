@@ -3,6 +3,24 @@
 
 #include "ga_utils.c"
 
+void dump_chromosomes(global __ShufflerChromosome* chromosomes,
+                      global float* fitnesses)
+{
+  int idx = get_global_id(0);
+  if (idx > 0) {
+    return;
+  }
+  for (int i = 0; i < CHROMOSOME_SIZE; i++) {
+    __ShufflerChromosome chromosome = chromosomes[i];
+    printf("Chromosome[%d]/dist[%f]:", i, fitnesses[i]);
+    for (int j = 0; j < SHUFFLER_CHROMOSOME_GENE_SIZE; j++) {
+        printf("->(%d)", chromosome.genes[j]);
+    }
+    printf("\n");
+  }
+  printf("\n");
+}
+
 void shuffler_chromosome_check_duplicate(global __ShufflerChromosome* chromosome) {
   for (int i = 0; i < SHUFFLER_CHROMOSOME_GENE_SIZE; i++) {
     for (int j = i + 1; j < SHUFFLER_CHROMOSOME_GENE_SIZE; j++) {
@@ -90,7 +108,6 @@ void shuffler_chromosome_reproduce(int idx, global __ShufflerChromosome* chromos
   }
 
   float prob =  rand_prob(ra);
-  // printf(" >>>>> not live - idx(%d)/ c1idx(%d), prob(%f)\n", idx, c1_idx, p_v);
   if (prob <= prob_crossover) {
     uint c2_idx = shuffler_chromosome_find_survied_idx(ra, survivors, survivor_count);
     if (c2_idx == -1) {
@@ -219,8 +236,13 @@ void shuffler_chromosome_pick_chromosomes(int idx,
   int cross_idx = shuffler_chromosome_random_choose(chromosomes, ratio, ra);
   // copy the chromosome to local memory for cross over
   for (int i = 0; i < SHUFFLER_CHROMOSOME_GENE_SIZE; i++) {
+    // printf("[%d] p1->gene[%d] = %d, chromosomes[%d].gene[%d] = %d \n",
+      // idx, i, parent1->genes[i], cross_idx, i, chromosomes[cross_idx].genes[i]);
     parent1->genes[i] = chromosomes[cross_idx].genes[i];
+    // printf("[%d] p2->gene[%d] = %d, chromosomes[%d].gene[%d] = %d \n",
+      // idx, i, parent2->genes[i], idx, i, chromosomes[idx].genes[i]);
     parent2->genes[i] = chromosomes[idx].genes[i];
+
   }
 }
 
@@ -233,7 +255,6 @@ void shuffler_chromosome_do_crossover(int idx,
   int i;
   // we must be cross over at least one element and must not cross over all of the element.
   int cross_point = rand_range(ra, SHUFFLER_CHROMOSOME_GENE_SIZE - 1) + 1;
-
   int cross_map[SHUFFLER_CHROMOSOME_GENE_SIZE];
   for (i = 0; i < SHUFFLER_CHROMOSOME_GENE_SIZE; i++) {
     cross_map[i] = 0;
@@ -271,7 +292,7 @@ void shuffler_chromosome_two_item_crossover(int idx,
   __ShufflerChromosome parent2;
   shuffler_chromosome_pick_chromosomes(idx, chromosomes, fitness, &parent1, &parent2,
                                        &min_local, &max_local, ra);
-  barrier(CLK_GLOBAL_MEM_FENCE);
+
   // keep the shortest path, we have to return here to prevent async barrier if someone is returned.
   if (fitness[idx] - min_local < 0.0001) {
     // printf("best fitness: %f\n", fitness[idx]);

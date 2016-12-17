@@ -124,6 +124,8 @@ class OpenCLGA(ABC):
                                             dev_chromosomes,
                                             dev_distances,
                                             dev_rnum)
+        if exec_evt:
+            exec_evt.wait()
         for i in range(self.__generations):
             exec_evt = self.__prg.ocl_ga_evaluate(self.__queue,
                                                   (self.__population,),

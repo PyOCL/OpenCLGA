@@ -14,8 +14,6 @@ __kernel void ocl_ga_populate(global int* chromosomes,
   uint ra[1];
   init_rand(idx+input_rand[0], ra);
   POPULATE_FUNCTION(((global CHROMOSOME_TYPE*) chromosomes) + idx, ra);
-  // Barrier for the calculation of all chromosomes fitness.
-  barrier(CLK_GLOBAL_MEM_FENCE);
   CALCULATE_FITNESS(((global CHROMOSOME_TYPE*) chromosomes) + idx, fitness + idx,
                     CHROMOSOME_SIZE, POPULATION_SIZE);
 }
@@ -39,19 +37,19 @@ __kernel void ocl_ga_evaluate(global int* chromosomes,
   init_rand(idx + input_rand[0], ra);
 
   // NOTE: To print chromosomes for each round.
-  // print_chromosomes(chromosomes, chromosome_size, chromosome_count, distances);
-  // barrier(CLK_GLOBAL_MEM_FENCE);
+  // dump_chromosomes((global CHROMOSOME_TYPE*) chromosomes, fitness);
   CROSSOVER(idx, (global CHROMOSOME_TYPE*) chromosomes, fitness, survivors, best_global,
             weakest_global, prob_crossover, ra);
   // Barrier for mutation, we need to make sure to reproduction for all chromosomes
   // is done to prevent mutation with weak chromosomes.
   barrier(CLK_GLOBAL_MEM_FENCE);
-
+  // dump_chromosomes((global CHROMOSOME_TYPE*) chromosomes, fitness);
   MUTATE(((global CHROMOSOME_TYPE*) chromosomes) + idx, prob_mutate, ra);
 
   // Barrier for the calculation of all chromosomes fitness.
   barrier(CLK_GLOBAL_MEM_FENCE);
-
+  // dump_chromosomes((global CHROMOSOME_TYPE*) chromosomes, fitness);
   CALCULATE_FITNESS(((global CHROMOSOME_TYPE*) chromosomes) + idx, fitness + idx,
                     CHROMOSOME_SIZE, POPULATION_SIZE);
+  barrier(CLK_GLOBAL_MEM_FENCE);
 }
