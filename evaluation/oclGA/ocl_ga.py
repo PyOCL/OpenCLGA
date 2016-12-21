@@ -9,13 +9,14 @@ from chromosome import Chromosome
 
 class OpenCLGA(ABC):
     def __init__(self, sample_chromosome, generations, population, fitness_kernel_str, fitness_func,
-                 extra_include_path=[]):
+                 fitness_args, extra_include_path=[]):
         self.__sample_chromosome = sample_chromosome
         self.__chromosome_type = type(sample_chromosome)
         self.__generations = generations
         self.__population = population
         self.__fitness_function = fitness_func
         self.__fitness_kernel_str = fitness_kernel_str
+        self.__fitness_args = fitness_args
         self.__best = None
         self.__best_fitness = sys.maxsize
         self.__elapsed_time = None
@@ -46,10 +47,18 @@ class OpenCLGA(ABC):
     @property
     def __evaluate_code(self):
         ctype = self.__chromosome_type
+        fit_args = ", ".join(["global " + v["t"] + "* _f_" + v["n"] for v in self.__fitness_args])
+        fit_argv = ", ".join(["_f_" + v["n"] for v in self.__fitness_args])
+        if len(fit_args) > 0:
+            fit_args += ", "
+            fit_argv += ", "
+
         return "#define CHROMOSOME_SIZE " + ctype.chromosome_size_define + "\n" +\
                "#define CROSSOVER " + ctype.crossover_function + "\n" +\
                "#define MUTATE " + ctype.mutation_function + "\n" +\
-               "#define CALCULATE_FITNESS " + self.__fitness_function + "\n"
+               "#define CALCULATE_FITNESS " + self.__fitness_function + "\n"+\
+               "#define FITNESS_ARGS " + fit_args + "\n"+\
+               "#define FITNESS_ARGV " + fit_argv + "\n"
 
     @property
     def __include_code(self):
@@ -116,6 +125,11 @@ class OpenCLGA(ABC):
         dev_distances = cl.Buffer(self.__ctx, mf.WRITE_ONLY, distances.nbytes)
         dev_survivors = cl.Buffer(self.__ctx, mf.WRITE_ONLY, survivors.nbytes)
 
+        dev_pt_x = cl.Buffer(self.__ctx, mf.READ_ONLY | mf.COPY_HOST_PTR,\
+                             hostbuf=numpy.array(self.__fitness_args[0]["v"], dtype=numpy.float32))
+        dev_pt_y = cl.Buffer(self.__ctx, mf.READ_ONLY | mf.COPY_HOST_PTR,\
+                             hostbuf=numpy.array(self.__fitness_args[1]["v"], dtype=numpy.float32))
+
         cl.enqueue_copy(self.__queue, dev_distances, distances)
 
         exec_evt = self.__prg.ocl_ga_populate(self.__queue,
@@ -123,6 +137,8 @@ class OpenCLGA(ABC):
                                             (self.__population,),
                                             dev_chromosomes,
                                             dev_distances,
+                                            dev_pt_x,
+                                            dev_pt_y,
                                             dev_rnum)
         if exec_evt:
             exec_evt.wait()
@@ -136,6 +152,8 @@ class OpenCLGA(ABC):
                                                   dev_rnum,
                                                   dev_best,
                                                   dev_weakest,
+                                                  dev_pt_x,
+                                                  dev_pt_y,
                                                   numpy.float32(prob_mutate),
                                                   numpy.float32(prob_crossover))
         if exec_evt:
