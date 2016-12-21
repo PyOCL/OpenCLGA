@@ -281,10 +281,6 @@ void shuffler_chromosome_two_item_crossover(int idx,
                                             float prob_crossover,
                                             uint* ra)
 {
-  if (rand_prob(ra) >= prob_crossover) {
-    return;
-  }
-
   float max_local;
   float min_local;
 
@@ -293,8 +289,9 @@ void shuffler_chromosome_two_item_crossover(int idx,
   shuffler_chromosome_pick_chromosomes(idx, chromosomes, fitness, &parent1, &parent2,
                                        &min_local, &max_local, ra);
 
+  barrier(CLK_GLOBAL_MEM_FENCE);
   // keep the shortest path, we have to return here to prevent async barrier if someone is returned.
-  if (fitness[idx] - min_local < 0.0001) {
+  if (rand_prob(ra) >= prob_crossover || fitness[idx] - min_local < 0.0001) {
     // printf("best fitness: %f\n", fitness[idx]);
     return;
   }
