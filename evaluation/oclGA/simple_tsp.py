@@ -23,12 +23,13 @@ def run(num_chromosomes, generations):
     fstr = "".join(f.readlines())
     f.close()
 
-    fstr = "#define TSP_POINT_X {" + ", ".join([str(city_info[v][0]) for v in city_info]) + "}\n" +\
-           "#define TSP_POINT_Y {" + ", ".join([str(city_info[v][1]) for v in city_info]) + "}\n" +\
-           fstr
+    pointX = [str(city_info[v][0]) for v in city_info];
+    pointY = [str(city_info[v][1]) for v in city_info]
 
     tsp_ga_cl = OpenCLGA(sample, generations, num_chromosomes, fstr, "simple_tsp_fitness",\
-                         ["../../kernel"])
+                         [{"t": "float", "v": pointX, "n": "x"},\
+                          {"t": "float", "v": pointY, "n": "y"}]\
+                         , ["../../kernel"])
 
     prob_mutate = 0.2
     prob_cross = 0.8

@@ -3,7 +3,7 @@
 // Populate the first generation of chromosomes.
 __kernel void ocl_ga_populate(global int* chromosomes,
                               global float* fitness,
-                              global int* input_rand)
+                              global int* input_rand FITNESS_ARGS)
 {
   int idx = get_global_id(0);
   // out of bound kernel task for padding
@@ -15,7 +15,7 @@ __kernel void ocl_ga_populate(global int* chromosomes,
   init_rand(idx+input_rand[0], ra);
   POPULATE_FUNCTION(((global CHROMOSOME_TYPE*) chromosomes) + idx, ra);
   CALCULATE_FITNESS(((global CHROMOSOME_TYPE*) chromosomes) + idx, fitness + idx,
-                    CHROMOSOME_SIZE, POPULATION_SIZE);
+                    CHROMOSOME_SIZE, POPULATION_SIZE FITNESS_ARGV);
 }
 
 __kernel void ocl_ga_evaluate(global int* chromosomes,
@@ -25,7 +25,7 @@ __kernel void ocl_ga_evaluate(global int* chromosomes,
                               global float* best_global,
                               global float* weakest_global,
                               float prob_mutate,
-                              float prob_crossover)
+                              float prob_crossover FITNESS_ARGS)
 {
   int idx = get_global_id(0);
   // out of bound kernel task for padding
@@ -50,6 +50,6 @@ __kernel void ocl_ga_evaluate(global int* chromosomes,
   barrier(CLK_GLOBAL_MEM_FENCE);
   // dump_chromosomes((global CHROMOSOME_TYPE*) chromosomes, fitness);
   CALCULATE_FITNESS(((global CHROMOSOME_TYPE*) chromosomes) + idx, fitness + idx,
-                    CHROMOSOME_SIZE, POPULATION_SIZE);
+                    CHROMOSOME_SIZE, POPULATION_SIZE FITNESS_ARGV);
   barrier(CLK_GLOBAL_MEM_FENCE);
 }

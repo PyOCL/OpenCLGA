@@ -7,12 +7,10 @@ float calc_linear_distance(float x1, float y1, float x2, float y2)
 void simple_tsp_fitness(global __ShufflerChromosome* chromosome,
                         global float* fitnesses,
                         int chromosome_size,
-                        int chromosome_count)
+                        int chromosome_count,
+                        global float* pointsX,
+                        global float* pointsY)
 {
-
-  float pointsX[] = TSP_POINT_X;
-  float pointsY[] = TSP_POINT_Y;
-
   float dist = 0.0;
   for (int i = 0; i < chromosome_size-1; i++) {
     dist += calc_linear_distance(pointsX[chromosome->genes[i + 1]],
