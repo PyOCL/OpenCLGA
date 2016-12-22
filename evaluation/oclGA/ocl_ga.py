@@ -50,8 +50,8 @@ class OpenCLGA(ABC):
         fit_args = ", ".join(["global " + v["t"] + "* _f_" + v["n"] for v in self.__fitness_args])
         fit_argv = ", ".join(["_f_" + v["n"] for v in self.__fitness_args])
         if len(fit_args) > 0:
-            fit_args += ", "
-            fit_argv += ", "
+            fit_args = ", " + fit_args
+            fit_argv = ", " + fit_argv
 
         return "#define CHROMOSOME_SIZE " + ctype.chromosome_size_define + "\n" +\
                "#define CROSSOVER " + ctype.crossover_function + "\n" +\
@@ -99,6 +99,14 @@ class OpenCLGA(ABC):
         fdbg.close()
         self.__prg = cl.Program(self.__ctx, codes + fstr).build(self.__include_path);
 
+    def __type_to_numpy_type(self, t):
+        if t == "float":
+            return numpy.float32
+        elif t == "int":
+            return numpy.int32
+        else:
+            raise "unsupported python type"
+
     def __run_impl(self, prob_mutate, prob_crossover):
         total_dna_size = self.__population * self.__sample_chromosome.dna_total_length
 
@@ -125,37 +133,38 @@ class OpenCLGA(ABC):
         dev_distances = cl.Buffer(self.__ctx, mf.WRITE_ONLY, distances.nbytes)
         dev_survivors = cl.Buffer(self.__ctx, mf.WRITE_ONLY, survivors.nbytes)
 
-        dev_pt_x = cl.Buffer(self.__ctx, mf.READ_ONLY | mf.COPY_HOST_PTR,\
-                             hostbuf=numpy.array(self.__fitness_args[0]["v"], dtype=numpy.float32))
-        dev_pt_y = cl.Buffer(self.__ctx, mf.READ_ONLY | mf.COPY_HOST_PTR,\
-                             hostbuf=numpy.array(self.__fitness_args[1]["v"], dtype=numpy.float32))
+        populate_args = [dev_chromosomes,
+                         dev_distances,
+                         dev_rnum]
+        evaluate_args = [dev_chromosomes,
+                         dev_distances,
+                         dev_survivors,
+                         dev_rnum,
+                         dev_best,
+                         dev_weakest,
+                         numpy.float32(prob_mutate),
+                         numpy.float32(prob_crossover)]
+
+        ## create buffers for fitness arguments
+        for arg in self.__fitness_args:
+            b = cl.Buffer(self.__ctx, mf.READ_ONLY | mf.COPY_HOST_PTR,
+                          hostbuf=numpy.array(arg["v"], dtype=self.__type_to_numpy_type(arg["t"])))
+            populate_args.append(b)
+            evaluate_args.append(b)
 
         cl.enqueue_copy(self.__queue, dev_distances, distances)
 
         exec_evt = self.__prg.ocl_ga_populate(self.__queue,
-                                            (self.__population,),
-                                            (self.__population,),
-                                            dev_chromosomes,
-                                            dev_distances,
-                                            dev_pt_x,
-                                            dev_pt_y,
-                                            dev_rnum)
+                                              (self.__population,),
+                                              (self.__population,),
+                                              *populate_args)
         if exec_evt:
             exec_evt.wait()
         for i in range(self.__generations):
             exec_evt = self.__prg.ocl_ga_evaluate(self.__queue,
                                                   (self.__population,),
                                                   (self.__population,),
-                                                  dev_chromosomes,
-                                                  dev_distances,
-                                                  dev_survivors,
-                                                  dev_rnum,
-                                                  dev_best,
-                                                  dev_weakest,
-                                                  dev_pt_x,
-                                                  dev_pt_y,
-                                                  numpy.float32(prob_mutate),
-                                                  numpy.float32(prob_crossover))
+                                                  *evaluate_args)
         if exec_evt:
             exec_evt.wait()
 
