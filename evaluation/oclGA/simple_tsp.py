@@ -31,7 +31,7 @@ def run(num_chromosomes, generations):
                           {"t": "float", "v": pointY, "n": "y"}],
                          ["../../kernel"])
 
-    prob_mutate = 0.2
+    prob_mutate = 0.1
     prob_cross = 0.8
     tsp_ga_cl.run(prob_mutate, prob_cross)
 

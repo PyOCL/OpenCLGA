@@ -54,8 +54,6 @@ class OpenCLGA(ABC):
             fit_argv = ", " + fit_argv
 
         return "#define CHROMOSOME_SIZE " + ctype.chromosome_size_define + "\n" +\
-               "#define CROSSOVER " + ctype.crossover_function + "\n" +\
-               "#define MUTATE " + ctype.mutation_function + "\n" +\
                "#define CALCULATE_FITNESS " + self.__fitness_function + "\n"+\
                "#define FITNESS_ARGS " + fit_args + "\n"+\
                "#define FITNESS_ARGV " + fit_argv + "\n"
@@ -108,65 +106,68 @@ class OpenCLGA(ABC):
             raise "unsupported python type"
 
     def __run_impl(self, prob_mutate, prob_crossover):
+        ctype = self.__chromosome_type
         total_dna_size = self.__population * self.__sample_chromosome.dna_total_length
 
         distances = numpy.zeros(self.__population, dtype=numpy.float32)
-        survivors = numpy.zeros(self.__population, dtype=numpy.bool)
         np_chromosomes = numpy.zeros(total_dna_size, dtype=numpy.int32)
 
         mf = cl.mem_flags
         # Random number should be given by Host program because OpenCL doesn't have a random number
         # generator. We just include one, Noise.cl.
-        rnum = [random.randint(1, (int)(time.time()))]
+        rnum = [random.randint(0, 4294967295) for i in range(self.__population)]
+        ## note: numpy.random.rand() gives us a list float32 and we cast it to uint32 at the calling
+        ##       of kernel function. It just views the original byte order as uint32.
         dev_rnum = cl.Buffer(self.__ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
-                             hostbuf=numpy.array(rnum, dtype=numpy.int32))
-
-        best_fit = [sys.maxsize]
-        weakest_fit = [0.0]
-        dev_best = cl.Buffer(self.__ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
-                             hostbuf=numpy.array(best_fit, dtype=numpy.float32))
-        dev_weakest = cl.Buffer(self.__ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
-                                hostbuf=numpy.array(weakest_fit, dtype=numpy.float32))
-
+                             hostbuf=numpy.array(rnum, dtype=numpy.uint32))
         dev_chromosomes = cl.Buffer(self.__ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
                                     hostbuf=np_chromosomes)
         dev_distances = cl.Buffer(self.__ctx, mf.WRITE_ONLY, distances.nbytes)
-        dev_survivors = cl.Buffer(self.__ctx, mf.WRITE_ONLY, survivors.nbytes)
 
-        populate_args = [dev_chromosomes,
-                         dev_distances,
-                         dev_rnum]
-        evaluate_args = [dev_chromosomes,
-                         dev_distances,
-                         dev_survivors,
-                         dev_rnum,
-                         dev_best,
-                         dev_weakest,
-                         numpy.float32(prob_mutate),
-                         numpy.float32(prob_crossover)]
+        fitness_args = [dev_chromosomes, dev_distances]
 
         ## create buffers for fitness arguments
         for arg in self.__fitness_args:
-            b = cl.Buffer(self.__ctx, mf.READ_ONLY | mf.COPY_HOST_PTR,
-                          hostbuf=numpy.array(arg["v"], dtype=self.__type_to_numpy_type(arg["t"])))
-            populate_args.append(b)
-            evaluate_args.append(b)
+            fitness_args.append(cl.Buffer(self.__ctx, mf.READ_ONLY | mf.COPY_HOST_PTR,
+                          hostbuf=numpy.array(arg["v"], dtype=self.__type_to_numpy_type(arg["t"]))))
 
         cl.enqueue_copy(self.__queue, dev_distances, distances)
 
+        ## call preexecute_kernels for internal data structure preparation
+        self.__sample_chromosome.preexecute_kernels(self.__ctx, self.__queue, self.__population)
+
+        ## populate the first generation
         exec_evt = self.__prg.ocl_ga_populate(self.__queue,
                                               (self.__population,),
                                               (self.__population,),
-                                              *populate_args)
-        if exec_evt:
-            exec_evt.wait()
+                                              dev_chromosomes,
+                                              dev_rnum).wait()
+        exec_evt = self.__prg.ocl_ga_calculate_fitness(self.__queue,
+                                                       (self.__population,),
+                                                       (self.__population,),
+                                                       *fitness_args).wait()
+        ## start the evolution
         for i in range(self.__generations):
-            exec_evt = self.__prg.ocl_ga_evaluate(self.__queue,
-                                                  (self.__population,),
-                                                  (self.__population,),
-                                                  *evaluate_args)
-        if exec_evt:
-            exec_evt.wait()
+            self.__sample_chromosome.execute_crossover(self.__prg,
+                                                       self.__queue,
+                                                       self.__population,
+                                                       i,
+                                                       prob_crossover,
+                                                       dev_chromosomes,
+                                                       dev_distances,
+                                                       dev_rnum)
+            self.__sample_chromosome.execute_mutation(self.__prg,
+                                                      self.__queue,
+                                                      self.__population,
+                                                      i,
+                                                      prob_mutate,
+                                                      dev_chromosomes,
+                                                      dev_distances,
+                                                      dev_rnum)
+            self.__prg.ocl_ga_calculate_fitness(self.__queue,
+                                                (self.__population,),
+                                                (self.__population,),
+                                                *fitness_args).wait()
 
         cl.enqueue_read_buffer(self.__queue, dev_distances, distances)
         cl.enqueue_read_buffer(self.__queue, dev_chromosomes, np_chromosomes).wait()
