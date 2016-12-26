@@ -9,6 +9,7 @@ import utils
 from pyopencl import array as clarray
 from ocl_ga import OpenCLGA
 from shuffler_chromosome import ShufflerChromosome
+from shuffler_chromosome_method_2 import ShufflerChromosomeMethod2
 from simple_gene import SimpleGene
 
 def run(num_chromosomes, generations):
@@ -17,7 +18,8 @@ def run(num_chromosomes, generations):
     city_ids = list(range(0, num_cities))
     city_info = {city_id: (random.random() * 100, random.random() * 100) for city_id in city_ids}
 
-    sample = ShufflerChromosome([SimpleGene(v, city_ids) for v in city_ids])
+    ## sample = ShufflerChromosome([SimpleGene(v, city_ids) for v in city_ids])
+    sample = ShufflerChromosomeMethod2([SimpleGene(v, city_ids) for v in city_ids])
 
     f = open(os.path.join("cl", "simple_tsp.c"), "r")
     fstr = "".join(f.readlines())

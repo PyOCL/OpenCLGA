@@ -4,22 +4,14 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 # start to import what we want.
-import math
 import random
-import pyopencl as cl
-import numpy
-import sys
 import json
 import utils
-from time import time
-from time import clock
 from pathlib import Path
-from itertools import tee
-from pyopencl import array as clarray
 from ocl_ga import OpenCLGA
 from shuffler_chromosome import ShufflerChromosome
+from shuffler_chromosome_method_2 import ShufflerChromosomeMethod2
 from simple_gene import SimpleGene
-from pprint import pprint
 
 def read_all_cities(file_name):
     file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), file_name)
@@ -46,7 +38,8 @@ def run(num_chromosomes, generations):
     city_ids = list(range(len(cities)))
     random.seed()
 
-    sample = ShufflerChromosome([SimpleGene(v, city_ids) for v in city_ids])
+    ## sample = ShufflerChromosome([SimpleGene(v, city_ids) for v in city_ids])
+    sample = ShufflerChromosomeMethod2([SimpleGene(v, city_ids) for v in city_ids])
 
     f = open(os.path.join("cl", "taiwan_fitness.c"), "r")
     fstr = "".join(f.readlines())
@@ -56,10 +49,11 @@ def run(num_chromosomes, generations):
            "#define TAIWAN_POINT_Y {" + ", ".join([str(v) for v in city_infoY]) + "}\n" +\
            fstr
 
-    tsp_ga_cl = OpenCLGA(sample, generations, num_chromosomes, fstr, "taiwan_fitness", ["../../kernel"])
+    tsp_ga_cl = OpenCLGA(sample, generations, num_chromosomes, fstr, "taiwan_fitness", None,
+                         ["../../kernel"])
 
     prob_mutate = 0.10
-    prob_cross = 0.60
+    prob_cross = 0.80
     tsp_ga_cl.run(prob_mutate, prob_cross)
 
     print("run took", tsp_ga_cl.elapsed_time, "seconds")

@@ -68,25 +68,17 @@ class ShufflerChromosome:
 
     def preexecute_kernels(self, ctx, queue, population):
         ## initialize global variables for kernel execution
-        total_dna_size = population * self.dna_total_length
-
-        other_chromosomes = numpy.zeros(total_dna_size, dtype=numpy.int32)
-        cross_map = numpy.zeros(total_dna_size, dtype=numpy.int32)
-        ratios = numpy.zeros(population, dtype=numpy.float32)
+        survivors = numpy.zeros(population, dtype=numpy.bool)
         best_fit = [0]
         weakest_fit = [0]
 
         mf = cl.mem_flags
 
-        self.__dev_ratios = cl.Buffer(ctx, mf.WRITE_ONLY, ratios.nbytes)
         self.__dev_best = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
                                     hostbuf=numpy.array(best_fit, dtype=numpy.float32))
         self.__dev_weakest = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
                                        hostbuf=numpy.array(weakest_fit, dtype=numpy.float32))
-        self.__dev_other_chromosomes = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
-                                                 hostbuf=other_chromosomes)
-        self.__dev_cross_map = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
-                                         hostbuf=cross_map)
+        self.__dev_survivors = cl.Buffer(ctx, mf.WRITE_ONLY, survivors.nbytes)
 
     def execute_populate(self, prg, queue, population, dev_chromosomes, dev_rnum):
         prg.shuffler_chromosome_populate(queue,
@@ -97,38 +89,28 @@ class ShufflerChromosome:
 
     def execute_crossover(self, prg, queue, population, generation_idx, prob_crossover,
                           dev_chromosomes, dev_fitnesses, dev_rnum):
-        prg.shuffler_chromosome_calc_ratio(queue,
-                                           (1,),
-                                           (1,),
-                                           dev_fitnesses,
-                                           self.__dev_ratios,
-                                           self.__dev_best,
-                                           self.__dev_weakest).wait()
-        prg.shuffler_chromosome_pick_chromosomes(queue,
-                                                 (population,),
+        prg.shuffler_chromosome_update_survivors(queue,
                                                  (1,),
-                                                 dev_chromosomes,
+                                                 (1,),
                                                  dev_fitnesses,
-                                                 self.__dev_other_chromosomes,
-                                                 self.__dev_ratios,
-                                                 dev_rnum).wait()
-        prg.shuffler_chromosome_do_crossover(queue,
-                                             (population,),
-                                             (1,),
-                                             dev_chromosomes,
-                                             dev_fitnesses,
-                                             self.__dev_other_chromosomes,
-                                             self.__dev_cross_map,
-                                             self.__dev_best,
-                                             numpy.float32(prob_crossover),
-                                             dev_rnum).wait()
+                                                 self.__dev_best,
+                                                 self.__dev_weakest,
+                                                 self.__dev_survivors).wait()
+        prg.shuffler_chromosome_crossover(queue,
+                                          (population,),
+                                          (1,),
+                                          dev_chromosomes,
+                                          dev_fitnesses,
+                                          self.__dev_survivors,
+                                          numpy.float32(prob_crossover),
+                                          dev_rnum).wait()
 
 
     def execute_mutation(self, prg, queue, population, generation_idx, prob_mutate,
                          dev_chromosomes, dev_fitnesses, dev_rnum):
-        prg.shuffler_chromosome_single_gene_mutate(queue,
-                                                   (population,),
-                                                   (1,),
-                                                   dev_chromosomes,
-                                                   numpy.float32(prob_mutate),
-                                                   dev_rnum).wait()
+        prg.shuffler_chromosome_mutate(queue,
+                                       (population,),
+                                       (1,),
+                                       dev_chromosomes,
+                                       numpy.float32(prob_mutate),
+                                       dev_rnum).wait()

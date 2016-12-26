@@ -44,14 +44,18 @@ class OpenCLGA(ABC):
     @property
     def __evaluate_code(self):
         chromosome = self.__sample_chromosome
-        fit_args = ", ".join(["global " + v["t"] + "* _f_" + v["n"] for v in self.__fitness_args])
-        fit_argv = ", ".join(["_f_" + v["n"] for v in self.__fitness_args])
-        if len(fit_args) > 0:
-            fit_args = ", " + fit_args
-            fit_argv = ", " + fit_argv
+        if self.__fitness_args is not None:
+            fit_args = ", ".join(["global " + v["t"] + "* _f_" + v["n"] for v in self.__fitness_args])
+            fit_argv = ", ".join(["_f_" + v["n"] for v in self.__fitness_args])
+            if len(fit_args) > 0:
+                fit_args = ", " + fit_args
+                fit_argv = ", " + fit_argv
+        else:
+            fit_args = ""
+            fit_argv = ""
 
         return "#define CHROMOSOME_SIZE " + chromosome.chromosome_size_define + "\n" +\
-               "#define CALCULATE_FITNESS " + self.__fitness_function + "\n"+\
+               "#define CALCULATE_FITNESS " + self.__fitness_function + "\n" +\
                "#define FITNESS_ARGS " + fit_args + "\n"+\
                "#define FITNESS_ARGV " + fit_argv + "\n"
 
@@ -67,7 +71,6 @@ class OpenCLGA(ABC):
         # create OpenCL context, queue, and memory
         self.__ctx = cl.create_some_context()
         self.__queue = cl.CommandQueue(self.__ctx)
-        self.__mem_pool =cl.tools.MemoryPool(cl.tools.ImmediateAllocator(self.__queue))
         self.__include_path = []
         paths = extra_include_path + ["cl"]
         for path in paths:
@@ -120,10 +123,12 @@ class OpenCLGA(ABC):
 
         fitness_args = [dev_chromosomes, dev_distances]
 
-        ## create buffers for fitness arguments
-        for arg in self.__fitness_args:
-            fitness_args.append(cl.Buffer(self.__ctx, mf.READ_ONLY | mf.COPY_HOST_PTR,
-                          hostbuf=numpy.array(arg["v"], dtype=self.__type_to_numpy_type(arg["t"]))))
+        if self.__fitness_args is not None:
+            ## create buffers for fitness arguments
+            for arg in self.__fitness_args:
+                fitness_args.append(cl.Buffer(self.__ctx, mf.READ_ONLY | mf.COPY_HOST_PTR,
+                                              hostbuf=numpy.array(arg["v"],
+                                              dtype=self.__type_to_numpy_type(arg["t"]))))
 
         cl.enqueue_copy(self.__queue, dev_distances, distances)
 
