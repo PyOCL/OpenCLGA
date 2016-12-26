@@ -26,10 +26,10 @@ def run(num_chromosomes, generations):
     pointX = [str(city_info[v][0]) for v in city_info];
     pointY = [str(city_info[v][1]) for v in city_info]
 
-    tsp_ga_cl = OpenCLGA(sample, generations, num_chromosomes, fstr, "simple_tsp_fitness",\
-                         [{"t": "float", "v": pointX, "n": "x"},\
-                          {"t": "float", "v": pointY, "n": "y"}]\
-                         , ["../../kernel"])
+    tsp_ga_cl = OpenCLGA(sample, generations, num_chromosomes, fstr, "simple_tsp_fitness",
+                         [{"t": "float", "v": pointX, "n": "x"},
+                          {"t": "float", "v": pointY, "n": "y"}],
+                         ["../../kernel"])
 
     prob_mutate = 0.2
     prob_cross = 0.8
