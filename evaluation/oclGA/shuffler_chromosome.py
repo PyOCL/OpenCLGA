@@ -96,7 +96,7 @@ class ShufflerChromosome:
                                            self.__dev_weakest).wait()
         prg.shuffler_chromosome_pick_chromosomes(queue,
                                                  (population,),
-                                                 (population,),
+                                                 (1,),
                                                  dev_chromosomes,
                                                  dev_fitnesses,
                                                  self.__dev_other_chromosomes,
@@ -104,7 +104,7 @@ class ShufflerChromosome:
                                                  dev_rnum).wait()
         prg.shuffler_chromosome_do_crossover(queue,
                                              (population,),
-                                             (population,),
+                                             (1,),
                                              dev_chromosomes,
                                              dev_fitnesses,
                                              self.__dev_other_chromosomes,
@@ -118,7 +118,7 @@ class ShufflerChromosome:
                          dev_chromosomes, dev_fitnesses, dev_rnum, wait_for=None):
         prg.shuffler_chromosome_single_gene_mutate(queue,
                                                    (population,),
-                                                   (population,),
+                                                   (1,),
                                                    dev_chromosomes,
                                                    numpy.float32(prob_mutate),
                                                    dev_rnum).wait()

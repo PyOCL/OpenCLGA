@@ -139,12 +139,12 @@ class OpenCLGA(ABC):
         ## populate the first generation
         exec_evt = self.__prg.ocl_ga_populate(self.__queue,
                                               (self.__population,),
-                                              (self.__population,),
+                                              (1,),
                                               dev_chromosomes,
                                               dev_rnum).wait()
         exec_evt = self.__prg.ocl_ga_calculate_fitness(self.__queue,
                                                        (self.__population,),
-                                                       (self.__population,),
+                                                       (1,),
                                                        *fitness_args).wait()
         ## start the evolution
         for i in range(self.__generations):
@@ -166,7 +166,7 @@ class OpenCLGA(ABC):
                                                       dev_rnum)
             self.__prg.ocl_ga_calculate_fitness(self.__queue,
                                                 (self.__population,),
-                                                (self.__population,),
+                                                (1,),
                                                 *fitness_args).wait()
 
         cl.enqueue_read_buffer(self.__queue, dev_distances, distances)
