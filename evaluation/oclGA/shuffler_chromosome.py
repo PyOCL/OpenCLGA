@@ -4,12 +4,6 @@ import pyopencl as cl
 from simple_gene import SimpleGene
 
 class ShufflerChromosome:
-    kernel_file = "shuffler_chromosome.c"
-
-    populate_function = "shuffler_chromosome_populate"
-    struct_name = "__ShufflerChromosome"
-    chromosome_size_define = "SHUFFLER_CHROMOSOME_GENE_SIZE"
-
     # ShufflerChromosome - a chromosome contains a list of Genes.
     # __genes - an ordered list of Genes
     # __name - name of the chromosome
@@ -55,13 +49,22 @@ class ShufflerChromosome:
     def gene_elements_in_kernel(self):
         return [] if len(self.__genes) == 0 else self.__genes[0].elements_in_kernel
 
+    @property
+    def kernel_file(self):
+        return "shuffler_chromosome.c"
+
+    @property
+    def struct_name(self):
+        return "__ShufflerChromosome";
+
+    @property
+    def chromosome_size_define(self):
+        return "SHUFFLER_CHROMOSOME_GENE_SIZE"
+
     def kernelize(self):
         candidates = self.__genes[0].kernelize()
         defines = "#define SHUFFLER_CHROMOSOME_GENE_SIZE " + str(self.num_of_genes) + "\n"
-        typedef = "typedef struct {\n" +\
-                  "  int genes[" + str(self.num_of_genes) + "];\n" +\
-                  "} __ShufflerChromosome;\n"
-        return candidates + defines + typedef
+        return candidates + defines
 
     def preexecute_kernels(self, ctx, queue, population):
         ## initialize global variables for kernel execution
@@ -85,8 +88,15 @@ class ShufflerChromosome:
         self.__dev_cross_map = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
                                          hostbuf=cross_map)
 
+    def execute_populate(self, prg, queue, population, dev_chromosomes, dev_rnum):
+        prg.shuffler_chromosome_populate(queue,
+                                         (population,),
+                                         (1,),
+                                         dev_chromosomes,
+                                         dev_rnum).wait()
+
     def execute_crossover(self, prg, queue, population, generation_idx, prob_crossover,
-                          dev_chromosomes, dev_fitnesses, dev_rnum, wait_for=None):
+                          dev_chromosomes, dev_fitnesses, dev_rnum):
         prg.shuffler_chromosome_calc_ratio(queue,
                                            (1,),
                                            (1,),
@@ -115,7 +125,7 @@ class ShufflerChromosome:
 
 
     def execute_mutation(self, prg, queue, population, generation_idx, prob_mutate,
-                         dev_chromosomes, dev_fitnesses, dev_rnum, wait_for=None):
+                         dev_chromosomes, dev_fitnesses, dev_rnum):
         prg.shuffler_chromosome_single_gene_mutate(queue,
                                                    (population,),
                                                    (1,),

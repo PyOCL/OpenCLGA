@@ -11,7 +11,6 @@ class OpenCLGA(ABC):
     def __init__(self, sample_chromosome, generations, population, fitness_kernel_str, fitness_func,
                  fitness_args, extra_include_path=[]):
         self.__sample_chromosome = sample_chromosome
-        self.__chromosome_type = type(sample_chromosome)
         self.__generations = generations
         self.__population = population
         self.__fitness_function = fitness_func
@@ -39,21 +38,19 @@ class OpenCLGA(ABC):
     # private properties
     @property
     def __populate_codes(self):
-        ctype = self.__chromosome_type
         return "#define POPULATION_SIZE " + str(self.__population) + "\n" +\
-               "#define POPULATE_FUNCTION " + ctype.populate_function + "\n" +\
-               "#define CHROMOSOME_TYPE " +  ctype.struct_name + "\n"
+               "#define CHROMOSOME_TYPE " +  self.__sample_chromosome.struct_name + "\n"
 
     @property
     def __evaluate_code(self):
-        ctype = self.__chromosome_type
+        chromosome = self.__sample_chromosome
         fit_args = ", ".join(["global " + v["t"] + "* _f_" + v["n"] for v in self.__fitness_args])
         fit_argv = ", ".join(["_f_" + v["n"] for v in self.__fitness_args])
         if len(fit_args) > 0:
             fit_args = ", " + fit_args
             fit_argv = ", " + fit_argv
 
-        return "#define CHROMOSOME_SIZE " + ctype.chromosome_size_define + "\n" +\
+        return "#define CHROMOSOME_SIZE " + chromosome.chromosome_size_define + "\n" +\
                "#define CALCULATE_FITNESS " + self.__fitness_function + "\n"+\
                "#define FITNESS_ARGS " + fit_args + "\n"+\
                "#define FITNESS_ARGV " + fit_argv + "\n"
@@ -61,11 +58,9 @@ class OpenCLGA(ABC):
     @property
     def __include_code(self):
         sample_gene = self.__sample_chromosome.genes[0]
-        gtype = type(sample_gene)
-        ctype = self.__chromosome_type
         return self.__sample_chromosome.kernelize() + "\n" +\
-               "#include \"" + gtype.kernel_file + "\"\n" +\
-               "#include \"" + ctype.kernel_file + "\"\n\n"
+               "#include \"" + sample_gene.kernel_file + "\"\n" +\
+               "#include \"" + self.__sample_chromosome.kernel_file + "\"\n\n"
 
     # private methods
     def __init_cl(self, extra_include_path):
@@ -106,7 +101,6 @@ class OpenCLGA(ABC):
             raise "unsupported python type"
 
     def __run_impl(self, prob_mutate, prob_crossover):
-        ctype = self.__chromosome_type
         total_dna_size = self.__population * self.__sample_chromosome.dna_total_length
 
         distances = numpy.zeros(self.__population, dtype=numpy.float32)
@@ -137,15 +131,15 @@ class OpenCLGA(ABC):
         self.__sample_chromosome.preexecute_kernels(self.__ctx, self.__queue, self.__population)
 
         ## populate the first generation
-        exec_evt = self.__prg.ocl_ga_populate(self.__queue,
-                                              (self.__population,),
-                                              (1,),
-                                              dev_chromosomes,
-                                              dev_rnum).wait()
-        exec_evt = self.__prg.ocl_ga_calculate_fitness(self.__queue,
-                                                       (self.__population,),
-                                                       (1,),
-                                                       *fitness_args).wait()
+        self.__sample_chromosome.execute_populate(self.__prg,
+                                                  self.__queue,
+                                                  self.__population,
+                                                  dev_chromosomes,
+                                                  dev_rnum)
+        self.__prg.ocl_ga_calculate_fitness(self.__queue,
+                                            (self.__population,),
+                                            (1,),
+                                            *fitness_args).wait()
         ## start the evolution
         for i in range(self.__generations):
             self.__sample_chromosome.execute_crossover(self.__prg,

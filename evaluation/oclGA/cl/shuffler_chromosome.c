@@ -3,6 +3,10 @@
 
 #include "ga_utils.c"
 
+typedef struct {
+  int genes[SHUFFLER_CHROMOSOME_GENE_SIZE];
+} __ShufflerChromosome;
+
 void dump_chromosomes(global __ShufflerChromosome* chromosomes,
                       global float* fitnesses)
 {
@@ -38,7 +42,7 @@ void shuffler_chromosome_check_duplicate(global __ShufflerChromosome* chromosome
 }
 
 // functions for populate
-void shuffler_chromosome_populate(global __ShufflerChromosome* chromosome, uint* rand_holder) {
+void shuffler_chromosome_do_populate(global __ShufflerChromosome* chromosome, uint* rand_holder) {
   int gene_elements[] = SIMPLE_GENE_ELEMENTS;
   int rndIdx;
   for (int i = 0; i < SHUFFLER_CHROMOSOME_GENE_SIZE - 1; i++) {
@@ -47,6 +51,19 @@ void shuffler_chromosome_populate(global __ShufflerChromosome* chromosome, uint*
     gene_elements[rndIdx] = gene_elements[SHUFFLER_CHROMOSOME_GENE_SIZE - i - 1];
   }
   chromosome->genes[SHUFFLER_CHROMOSOME_GENE_SIZE - 1] = gene_elements[0];
+}
+
+__kernel void shuffler_chromosome_populate(global int* chromosomes, global uint* input_rand) {
+  int idx = get_global_id(0);
+  // out of bound kernel task for padding
+  if (idx >= POPULATION_SIZE) {
+    return;
+  }
+  // create a private variable for each kernel to hold randome number.
+  uint ra[1];
+  init_rand(input_rand[idx], ra);
+  shuffler_chromosome_do_populate(((global CHROMOSOME_TYPE*) chromosomes) + idx, ra);
+  input_rand[idx] = ra[0];
 }
 
 // functions for mutation

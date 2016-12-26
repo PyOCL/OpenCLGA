@@ -2,7 +2,7 @@ import random
 HUMAN_DNA_ELEMENTS = ["A","C","G","T"]
 
 class SimpleGene:
-    kernel_file = "simple_gene.c"
+
 
     @staticmethod
     def clone_gene(g):
@@ -46,6 +46,10 @@ class SimpleGene:
     @property
     def elements_in_kernel(self):
         return list(range(0, len(self.__elements)))
+
+    @property
+    def kernel_file(self):
+        return "simple_gene.c"
 
     def kernelize(self):
         elements_str = ", ".join([str(v) for v in self.elements_in_kernel])
