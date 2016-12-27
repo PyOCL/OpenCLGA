@@ -33,6 +33,7 @@ Like other GA library, you only need to
 Option A. Refers to https://wiki.tiker.net/PyOpenCL
 
 Option B. My personal experience on Windows (just to install all required stuff in a quick way)
+
     -- Step 1. Install platform opencl graphic driver, e.g. Intel CPU or Intel HD Grahics (https://software.intel.com/en-us/intel-opencl)
 
     -- Step 2. Install the following *\*.whl* for python from http://www.lfd.uci.edu/~gohlke/pythonlibs/#pyopencl
