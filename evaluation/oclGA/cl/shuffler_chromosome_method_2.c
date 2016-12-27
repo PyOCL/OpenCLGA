@@ -134,17 +134,15 @@ __kernel void shuffler_chromosome_calc_ratio(global float* fitness,
   calc_min_max_fitness(fitness, POPULATION_SIZE, &local_best, &local_worst);
   *best = local_best;
   *worst = local_worst;
-  float diff[POPULATION_SIZE];
   float diffTotal = 0;
   int i;
   // we use total and diff to calculate the probability for each chromosome
   for (i = 0; i < POPULATION_SIZE; i++) {
-    diff[i] = (local_worst - fitness[i]) * (local_worst - fitness[i]);
-    diffTotal += diff[i];
+    diffTotal += (local_worst - fitness[i]) * (local_worst - fitness[i]);
   }
   // calculate probability for each one
   for (i = 0; i < POPULATION_SIZE; i++) {
-    ratio[i] = diff[i] / diffTotal;
+    ratio[i] = (local_worst - fitness[i]) * (local_worst - fitness[i]) / diffTotal;
   }
 }
 
