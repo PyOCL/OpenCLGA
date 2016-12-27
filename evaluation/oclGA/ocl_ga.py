@@ -103,6 +103,22 @@ class OpenCLGA(ABC):
         else:
             raise "unsupported python type"
 
+    def dump_kernel_info(self, prog, ctx, chromosome_wrapper, device = None):
+        sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        import utils
+        utils.calculate_estimated_kernel_usage(prog,
+                                               ctx,
+                                               chromosome_wrapper.get_populate_kernel_names())
+        utils.calculate_estimated_kernel_usage(prog,
+                                               ctx,
+                                               ["ocl_ga_calculate_fitness"])
+        utils.calculate_estimated_kernel_usage(prog,
+                                               ctx,
+                                               chromosome_wrapper.get_crossover_kernel_names())
+        utils.calculate_estimated_kernel_usage(prog,
+                                               ctx,
+                                               chromosome_wrapper.get_mutation_kernel_names())
+
     def __run_impl(self, prob_mutate, prob_crossover):
         total_dna_size = self.__population * self.__sample_chromosome.dna_total_length
 
@@ -135,16 +151,21 @@ class OpenCLGA(ABC):
         ## call preexecute_kernels for internal data structure preparation
         self.__sample_chromosome.preexecute_kernels(self.__ctx, self.__queue, self.__population)
 
+        ## dump information on kernel resources usage
+        self.dump_kernel_info(self.__prg, self.__ctx, self.__sample_chromosome)
+
         ## populate the first generation
         self.__sample_chromosome.execute_populate(self.__prg,
                                                   self.__queue,
                                                   self.__population,
                                                   dev_chromosomes,
                                                   dev_rnum)
+
         self.__prg.ocl_ga_calculate_fitness(self.__queue,
                                             (self.__population,),
                                             (1,),
                                             *fitness_args).wait()
+
         ## start the evolution
         for i in range(self.__generations):
             self.__sample_chromosome.execute_crossover(self.__prg,

@@ -67,3 +67,25 @@ def plot_result(city_info, city_ids):
     plt.ylabel('y')
     plt.xlabel('x')
     plt.show()
+
+
+def calculate_estimated_kernel_usage(prog, ctx, kernel_names):
+    try:
+        import pyopencl as cl
+        from pyopencl import context_info as ci
+        from pyopencl import kernel_work_group_info as kwgi
+        devices = ctx.get_info(ci.DEVICES)
+        assert len(devices) == 1, "Should only one device is used !"
+        device = devices[0]
+        for name in kernel_names:
+            kerKer = cl.Kernel(prog, name)
+            lm = kerKer.get_work_group_info(kwgi.LOCAL_MEM_SIZE, device)
+            pm = kerKer.get_work_group_info(kwgi.PRIVATE_MEM_SIZE, device)
+            cwgs = kerKer.get_work_group_info(kwgi.COMPILE_WORK_GROUP_SIZE, device)
+            pwgsm = kerKer.get_work_group_info(kwgi.PREFERRED_WORK_GROUP_SIZE_MULTIPLE, device)
+            print("[%s] Estimated usage : Local mem (%d)/ Private mem (%d)"\
+                  "/ Compile WG size (%s)/ Preffered WG size multiple (%d)"\
+                  %(name, lm, pm, str(cwgs), pwgsm))
+    except:
+        import traceback
+        traceback.print_exc()

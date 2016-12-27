@@ -39,6 +39,17 @@ class ShufflerChromosomeMethod2(ShufflerChromosome):
         self.__dev_cross_map = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
                                          hostbuf=cross_map)
 
+    def get_populate_kernel_names(self):
+        return ["shuffler_chromosome_populate"]
+
+    def get_crossover_kernel_names(self):
+        return ["shuffler_chromosome_calc_ratio",\
+                "shuffler_chromosome_pick_chromosomes",\
+                "shuffler_chromosome_do_crossover"]
+
+    def get_mutation_kernel_names(self):
+        return ["shuffler_chromosome_single_gene_mutate"]
+
     def execute_populate(self, prg, queue, population, dev_chromosomes, dev_rnum):
         prg.shuffler_chromosome_populate(queue,
                                          (population,),
