@@ -17,8 +17,8 @@ Chromosome contains a list of Genes [G1, G2, G3, G4], and the DNA sequence looks
 
 針對任一種最佳化問題, 只需要
 
-1. 繼承 BaseGenericAlgorithm 類別, 
-2. 覆寫 evaluate_fitness 函數 (計算該代所有 Chromosomes 的基因序列之適應值), 
+1. 繼承 BaseGenericAlgorithm 類別,
+2. 覆寫 evaluate_fitness 函數 (計算該代所有 Chromosomes 的基因序列之適應值),
 3. (optional) 可透過 |set_customized_crossover_func|, |set_customized_mutate_func| 針對問題客製化交配,突變函數.
 
 Like other GA library, you only need to
@@ -32,16 +32,15 @@ Like other GA library, you only need to
 
 Option A. Refers to https://wiki.tiker.net/PyOpenCL
 
-Option B. My personal experience (just to install all required stuff in a quick way)
-
+Option B. My personal experience on Windows (just to install all required stuff in a quick way)
     -- Step 1. Install platform opencl graphic driver, e.g. Intel CPU or Intel HD Grahics (https://software.intel.com/en-us/intel-opencl)
 
     -- Step 2. Install the following *\*.whl* for python from http://www.lfd.uci.edu/~gohlke/pythonlibs/#pyopencl
-    
+
         1) http://www.lfd.uci.edu/~gohlke/pythonlibs/#numpy
-        
+
         2) http://www.lfd.uci.edu/~gohlke/pythonlibs/#pyopencl
-     
+
 # Issues to be addressed
 
 1. A better random number generator for OpenCL kernel.
