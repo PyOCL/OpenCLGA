@@ -23,27 +23,27 @@ Option B. My personal experience on Windows (just to install all required stuff 
 
 1. Create virtual env (optional):
 
-```shellscript
-    mkdir oclGA
-    virtualenv .
-    source Scripts/activate
-```
+    ```shellscript
+        mkdir oclGA
+        virtualenv .
+        source Scripts/activate
+    ```
 
 2. Install the pyopencl from 1) http://www.lfd.uci.edu/~gohlke/pythonlibs/#numpy and 2) http://www.lfd.uci.edu/~gohlke/pythonlibs/#pyopencl
 
-```
-    pip install numpy-1.11.3+mkl-cp35-cp35m-win_amd64.whl
-    pip install pyopencl-2016.2.1+cl12-cp35-cp35m-win_amd64.whl
-```
+    ```
+        pip install numpy-1.11.3+mkl-cp35-cp35m-win_amd64.whl
+        pip install pyopencl-2016.2.1+cl12-cp35-cp35m-win_amd64.whl
+    ```
 
 3. Download the code from Github: https://github.com/PyOCL/oclGA/archive/master.zip
 
 4. Execute the code
 
-```
-    unzip oclGA-master.zip
-    cd oclGA-master
-    python examples/tsp/simple_tsp.py
-```
+    ```
+        unzip oclGA-master.zip
+        cd oclGA-master
+        python examples/tsp/simple_tsp.py
+    ```
 
 
