@@ -50,6 +50,7 @@ def run(num_chromosomes, generations):
            "#define TAIWAN_POINT_Y {" + ", ".join([str(v) for v in city_infoY]) + "}\n" +\
            fstr
 
+    sample.use_improving_only_mutation("improving_only_mutation_helper")
     tsp_ga_cl = OpenCLGA(sample, generations, num_chromosomes, fstr, "taiwan_fitness", None,
                          [ocl_kernels])
 
@@ -64,4 +65,4 @@ def run(num_chromosomes, generations):
     utils.plot_result(city_info, best)
 
 if __name__ == '__main__':
-    run(num_chromosomes=1000, generations=200)
+    run(num_chromosomes=5000, generations=50000)

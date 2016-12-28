@@ -32,3 +32,37 @@ void taiwan_fitness(global __ShufflerChromosome* chromosome,
                                   pointsY[chromosome->genes[chromosome_size - 1]]);
   *fitnesses = dist;
 }
+
+int improving_only_mutation_helper(global int* c,
+                                   int idx,
+                                   int chromosome_size)
+{
+  global __ShufflerChromosome* chromosome = (global __ShufflerChromosome*) c;
+  // We will search the one whose distance is shorter than original one
+  float pointsX[] = TAIWAN_POINT_X;
+  float pointsY[] = TAIWAN_POINT_Y;
+
+  int best_index = -1;
+  int before_idx = idx == 0 ? chromosome_size - 1 : idx - 1;
+  float shortest = calc_spherical_distance(pointsX[chromosome->genes[idx]],
+                                           pointsY[chromosome->genes[idx]],
+                                           pointsX[chromosome->genes[before_idx]],
+                                           pointsY[chromosome->genes[before_idx]]);
+  float current;
+
+  for (int i = 0; i < chromosome_size-1; i++) {
+    if (i == idx) {
+      continue;
+    }
+    current = calc_spherical_distance(pointsX[chromosome->genes[i]],
+                                      pointsY[chromosome->genes[i]],
+                                      pointsX[chromosome->genes[before_idx]],
+                                      pointsY[chromosome->genes[before_idx]]);
+    if (current < shortest) {
+      best_index = i;
+      shortest = current;
+    }
+  }
+  // If we cannot find better one, we don't change it.
+  return best_index == -1 ? idx : best_index;
+}

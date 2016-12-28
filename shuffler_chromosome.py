@@ -61,10 +61,20 @@ class ShufflerChromosome:
     def chromosome_size_define(self):
         return "SHUFFLER_CHROMOSOME_GENE_SIZE"
 
+    def use_improving_only_mutation(self, helper_func_name):
+        self.__improving_func = helper_func_name
+
     def kernelize(self):
+        improving_func = self.__improving_func if self.__improving_func is not None\
+                                               else "shuffler_chromosome_dummy_improving_func"
         candidates = self.__genes[0].kernelize()
-        defines = "#define SHUFFLER_CHROMOSOME_GENE_SIZE " + str(self.num_of_genes) + "\n"
-        return candidates + defines
+        defines = "#define SHUFFLER_CHROMOSOME_GENE_SIZE " + str(self.num_of_genes) + "\n" +\
+                  "#define IMPROVED_FITNESS_FUNC " + improving_func + "\n"
+
+        improving_func_header = "int " + improving_func + "(global int* c," +\
+                                "int idx," +\
+                                "int chromosome_size);"
+        return candidates + defines + improving_func_header
 
     def preexecute_kernels(self, ctx, queue, population):
         ## initialize global variables for kernel execution
@@ -145,8 +155,9 @@ class ShufflerChromosome:
     def execute_mutation(self, prg, queue, population, generation_idx, prob_mutate,
                          dev_chromosomes, dev_fitnesses, dev_rnum):
         prg.shuffler_chromosome_single_gene_mutate(queue,
-                                                   (population,),
-                                                   (1,),
-                                                   dev_chromosomes,
-                                                   numpy.float32(prob_mutate),
-                                                   dev_rnum).wait()
+                                            (population,),
+                                            (1,),
+                                            dev_chromosomes,
+                                            numpy.float32(prob_mutate),
+                                            dev_rnum,
+                                            numpy.int32(self.__improving_func is not None)).wait()

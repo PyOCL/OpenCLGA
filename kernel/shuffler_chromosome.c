@@ -93,9 +93,17 @@ int shuffler_chromosome_random_choose(global __ShufflerChromosome* chromosomes,
   return POPULATION_SIZE - 1;
 }
 
+int shuffler_chromosome_dummy_improving_func(global __ShufflerChromosome* chromosome,
+                                             int idx,
+                                             int chromosome_size)
+{
+  return 0;
+}
+
 __kernel void shuffler_chromosome_single_gene_mutate(global int* cs,
                                                      float prob_mutate,
-                                                     global uint* input_rand)
+                                                     global uint* input_rand,
+                                                     int improve)
 {
   int idx = get_global_id(0);
   // out of bound kernel task for padding
@@ -111,10 +119,18 @@ __kernel void shuffler_chromosome_single_gene_mutate(global int* cs,
     return;
   }
   global __ShufflerChromosome* chromosomes = (global __ShufflerChromosome*) cs;
-
   uint i = rand_range(ra, SHUFFLER_CHROMOSOME_GENE_SIZE);
-  uint j = rand_range_exclude(ra, SHUFFLER_CHROMOSOME_GENE_SIZE, i);
-  shuffler_chromosome_swap(chromosomes + idx, i, j);
+  uint j;
+  if (improve == 1) {
+    // we only gives global int* type to IMPROVED_FITNESS_FUNC instead of __ShufflerChromosome
+    j = IMPROVED_FITNESS_FUNC((global int*)(chromosomes + idx), i, SHUFFLER_CHROMOSOME_GENE_SIZE);
+    if (i != j) {
+      shuffler_chromosome_swap(chromosomes + idx, i, j);
+    }
+  } else {
+    j = rand_range_exclude(ra, SHUFFLER_CHROMOSOME_GENE_SIZE, i);
+    shuffler_chromosome_swap(chromosomes + idx, i, j);
+  }
   input_rand[idx] = ra[0];
   shuffler_chromosome_check_duplicate(chromosomes + idx);
 }
