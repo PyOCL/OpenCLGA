@@ -38,9 +38,7 @@ def run(num_chromosomes, generations):
     city_ids = list(range(len(cities)))
     random.seed()
 
-    ## sample = ShufflerChromosome([SimpleGene(v, city_ids) for v in city_ids])
-    sample = ShufflerChromosomeMethod2([SimpleGene(v, city_ids) for v in city_ids])
-
+    sample = ShufflerChromosome([SimpleGene(v, city_ids) for v in city_ids])
     f = open(os.path.join("cl", "taiwan_fitness.c"), "r")
     fstr = "".join(f.readlines())
     f.close()

@@ -74,8 +74,28 @@ void shuffler_chromosome_swap(global __ShufflerChromosome* chromosome, int cp, i
   chromosome->genes[p1] = temp_p;
 }
 
-__kernel void shuffler_chromosome_mutate(global int* cs, float prob_mutate,
-                                         global uint* input_rand)
+int shuffler_chromosome_random_choose(global __ShufflerChromosome* chromosomes,
+                                      global float* ratio,
+                                      uint* ra)
+{
+
+  // generate a random number from between 0 and 1
+  float rand_choose = rand_prob(ra);
+  float accumulated = 0.0;
+  int i;
+  // random choose a chromosome based on probability of each chromosome.
+  for (i = 0; i < POPULATION_SIZE;i++) {
+    accumulated += ratio[i];
+    if (accumulated > rand_choose) {
+      return i;
+    }
+  }
+  return POPULATION_SIZE - 1;
+}
+
+__kernel void shuffler_chromosome_single_gene_mutate(global int* cs,
+                                                     float prob_mutate,
+                                                     global uint* input_rand)
 {
   int idx = get_global_id(0);
   // out of bound kernel task for padding
@@ -90,121 +110,127 @@ __kernel void shuffler_chromosome_mutate(global int* cs, float prob_mutate,
     input_rand[idx] = ra[0];
     return;
   }
-
   global __ShufflerChromosome* chromosomes = (global __ShufflerChromosome*) cs;
 
-  for (int i = 0; i < SHUFFLER_CHROMOSOME_GENE_SIZE; i++) {
-    float prob_m =  rand_prob(ra);
-    if (prob_m <= prob_mutate) {
-      uint j = rand_range_exclude(ra, SHUFFLER_CHROMOSOME_GENE_SIZE, i);
-      shuffler_chromosome_swap(chromosomes + idx, i, j);
-    }
-  }
+  uint i = rand_range(ra, SHUFFLER_CHROMOSOME_GENE_SIZE);
+  uint j = rand_range_exclude(ra, SHUFFLER_CHROMOSOME_GENE_SIZE, i);
+  shuffler_chromosome_swap(chromosomes + idx, i, j);
   input_rand[idx] = ra[0];
+  shuffler_chromosome_check_duplicate(chromosomes + idx);
 }
 
-// functions for crossover: find_survied_idx, shuffler_chromosome_reproduce,
-//                          shuffler_chromosome_crossover
-
-int shuffler_chromosome_find_survied_idx(uint* ra, int* surviors, int survivor_count)
-{
-  if (survivor_count == 0) {
-    return -1;
-  }
-  return surviors[rand_range(ra, survivor_count)];
-}
-
-void shuffler_chromosome_reproduce(int idx, global __ShufflerChromosome* chromosomes,
-                                   int* survivors, int survivor_count,
-                                   int num_of_chromosomes, float prob_crossover, uint* ra)
-{
-  // NOTE: Only dead chromosome needs to be reproduced.
-  if (survivors[idx]) {
-    return;
-  }
-
-  uint c1_idx = shuffler_chromosome_find_survied_idx(ra, survivors, survivor_count);
-  if (c1_idx == -1) {
-    return;
-  }
-  // Clone the genes of survival chromosome to the dead one.
-  for (int i = 0; i < SHUFFLER_CHROMOSOME_GENE_SIZE; i++) {
-    chromosomes[idx].genes[i] = chromosomes[c1_idx].genes[i];
-  }
-
-  float prob =  rand_prob(ra);
-  if (prob <= prob_crossover) {
-    uint c2_idx = shuffler_chromosome_find_survied_idx(ra, survivors, survivor_count);
-    if (c2_idx == -1) {
-      return;
-    }
-    if (c1_idx != c2_idx) {
-      // do crossover here
-      uint cross_point = rand_range(ra, SHUFFLER_CHROMOSOME_GENE_SIZE);
-      for (int i = 0; i < SHUFFLER_CHROMOSOME_GENE_SIZE; i++) {
-        if (chromosomes[idx].genes[i] == chromosomes[c2_idx].genes[cross_point]
-            && i != cross_point) {
-          shuffler_chromosome_swap(chromosomes + idx, cross_point, i);
-          break;
-        }
-      }
-    }
-  }
-}
-
-__kernel void shuffler_chromosome_update_survivors(global float* fitnesses,
-                                                   global float* global_best,
-                                                   global float* global_weakest,
-                                                   global bool* survivors)
+__kernel void shuffler_chromosome_calc_ratio(global float* fitness,
+                                             global float* ratio,
+                                             global float* best,
+                                             global float* worst,
+                                             global float* avg)
 {
   int idx = get_global_id(0);
   // we use the first kernel to calculate the ratio
   if (idx > 0) {
     return;
   }
-  float min_local[1];
-  float max_local[1];
-  min_local[0] = INT_MAX;
-  max_local[0] = 0.0;
-  calc_min_max_fitness(fitnesses, POPULATION_SIZE, min_local, max_local);
-  global_best[0] = min(min_local[0], global_best[0]);
-  global_weakest[0] = max(max_local[0], global_weakest[0]);
-
-  // Calculate surviors indice.
-  // TODO: Tuning the threshold to get better surviors !
-  float threshold = global_weakest[0] - (global_weakest[0] - global_best[0]) / 1.1;
-  // printf("[Thresholde] (%f) / global_best(%f) / weakest_fitness(%f)\n",
-    // threshold, global_best[0], global_weakest[0]);
-  for (int i = 0; i < POPULATION_SIZE; i++) {
-    survivors[i] = fitnesses[i] <= threshold ? true : false;
+  float local_best = INT_MAX;
+  float local_worst = 0;
+  calc_min_max_fitness(fitness, POPULATION_SIZE, &local_best, &local_worst);
+  *best = local_best;
+  *worst = local_worst;
+  float diffTotal = 0;
+  float avg_local = 0;
+  int i;
+  // we use total and diff to calculate the probability for each chromosome
+  for (i = 0; i < POPULATION_SIZE; i++) {
+    diffTotal += (local_worst - fitness[i]) * (local_worst - fitness[i]);
+    avg_local += fitness[i] / POPULATION_SIZE;
   }
+  // calculate probability for each one
+  for (i = 0; i < POPULATION_SIZE; i++) {
+    ratio[i] = (local_worst - fitness[i]) * (local_worst - fitness[i]) / diffTotal;
+  }
+  *avg = avg_local;
 }
 
-__kernel void shuffler_chromosome_crossover(global __ShufflerChromosome* chromosomes,
-                                            global float* fitness,
-                                            global bool* survivors,
-                                            float prob_crossover,
-                                            global uint* input_rand)
+__kernel void shuffler_chromosome_pick_chromosomes(global int* cs,
+                                                   global float* fitness,
+                                                   global int* p_other,
+                                                   global float* ratio,
+                                                   global uint* input_rand)
 {
   int idx = get_global_id(0);
   // out of bound kernel task for padding
   if (idx >= POPULATION_SIZE) {
     return;
   }
-
   uint ra[1];
   init_rand(input_rand[idx], ra);
-  int survivor_count = 0;
-  int survivor_indice[POPULATION_SIZE];
-  for (int i = 0; i < POPULATION_SIZE; i++) {
-    if (survivors[i]) {
-      survivor_indice[survivor_count++] = i;
-    }
+  global __ShufflerChromosome* chromosomes = (global __ShufflerChromosome*) cs;
+  global __ShufflerChromosome* parent_other = (global __ShufflerChromosome*) p_other;
+  int i;
+  int cross_idx = shuffler_chromosome_random_choose(chromosomes, ratio, ra);
+  // copy the chromosome to local memory for cross over
+  for (i = 0; i < SHUFFLER_CHROMOSOME_GENE_SIZE; i++) {
+    parent_other[idx].genes[i] = chromosomes[cross_idx].genes[i];
+  }
+  input_rand[idx] = ra[0];
+}
+
+__kernel void shuffler_chromosome_do_crossover(global int* cs,
+                                               global float* fitness,
+                                               global int* p_other,
+                                               global int* c_map,
+                                               global float* min_local,
+                                               global float* max_local,
+                                               global float* avg_local,
+                                               float prob_crossover,
+                                               global uint* input_rand,
+                                               int generation_idx)
+{
+  int idx = get_global_id(0);
+  // out of bound kernel task for padding
+  if (idx >= POPULATION_SIZE) {
+    return;
+  }
+  uint ra[1];
+  init_rand(input_rand[idx], ra);
+
+  // keep the shortest path, we have to return here to prevent async barrier if someone is returned.
+  if (fitness[idx] - *min_local < 0.000001) {
+    // printf("#%d\t\t=> [crossover] best fitness %d:\t\t%f ~\t%f ~\t%f\n", generation_idx, idx,
+    //        fitness[idx], *avg_local, *max_local);
+    input_rand[idx] = ra[0];
+    return;
+  } else if (rand_prob(ra) >= prob_crossover) {
+    input_rand[idx] = ra[0];
+    return;
+  }
+  global __ShufflerChromosome* chromosomes = (global __ShufflerChromosome*) cs;
+  global __ShufflerChromosome* parent_other = (global __ShufflerChromosome*) p_other;
+  // we use chromosome as a map object for checking the existence of Nth item.
+  global __ShufflerChromosome* cross_map = (global __ShufflerChromosome*) c_map;
+  __ShufflerChromosome self;
+  int i;
+  int cross_point;
+
+  for (i = 0; i < SHUFFLER_CHROMOSOME_GENE_SIZE; i++) {
+    // copy self chromosome to local memory for cross over
+    self.genes[i] = chromosomes[idx].genes[i];
+    // reset the cross_map to 0
+    cross_map[idx].genes[i] = 0;
   }
 
-  if (!survivors[idx]) {
-    shuffler_chromosome_reproduce(idx, chromosomes, survivor_indice, survivor_count,
-                                  POPULATION_SIZE, prob_crossover, ra);
+  // we must be cross over at least one element and must not cross over all of the element.
+  cross_point = rand_range(ra, SHUFFLER_CHROMOSOME_GENE_SIZE - 1) + 1;
+
+  // copy the first part from other chromosome
+  for (i = 0; i < cross_point; i++) {
+    chromosomes[idx].genes[i] = parent_other[idx].genes[i];
+    cross_map[idx].genes[parent_other[idx].genes[i]] = 1;
+  }
+  // sort the second part at self chromosome
+  for (i = 0; i < SHUFFLER_CHROMOSOME_GENE_SIZE; i++) {
+    if (cross_map[idx].genes[self.genes[i]] == 0) {
+        chromosomes[idx].genes[cross_point++] = self.genes[i];
+    }
   }
   shuffler_chromosome_check_duplicate(chromosomes + idx);
   input_rand[idx] = ra[0];
