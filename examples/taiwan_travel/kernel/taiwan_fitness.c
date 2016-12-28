@@ -10,12 +10,8 @@ float calc_spherical_distance(float x1, float y1, float x2, float y2)
   return s;
 }
 
-void taiwan_fitness(global __ShufflerChromosome* chromosome,
-                    global float* fitnesses,
-                     int chromosome_size,
-                     int chromosome_count)
+float taiwan_calc_fitness(global __ShufflerChromosome* chromosome, int chromosome_size)
 {
-
   float pointsX[] = TAIWAN_POINT_X;
   float pointsY[] = TAIWAN_POINT_Y;
 
@@ -26,11 +22,25 @@ void taiwan_fitness(global __ShufflerChromosome* chromosome,
                                     pointsX[chromosome->genes[i]],
                                     pointsY[chromosome->genes[i]]);
   }
-  dist += calc_spherical_distance(pointsX[chromosome->genes[0]],
-                                  pointsY[chromosome->genes[0]],
-                                  pointsX[chromosome->genes[chromosome_size - 1]],
-                                  pointsY[chromosome->genes[chromosome_size - 1]]);
-  *fitnesses = dist;
+  return dist + calc_spherical_distance(pointsX[chromosome->genes[0]],
+                                        pointsY[chromosome->genes[0]],
+                                        pointsX[chromosome->genes[chromosome_size - 1]],
+                                        pointsY[chromosome->genes[chromosome_size - 1]]);
+}
+
+void taiwan_fitness(global __ShufflerChromosome* chromosome,
+                    global float* fitnesses,
+                     int chromosome_size,
+                     int chromosome_count)
+{
+  *fitnesses = taiwan_calc_fitness(chromosome, chromosome_size);
+}
+
+void taiwan_fitness_swap(global __ShufflerChromosome* chromosome, int cp, int p1)
+{
+  int temp_p = chromosome->genes[cp];
+  chromosome->genes[cp] = chromosome->genes[p1];
+  chromosome->genes[p1] = temp_p;
 }
 
 int improving_only_mutation_helper(global int* c,
@@ -42,27 +52,21 @@ int improving_only_mutation_helper(global int* c,
   float pointsX[] = TAIWAN_POINT_X;
   float pointsY[] = TAIWAN_POINT_Y;
 
-  int best_index = -1;
-  int before_idx = idx == 0 ? chromosome_size - 1 : idx - 1;
-  float shortest = calc_spherical_distance(pointsX[chromosome->genes[idx]],
-                                           pointsY[chromosome->genes[idx]],
-                                           pointsX[chromosome->genes[before_idx]],
-                                           pointsY[chromosome->genes[before_idx]]);
+  int best_index = idx;
+  float shortest = taiwan_calc_fitness(chromosome, chromosome_size);
   float current;
 
-  for (int i = 0; i < chromosome_size-1; i++) {
+  for (int i = 0; i < chromosome_size - 1; i++) {
     if (i == idx) {
       continue;
     }
-    current = calc_spherical_distance(pointsX[chromosome->genes[i]],
-                                      pointsY[chromosome->genes[i]],
-                                      pointsX[chromosome->genes[before_idx]],
-                                      pointsY[chromosome->genes[before_idx]]);
+    taiwan_fitness_swap(chromosome, i, idx);
+    current = taiwan_calc_fitness(chromosome, chromosome_size);
+    taiwan_fitness_swap(chromosome, i, idx);
     if (current < shortest) {
-      best_index = i;
       shortest = current;
+      best_index = i;
     }
   }
-  // If we cannot find better one, we don't change it.
-  return best_index == -1 ? idx : best_index;
+  return best_index;
 }
