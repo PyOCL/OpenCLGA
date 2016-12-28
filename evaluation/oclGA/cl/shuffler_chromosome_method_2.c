@@ -122,7 +122,8 @@ __kernel void shuffler_chromosome_single_gene_mutate(global int* cs,
 __kernel void shuffler_chromosome_calc_ratio(global float* fitness,
                                              global float* ratio,
                                              global float* best,
-                                             global float* worst)
+                                             global float* worst,
+                                             global float* avg)
 {
   int idx = get_global_id(0);
   // we use the first kernel to calculate the ratio
@@ -135,15 +136,18 @@ __kernel void shuffler_chromosome_calc_ratio(global float* fitness,
   *best = local_best;
   *worst = local_worst;
   float diffTotal = 0;
+  float avg_local = 0;
   int i;
   // we use total and diff to calculate the probability for each chromosome
   for (i = 0; i < POPULATION_SIZE; i++) {
     diffTotal += (local_worst - fitness[i]) * (local_worst - fitness[i]);
+    avg_local += fitness[i] / POPULATION_SIZE;
   }
   // calculate probability for each one
   for (i = 0; i < POPULATION_SIZE; i++) {
     ratio[i] = (local_worst - fitness[i]) * (local_worst - fitness[i]) / diffTotal;
   }
+  *avg = avg_local;
 }
 
 __kernel void shuffler_chromosome_pick_chromosomes(global int* cs,
@@ -175,8 +179,11 @@ __kernel void shuffler_chromosome_do_crossover(global int* cs,
                                                global int* p_other,
                                                global int* c_map,
                                                global float* min_local,
+                                               global float* max_local,
+                                               global float* avg_local,
                                                float prob_crossover,
-                                               global uint* input_rand)
+                                               global uint* input_rand,
+                                               int generation_idx)
 {
   int idx = get_global_id(0);
   // out of bound kernel task for padding
@@ -188,7 +195,8 @@ __kernel void shuffler_chromosome_do_crossover(global int* cs,
 
   // keep the shortest path, we have to return here to prevent async barrier if someone is returned.
   if (fitness[idx] - *min_local < 0.000001) {
-    //printf("[crossover] best fitness %d: %f\n", idx, fitness[idx]);
+    // printf("#%d\t\t=> [crossover] best fitness %d:\t\t%f ~\t%f ~\t%f\n", generation_idx, idx,
+    //        fitness[idx], *avg_local, *max_local);
     input_rand[idx] = ra[0];
     return;
   } else if (rand_prob(ra) >= prob_crossover) {

@@ -26,6 +26,7 @@ class ShufflerChromosomeMethod2(ShufflerChromosome):
         ratios = numpy.zeros(population, dtype=numpy.float32)
         best_fit = [0]
         weakest_fit = [0]
+        avg_fit = [0]
 
         mf = cl.mem_flags
 
@@ -34,6 +35,8 @@ class ShufflerChromosomeMethod2(ShufflerChromosome):
                                     hostbuf=numpy.array(best_fit, dtype=numpy.float32))
         self.__dev_weakest = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
                                        hostbuf=numpy.array(weakest_fit, dtype=numpy.float32))
+        self.__dev_avg = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
+                                       hostbuf=numpy.array(avg_fit, dtype=numpy.float32))
         self.__dev_other_chromosomes = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
                                                  hostbuf=other_chromosomes)
         self.__dev_cross_map = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
@@ -65,7 +68,8 @@ class ShufflerChromosomeMethod2(ShufflerChromosome):
                                            dev_fitnesses,
                                            self.__dev_ratios,
                                            self.__dev_best,
-                                           self.__dev_weakest).wait()
+                                           self.__dev_weakest,
+                                           self.__dev_avg).wait()
         prg.shuffler_chromosome_pick_chromosomes(queue,
                                                  (population,),
                                                  (1,),
@@ -82,8 +86,11 @@ class ShufflerChromosomeMethod2(ShufflerChromosome):
                                              self.__dev_other_chromosomes,
                                              self.__dev_cross_map,
                                              self.__dev_best,
+                                             self.__dev_weakest,
+                                             self.__dev_avg,
                                              numpy.float32(prob_crossover),
-                                             dev_rnum).wait()
+                                             dev_rnum,
+                                             numpy.int32(generation_idx)).wait()
 
 
     def execute_mutation(self, prg, queue, population, generation_idx, prob_mutate,
