@@ -93,7 +93,7 @@ int shuffler_chromosome_random_choose(global __ShufflerChromosome* chromosomes,
   return POPULATION_SIZE - 1;
 }
 
-int shuffler_chromosome_dummy_improving_func(global __ShufflerChromosome* chromosome,
+int shuffler_chromosome_dummy_improving_func(global int* chromosome,
                                              int idx,
                                              int chromosome_size)
 {

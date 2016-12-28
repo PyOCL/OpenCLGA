@@ -14,6 +14,7 @@ class ShufflerChromosome:
         assert type(genes) == list
         self.__genes = genes
         self.__name = name
+        self.__improving_func = None
 
     @property
     def num_of_genes(self):
