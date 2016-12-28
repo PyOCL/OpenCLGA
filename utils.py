@@ -1,6 +1,4 @@
 import random
-from gene import Gene
-from chromosome import Chromosome
 from math import pi, sqrt, asin, cos, sin, pow
 
 def get_testing_params():
@@ -23,35 +21,6 @@ def calc_spherical_distance(x1, y1, x2, y2):
     s = s * 6378.137
     s = round( s * 10000 ) / 10000
     return s
-
-def create_chromosomes_by_shuffling(num_of_chromosomes, candidates, name_template="{0}"):
-    chromosomes = []
-    s = set(candidates)
-    for x in range(num_of_chromosomes):
-        genes = []
-        random.shuffle(candidates)
-        for item in candidates:
-            g = Gene([item], elements=s, name=name_template.format(str(item)))
-            genes.append(g)
-
-        c = Chromosome(genes)
-        chromosomes.append(c)
-
-    return chromosomes
-
-def mutate_by_swapping_gene(c1, prob):
-    ori_candidates = range(c1.num_of_genes)
-    for idx1 in ori_candidates:
-        if random.random() < prob:
-            candidates_remain = [x for x in ori_candidates if x != idx1]
-            idx2 = random.sample(candidates_remain, 1)[0]
-            c1.swap(idx1, idx2)
-
-def crossover_by_swapping_gene(c1, c2, point):
-    for i in range(c1.num_of_genes):
-        if c1.dna[i] == c2.dna[point]:
-            c1.swap(point, i)
-            break
 
 def plot_result(city_info, city_ids):
     import matplotlib.pyplot as plt

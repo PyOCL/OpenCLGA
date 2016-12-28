@@ -19,7 +19,11 @@ def run(num_chromosomes, generations):
 
     sample = ShufflerChromosome([SimpleGene(v, city_ids) for v in city_ids])
 
-    f = open(os.path.join("cl", "simple_tsp.c"), "r")
+    tsp_path = os.path.dirname(os.path.abspath(__file__))
+    ocl_kernels = os.path.realpath(os.path.join(tsp_path, "..", "..", "kernel"))
+    tsp_kernels = os.path.join(tsp_path, "kernel")
+
+    f = open(os.path.join(tsp_kernels, "simple_tsp.c"), "r")
     fstr = "".join(f.readlines())
     f.close()
 
@@ -29,7 +33,7 @@ def run(num_chromosomes, generations):
     tsp_ga_cl = OpenCLGA(sample, generations, num_chromosomes, fstr, "simple_tsp_fitness",
                          [{"t": "float", "v": pointX, "n": "x"},
                           {"t": "float", "v": pointY, "n": "y"}],
-                         ["../../kernel"])
+                         [ocl_kernels])
 
     prob_mutate = 0.1
     prob_cross = 0.8

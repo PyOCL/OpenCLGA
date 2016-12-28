@@ -195,8 +195,8 @@ __kernel void shuffler_chromosome_do_crossover(global int* cs,
 
   // keep the shortest path, we have to return here to prevent async barrier if someone is returned.
   if (fitness[idx] - *min_local < 0.000001) {
-    // printf("#%d\t\t=> [crossover] best fitness %d:\t\t%f ~\t%f ~\t%f\n", generation_idx, idx,
-    //        fitness[idx], *avg_local, *max_local);
+    printf("#%d\t\t=> [crossover] best fitness %d:\t\t%f ~\t%f ~\t%f\n", generation_idx, idx,
+           fitness[idx], *avg_local, *max_local);
     input_rand[idx] = ra[0];
     return;
   } else if (rand_prob(ra) >= prob_crossover) {

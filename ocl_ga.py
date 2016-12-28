@@ -5,7 +5,6 @@ import random
 import numpy
 import pyopencl as cl
 from abc import ABC, abstractmethod
-from chromosome import Chromosome
 
 class OpenCLGA(ABC):
     def __init__(self, sample_chromosome, generations, population, fitness_kernel_str, fitness_func,
@@ -72,7 +71,8 @@ class OpenCLGA(ABC):
         self.__ctx = cl.create_some_context()
         self.__queue = cl.CommandQueue(self.__ctx)
         self.__include_path = []
-        paths = extra_include_path + ["cl"]
+        kernel_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "kernel")
+        paths = extra_include_path + [kernel_path]
         for path in paths:
             escapedPath = path.replace(' ', '^ ') if sys.platform.startswith('win')\
                                                   else path.replace(' ', '\\ ')
@@ -86,7 +86,8 @@ class OpenCLGA(ABC):
                 self.__evaluate_code + "\n" +\
                 self.__include_code + "\n" +\
                 self.__fitness_kernel_str
-        f = open(os.path.join("cl", "ocl_ga.c"), "r")
+        kernel_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "kernel")
+        f = open(os.path.join(kernel_path, "ocl_ga.c"), "r")
         fstr = "".join(f.readlines())
         f.close()
 

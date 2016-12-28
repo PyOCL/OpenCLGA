@@ -10,7 +10,6 @@ import utils
 from pathlib import Path
 from ocl_ga import OpenCLGA
 from shuffler_chromosome import ShufflerChromosome
-from shuffler_chromosome_method_2 import ShufflerChromosomeMethod2
 from simple_gene import SimpleGene
 
 def read_all_cities(file_name):
@@ -38,8 +37,12 @@ def run(num_chromosomes, generations):
     city_ids = list(range(len(cities)))
     random.seed()
 
+    tsp_path = os.path.dirname(os.path.abspath(__file__))
+    ocl_kernels = os.path.realpath(os.path.join(tsp_path, "..", "..", "kernel"))
+    tsp_kernels = os.path.join(tsp_path, "kernel")
+
     sample = ShufflerChromosome([SimpleGene(v, city_ids) for v in city_ids])
-    f = open(os.path.join("cl", "taiwan_fitness.c"), "r")
+    f = open(os.path.join(tsp_kernels, "taiwan_fitness.c"), "r")
     fstr = "".join(f.readlines())
     f.close()
 
@@ -48,7 +51,7 @@ def run(num_chromosomes, generations):
            fstr
 
     tsp_ga_cl = OpenCLGA(sample, generations, num_chromosomes, fstr, "taiwan_fitness", None,
-                         ["../../kernel"])
+                         [ocl_kernels])
 
     prob_mutate = 0.10
     prob_cross = 0.80
@@ -61,4 +64,4 @@ def run(num_chromosomes, generations):
     utils.plot_result(city_info, best)
 
 if __name__ == '__main__':
-    run(num_chromosomes=1000, generations=2000)
+    run(num_chromosomes=1000, generations=200)
