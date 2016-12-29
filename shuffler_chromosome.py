@@ -15,6 +15,9 @@ class ShufflerChromosome:
         self.__genes = genes
         self.__name = name
         self.__improving_func = None
+        self.__best = numpy.zeros(1, dtype=numpy.float32)
+        self.__weakest = numpy.zeros(1, dtype=numpy.float32)
+        self.__avg = numpy.zeros(1, dtype=numpy.float32)
 
     @property
     def num_of_genes(self):
@@ -62,6 +65,10 @@ class ShufflerChromosome:
     def chromosome_size_define(self):
         return "SHUFFLER_CHROMOSOME_GENE_SIZE"
 
+    @property
+    def early_terminated(self):
+        return self.__weakest[0] - self.__best[0] < 0.0001
+
     def use_improving_only_mutation(self, helper_func_name):
         self.__improving_func = helper_func_name
 
@@ -84,19 +91,16 @@ class ShufflerChromosome:
         other_chromosomes = numpy.zeros(total_dna_size, dtype=numpy.int32)
         cross_map = numpy.zeros(total_dna_size, dtype=numpy.int32)
         ratios = numpy.zeros(population, dtype=numpy.float32)
-        best_fit = [0]
-        weakest_fit = [0]
-        avg_fit = [0]
 
         mf = cl.mem_flags
 
         self.__dev_ratios = cl.Buffer(ctx, mf.WRITE_ONLY, ratios.nbytes)
         self.__dev_best = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
-                                    hostbuf=numpy.array(best_fit, dtype=numpy.float32))
+                                    hostbuf=self.__best)
         self.__dev_weakest = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
-                                       hostbuf=numpy.array(weakest_fit, dtype=numpy.float32))
+                                       hostbuf=self.__weakest)
         self.__dev_avg = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
-                                       hostbuf=numpy.array(avg_fit, dtype=numpy.float32))
+                                       hostbuf=self.__avg)
         self.__dev_other_chromosomes = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
                                                  hostbuf=other_chromosomes)
         self.__dev_cross_map = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
@@ -130,6 +134,14 @@ class ShufflerChromosome:
                                            self.__dev_best,
                                            self.__dev_weakest,
                                            self.__dev_avg).wait()
+
+        cl.enqueue_read_buffer(queue, self.__dev_best, self.__best)
+        cl.enqueue_read_buffer(queue, self.__dev_avg, self.__avg)
+        cl.enqueue_read_buffer(queue, self.__dev_weakest, self.__weakest).wait()
+
+        if self.early_terminated:
+            return
+
         prg.shuffler_chromosome_pick_chromosomes(queue,
                                                  (population,),
                                                  (1,),
@@ -137,6 +149,8 @@ class ShufflerChromosome:
                                                  dev_fitnesses,
                                                  self.__dev_other_chromosomes,
                                                  self.__dev_ratios,
+                                                 self.__dev_best,
+                                                 self.__dev_weakest,
                                                  dev_rnum).wait()
         prg.shuffler_chromosome_do_crossover(queue,
                                              (population,),

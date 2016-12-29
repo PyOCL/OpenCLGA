@@ -170,8 +170,13 @@ __kernel void shuffler_chromosome_pick_chromosomes(global int* cs,
                                                    global float* fitness,
                                                    global int* p_other,
                                                    global float* ratio,
+                                                   global float* min_local,
+                                                   global float* max_local,
                                                    global uint* input_rand)
 {
+  if (*max_local - *min_local < 0.00001) {
+    return;
+  }
   int idx = get_global_id(0);
   // out of bound kernel task for padding
   if (idx >= POPULATION_SIZE) {
@@ -201,6 +206,9 @@ __kernel void shuffler_chromosome_do_crossover(global int* cs,
                                                global uint* input_rand,
                                                int generation_idx)
 {
+  if (*max_local - *min_local < 0.00001) {
+    return;
+  }
   int idx = get_global_id(0);
   // out of bound kernel task for padding
   if (idx >= POPULATION_SIZE) {

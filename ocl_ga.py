@@ -189,6 +189,8 @@ class OpenCLGA(ABC):
                                                 (self.__population,),
                                                 (1,),
                                                 *fitness_args).wait()
+            if self.__sample_chromosome.early_terminated:
+                break
 
         cl.enqueue_read_buffer(self.__queue, dev_distances, distances)
         cl.enqueue_read_buffer(self.__queue, dev_chromosomes, np_chromosomes).wait()
