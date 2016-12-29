@@ -11,24 +11,18 @@ class OpenCLGA():
         self.__sample_chromosome = sample_chromosome
         self.__generations = generations
         self.__population = population
+        self.__np_chromosomes = None
         self.__fitness_function = fitness_func
         self.__fitness_kernel_str = fitness_kernel_str
         self.__fitness_args = fitness_args
-        self.__best = None
-        self.__best_fitness = sys.maxsize
+        # Generally in GA, it depends on the problem to treat the maximal fitness
+        # value as the best or to treat the minimal fitness value as the best.
+        self.__fitnesses = numpy.zeros(self.__population, dtype=numpy.float32)
         self.__elapsed_time = None
         self.__init_cl(extra_include_path)
         self.__create_program()
 
     # public properties
-    @property
-    def best(self):
-        return self.__best
-
-    @property
-    def best_fitness(self):
-        return self.__best_fitness
-
     @property
     def elapsed_time(self):
         return self.__elapsed_time
@@ -122,8 +116,7 @@ class OpenCLGA():
     def __run_impl(self, prob_mutate, prob_crossover):
         total_dna_size = self.__population * self.__sample_chromosome.dna_total_length
 
-        distances = numpy.zeros(self.__population, dtype=numpy.float32)
-        np_chromosomes = numpy.zeros(total_dna_size, dtype=numpy.int32)
+        self.__np_chromosomes = numpy.zeros(total_dna_size, dtype=numpy.int32)
 
         mf = cl.mem_flags
         # Random number should be given by Host program because OpenCL doesn't have a random number
@@ -134,10 +127,10 @@ class OpenCLGA():
         dev_rnum = cl.Buffer(self.__ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
                              hostbuf=numpy.array(rnum, dtype=numpy.uint32))
         dev_chromosomes = cl.Buffer(self.__ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
-                                    hostbuf=np_chromosomes)
-        dev_distances = cl.Buffer(self.__ctx, mf.WRITE_ONLY, distances.nbytes)
+                                    hostbuf=self.__np_chromosomes)
+        dev_fitnesses = cl.Buffer(self.__ctx, mf.WRITE_ONLY, self.__fitnesses.nbytes)
 
-        fitness_args = [dev_chromosomes, dev_distances]
+        fitness_args = [dev_chromosomes, dev_fitnesses]
 
         if self.__fitness_args is not None:
             ## create buffers for fitness arguments
@@ -146,7 +139,7 @@ class OpenCLGA():
                                               hostbuf=numpy.array(arg["v"],
                                               dtype=self.__type_to_numpy_type(arg["t"]))))
 
-        cl.enqueue_copy(self.__queue, dev_distances, distances)
+        cl.enqueue_copy(self.__queue, dev_fitnesses, self.__fitnesses)
 
         ## call preexecute_kernels for internal data structure preparation
         self.__sample_chromosome.preexecute_kernels(self.__ctx, self.__queue, self.__population)
@@ -174,7 +167,7 @@ class OpenCLGA():
                                                        i,
                                                        prob_crossover,
                                                        dev_chromosomes,
-                                                       dev_distances,
+                                                       dev_fitnesses,
                                                        dev_rnum)
             self.__sample_chromosome.execute_mutation(self.__prg,
                                                       self.__queue,
@@ -182,7 +175,7 @@ class OpenCLGA():
                                                       i,
                                                       prob_mutate,
                                                       dev_chromosomes,
-                                                      dev_distances,
+                                                      dev_fitnesses,
                                                       dev_rnum)
             self.__prg.ocl_ga_calculate_fitness(self.__queue,
                                                 (self.__population,),
@@ -191,19 +184,22 @@ class OpenCLGA():
             if self.__sample_chromosome.early_terminated:
                 break
 
-        cl.enqueue_read_buffer(self.__queue, dev_distances, distances)
-        cl.enqueue_read_buffer(self.__queue, dev_chromosomes, np_chromosomes).wait()
+        cl.enqueue_read_buffer(self.__queue, dev_fitnesses, self.__fitnesses)
+        cl.enqueue_read_buffer(self.__queue, dev_chromosomes, self.__np_chromosomes).wait()
 
-        minDistance = min(value for value in distances)
-        minIndex = list(distances).index(minDistance)
-        print("Shortest Length: %f @ %d"%(minDistance, minIndex))
+    def get_the_best(self, opt = "max"):
+        assert opt in ["max", "min"]
+
+        best_fitness = eval(opt)(value for value in self.__fitnesses)
+        best_index = list(self.__fitnesses).index(best_fitness)
+        print("Best fitness: %f @ %d"%(best_fitness, best_index))
 
         # We had convert chromosome to a cyclic gene. So, the num_of_genes in CL is more than python
         # by one.
-        startGeneId = minIndex * (self.__sample_chromosome.num_of_genes)
-        endGeneId = (minIndex + 1) * (self.__sample_chromosome.num_of_genes)
-        self.__best = [v for v in np_chromosomes[startGeneId:endGeneId]]
-        self.__best_fitness = minDistance
+        startGeneId = best_index * (self.__sample_chromosome.num_of_genes)
+        endGeneId = (best_index + 1) * (self.__sample_chromosome.num_of_genes)
+        best = [v for v in self.__np_chromosomes[startGeneId:endGeneId]]
+        return best, best_fitness
 
     # public methods
     def run(self, prob_mutate, prob_crossover):
