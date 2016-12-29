@@ -4,9 +4,8 @@ import time
 import random
 import numpy
 import pyopencl as cl
-from abc import ABC, abstractmethod
 
-class OpenCLGA(ABC):
+class OpenCLGA():
     def __init__(self, sample_chromosome, generations, population, fitness_kernel_str, fitness_func,
                  fitness_args, extra_include_path=[]):
         self.__sample_chromosome = sample_chromosome
