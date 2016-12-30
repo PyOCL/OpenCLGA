@@ -41,7 +41,7 @@ def run(num_chromosomes, generations):
     ocl_kernels = os.path.realpath(os.path.join(tsp_path, "..", "..", "kernel"))
     tsp_kernels = os.path.join(tsp_path, "kernel")
 
-    sample = ShufflerChromosome([SimpleGene(v, city_ids) for v in city_ids])
+    sample = ShufflerChromosome([SimpleGene(v, city_ids) for v in city_ids], opt = "min")
     f = open(os.path.join(tsp_kernels, "taiwan_fitness.c"), "r")
     fstr = "".join(f.readlines())
     f.close()

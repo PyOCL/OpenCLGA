@@ -139,29 +139,37 @@ __kernel void shuffler_chromosome_calc_ratio(global float* fitness,
                                              global float* ratio,
                                              global float* best,
                                              global float* worst,
-                                             global float* avg)
+                                             global float* avg,
+                                             global int* opt_for_max)
 {
   int idx = get_global_id(0);
   // we use the first kernel to calculate the ratio
   if (idx > 0) {
     return;
   }
-  float local_best = INT_MAX;
-  float local_worst = 0;
-  calc_min_max_fitness(fitness, POPULATION_SIZE, &local_best, &local_worst);
-  *best = local_best;
-  *worst = local_worst;
+  float local_min = INT_MAX;
+  float local_max = 0;
+  if (*opt_for_max) {
+    calc_min_max_fitness(fitness, POPULATION_SIZE, &local_max, &local_min);
+    *best = local_max;
+    *worst = local_min;
+  } else {
+    calc_min_max_fitness(fitness, POPULATION_SIZE, &local_min, &local_max);
+    *best = local_min;
+    *worst = local_max;
+  }
+  float temp_worst = *worst;
   float diffTotal = 0;
   float avg_local = 0;
   int i;
   // we use total and diff to calculate the probability for each chromosome
   for (i = 0; i < POPULATION_SIZE; i++) {
-    diffTotal += (local_worst - fitness[i]) * (local_worst - fitness[i]);
+    diffTotal += (temp_worst - fitness[i]) * (temp_worst - fitness[i]);
     avg_local += fitness[i] / POPULATION_SIZE;
   }
   // calculate probability for each one
   for (i = 0; i < POPULATION_SIZE; i++) {
-    ratio[i] = (local_worst - fitness[i]) * (local_worst - fitness[i]) / diffTotal;
+    ratio[i] = (temp_worst - fitness[i]) * (temp_worst - fitness[i]) / diffTotal;
   }
   *avg = avg_local;
 }
@@ -170,11 +178,11 @@ __kernel void shuffler_chromosome_pick_chromosomes(global int* cs,
                                                    global float* fitness,
                                                    global int* p_other,
                                                    global float* ratio,
-                                                   global float* min_local,
-                                                   global float* max_local,
+                                                   global float* best_local,
+                                                   global float* worst_local,
                                                    global uint* input_rand)
 {
-  if (*max_local - *min_local < 0.00001) {
+  if (fabs(*worst_local - *best_local) < 0.00001) {
     return;
   }
   int idx = get_global_id(0);
@@ -199,14 +207,14 @@ __kernel void shuffler_chromosome_do_crossover(global int* cs,
                                                global float* fitness,
                                                global int* p_other,
                                                global int* c_map,
-                                               global float* min_local,
-                                               global float* max_local,
+                                               global float* best_local,
+                                               global float* worst_local,
                                                global float* avg_local,
                                                float prob_crossover,
                                                global uint* input_rand,
                                                int generation_idx)
 {
-  if (*max_local - *min_local < 0.00001) {
+  if (fabs(*worst_local - *best_local) < 0.00001) {
     return;
   }
   int idx = get_global_id(0);
@@ -218,9 +226,9 @@ __kernel void shuffler_chromosome_do_crossover(global int* cs,
   init_rand(input_rand[idx], ra);
 
   // keep the shortest path, we have to return here to prevent async barrier if someone is returned.
-  if (fitness[idx] - *min_local < 0.000001) {
+  if (fabs(fitness[idx] - *best_local) < 0.000001) {
     printf("#%d\t\t=> [crossover] best fitness %d:\t\t%f ~\t%f ~\t%f\n", generation_idx, idx,
-           fitness[idx], *avg_local, *max_local);
+           fitness[idx], *avg_local, *worst_local);
     input_rand[idx] = ra[0];
     return;
   } else if (rand_prob(ra) >= prob_crossover) {

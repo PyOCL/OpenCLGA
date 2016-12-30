@@ -52,7 +52,7 @@ def calculate_estimated_kernel_usage(prog, ctx, kernel_names):
             pm = kerKer.get_work_group_info(kwgi.PRIVATE_MEM_SIZE, device)
             cwgs = kerKer.get_work_group_info(kwgi.COMPILE_WORK_GROUP_SIZE, device)
             pwgsm = kerKer.get_work_group_info(kwgi.PREFERRED_WORK_GROUP_SIZE_MULTIPLE, device)
-            print("[%s] Estimated usage : Local mem (%d)/ Private mem (%d)"\
+            print("[%s]\tEstimated usage : Local mem (%d)/ Private mem (%d)"\
                   "/ Compile WG size (%s)/ Preffered WG size multiple (%d)"\
                   %(name, lm, pm, str(cwgs), pwgsm))
     except:

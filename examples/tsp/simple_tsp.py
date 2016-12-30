@@ -17,7 +17,7 @@ def run(num_chromosomes, generations):
     city_ids = list(range(0, num_cities))
     city_info = {city_id: (random.random() * 100, random.random() * 100) for city_id in city_ids}
 
-    sample = ShufflerChromosome([SimpleGene(v, city_ids) for v in city_ids])
+    sample = ShufflerChromosome([SimpleGene(v, city_ids) for v in city_ids], opt = "min")
 
     tsp_path = os.path.dirname(os.path.abspath(__file__))
     ocl_kernels = os.path.realpath(os.path.join(tsp_path, "..", "..", "kernel"))
