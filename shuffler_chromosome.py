@@ -7,10 +7,9 @@ class ShufflerChromosome:
     # ShufflerChromosome - a chromosome contains a list of Genes.
     # __genes - an ordered list of Genes
     # __name - name of the chromosome
-    # __opt_for_max - True/False, looking for 'max' or 'min' fitness
     # dna - an listed of Gene's dna
     # dna_total_length - sum of the lenght of all genes's dna
-    def __init__(self, genes, name = "", opt = "max"):
+    def __init__(self, genes, name = ""):
         assert all(isinstance(gene, SimpleGene) for gene in genes)
         assert type(genes) == list
         self.__genes = genes
@@ -19,8 +18,6 @@ class ShufflerChromosome:
         self.__best = numpy.zeros(1, dtype=numpy.float32)
         self.__worst = numpy.zeros(1, dtype=numpy.float32)
         self.__avg = numpy.zeros(1, dtype=numpy.float32)
-        self.__opt_for_max = numpy.ones(1, dtype=numpy.int32) if opt == "max" else\
-                             numpy.zeros(1, dtype=numpy.int32)
 
     @property
     def num_of_genes(self):
@@ -70,7 +67,7 @@ class ShufflerChromosome:
 
     @property
     def early_terminated(self):
-        return fabs(self.__worst[0] - self.__best[0]) < 0.0001
+        return abs(self.__worst[0] - self.__best[0]) < 0.0001
 
     def use_improving_only_mutation(self, helper_func_name):
         self.__improving_func = helper_func_name
@@ -97,8 +94,6 @@ class ShufflerChromosome:
 
         mf = cl.mem_flags
 
-        self.__dev_opt_for_max = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR,
-                                           hostbuf=self.__opt_for_max)
         self.__dev_ratios = cl.Buffer(ctx, mf.WRITE_ONLY, ratios.nbytes)
         self.__dev_best = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
                                     hostbuf=self.__best)
@@ -138,8 +133,7 @@ class ShufflerChromosome:
                                            self.__dev_ratios,
                                            self.__dev_best,
                                            self.__dev_worst,
-                                           self.__dev_avg,
-                                           self.__dev_opt_for_max).wait()
+                                           self.__dev_avg).wait()
 
         cl.enqueue_read_buffer(queue, self.__dev_best, self.__best)
         cl.enqueue_read_buffer(queue, self.__dev_avg, self.__avg)

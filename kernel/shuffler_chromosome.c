@@ -139,8 +139,7 @@ __kernel void shuffler_chromosome_calc_ratio(global float* fitness,
                                              global float* ratio,
                                              global float* best,
                                              global float* worst,
-                                             global float* avg,
-                                             global int* opt_for_max)
+                                             global float* avg)
 {
   int idx = get_global_id(0);
   // we use the first kernel to calculate the ratio
@@ -149,7 +148,7 @@ __kernel void shuffler_chromosome_calc_ratio(global float* fitness,
   }
   float local_min = INT_MAX;
   float local_max = 0;
-  if (*opt_for_max) {
+  if (OPTIMIZATION_FOR_MAX) {
     calc_min_max_fitness(fitness, POPULATION_SIZE, &local_max, &local_min);
     *best = local_max;
     *worst = local_min;

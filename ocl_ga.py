@@ -7,10 +7,11 @@ import pyopencl as cl
 
 class OpenCLGA():
     def __init__(self, sample_chromosome, generations, population, fitness_kernel_str, fitness_func,
-                 fitness_args, extra_include_path=[]):
+                 fitness_args, extra_include_path=[], opt = "max"):
         self.__sample_chromosome = sample_chromosome
         self.__generations = generations
         self.__population = population
+        self.__opt_for_max = opt
         self.__np_chromosomes = None
         self.__fitness_function = fitness_func
         self.__fitness_kernel_str = fitness_kernel_str
@@ -28,6 +29,11 @@ class OpenCLGA():
         return self.__elapsed_time
 
     # private properties
+    @property
+    def __args_codes(self):
+        opt_for_max = 0 if self.__opt_for_max == "min" else 1
+        return "#define OPTIMIZATION_FOR_MAX " + str(opt_for_max) + "\n"
+
     @property
     def __populate_codes(self):
         return "#define POPULATION_SIZE " + str(self.__population) + "\n" +\
@@ -75,7 +81,8 @@ class OpenCLGA():
             self.__include_path.append(os.path.join(os.getcwd(), escapedPath))
 
     def __create_program(self):
-        codes = self.__populate_codes + "\n" +\
+        codes = self.__args_codes + "\n" +\
+                self.__populate_codes + "\n" +\
                 self.__evaluate_code + "\n" +\
                 self.__include_code + "\n" +\
                 self.__fitness_kernel_str

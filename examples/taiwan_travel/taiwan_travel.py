@@ -41,7 +41,7 @@ def run(num_chromosomes, generations):
     ocl_kernels = os.path.realpath(os.path.join(tsp_path, "..", "..", "kernel"))
     tsp_kernels = os.path.join(tsp_path, "kernel")
 
-    sample = ShufflerChromosome([SimpleGene(v, city_ids) for v in city_ids], opt = "min")
+    sample = ShufflerChromosome([SimpleGene(v, city_ids) for v in city_ids])
     f = open(os.path.join(tsp_kernels, "taiwan_fitness.c"), "r")
     fstr = "".join(f.readlines())
     f.close()
@@ -52,7 +52,7 @@ def run(num_chromosomes, generations):
 
     sample.use_improving_only_mutation("improving_only_mutation_helper")
     tsp_ga_cl = OpenCLGA(sample, generations, num_chromosomes, fstr, "taiwan_fitness", None,
-                         [ocl_kernels])
+                         [ocl_kernels], opt = "min")
 
     prob_mutate = 0.10
     prob_cross = 0.80

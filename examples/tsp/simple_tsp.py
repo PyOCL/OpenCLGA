@@ -17,7 +17,7 @@ def run(num_chromosomes, generations):
     city_ids = list(range(0, num_cities))
     city_info = {city_id: (random.random() * 100, random.random() * 100) for city_id in city_ids}
 
-    sample = ShufflerChromosome([SimpleGene(v, city_ids) for v in city_ids], opt = "min")
+    sample = ShufflerChromosome([SimpleGene(v, city_ids) for v in city_ids])
 
     tsp_path = os.path.dirname(os.path.abspath(__file__))
     ocl_kernels = os.path.realpath(os.path.join(tsp_path, "..", "..", "kernel"))
@@ -33,7 +33,7 @@ def run(num_chromosomes, generations):
     tsp_ga_cl = OpenCLGA(sample, generations, num_chromosomes, fstr, "simple_tsp_fitness",
                          [{"t": "float", "v": pointX, "n": "x"},
                           {"t": "float", "v": pointY, "n": "y"}],
-                         [ocl_kernels])
+                         [ocl_kernels], opt = "min")
 
     prob_mutate = 0.1
     prob_cross = 0.8
