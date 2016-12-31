@@ -33,12 +33,8 @@ void chromosome_swap(int idx, global int* chromosomes, int chromosome_size,
 void calc_min_max_fitness(global float* fitnesses, int num_of_chromosomes, float* min, float* max)
 {
   for (int i = 0; i < num_of_chromosomes; i++) {
-    if (fitnesses[i] > max[0]) {
-      max[0] = fitnesses[i];
-    }
-    if (fitnesses[i] < min[0]) {
-      min[0] = fitnesses[i];
-    }
+    max[0] = fmax(fitnesses[i], max[0]);
+    min[0] = fmin(fitnesses[i], min[0]);
   }
 }
 
