@@ -22,7 +22,7 @@ def calc_spherical_distance(x1, y1, x2, y2):
     s = round( s * 10000 ) / 10000
     return s
 
-def plot_result(city_info, city_ids):
+def plot_tsp_result(city_info, city_ids):
     import matplotlib.pyplot as plt
     x = []
     y = []
@@ -35,8 +35,50 @@ def plot_result(city_info, city_ids):
     plt.plot(x, y, 'ro-')
     plt.ylabel('y')
     plt.xlabel('x')
+    plt.grid(True)
     plt.show()
 
+def plot_ga_result(statistics):
+    import matplotlib.pyplot as plt
+
+    gen = []
+    bests = []
+    worsts = []
+    avgs = []
+
+    avg_time_per_gen = 0
+    for key, value in statistics.items():
+        if key != "avg_time_per_gen":
+            gen.append(key)
+            bests.append(value["best"])
+            worsts.append(value["worst"])
+            avgs.append(value["avg"])
+        elif key == "avg_time_per_gen":
+            avg_time_per_gen = value
+
+    arrow_idx = int(len(gen) * 0.7)
+    arrow_x = gen[arrow_idx]
+    arrow_y = bests[arrow_idx]
+    plt.plot(gen, bests, 'g-')
+    plt.annotate("best", xy=(arrow_x, arrow_y,))
+
+    arrow_y = worsts[arrow_idx]
+    plt.plot(gen, worsts, 'r-')
+    plt.annotate("worst", xy=(arrow_x, arrow_y))
+
+    arrow_y = avgs[arrow_idx]
+    plt.plot(gen, avgs, "b-")
+    plt.annotate("avg", xy=(arrow_x, arrow_y))
+
+    plt.ylabel("Fitness")
+    plt.xlabel("Generation")
+
+    xmin, xmax, ymin, ymax = plt.axis()
+    textX = abs(xmax - xmin) * 0.1
+    textY = abs(ymax) * 0.95
+    plt.text(textX, textY, "avg time per gen: %f (sec.)"%(avg_time_per_gen))
+    plt.grid(True)
+    plt.show()
 
 def calculate_estimated_kernel_usage(prog, ctx, kernel_names):
     try:

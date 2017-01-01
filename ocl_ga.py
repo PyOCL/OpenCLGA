@@ -127,9 +127,6 @@ class OpenCLGA():
                                                ctx,
                                                chromosome_wrapper.get_mutation_kernel_names())
 
-    def __update_statistics(self, idx, best, worst, avg):
-
-
     def __run_impl(self, prob_mutate, prob_crossover):
         total_dna_size = self.__population * self.__sample_chromosome.dna_total_length
 
@@ -213,6 +210,9 @@ class OpenCLGA():
 
         cl.enqueue_read_buffer(self.__queue, dev_fitnesses, self.__fitnesses)
         cl.enqueue_read_buffer(self.__queue, dev_chromosomes, self.__np_chromosomes).wait()
+
+        import utils
+        utils.plot_ga_result(self.__dictStatistics)
 
     def get_the_best(self):
         assert self.__opt_for_max in ["max", "min"]

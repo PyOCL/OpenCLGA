@@ -43,7 +43,7 @@ def run(num_chromosomes, generations):
     best_chromosome, best_fitness = tsp_ga_cl.get_the_best()
     print("Shortest Path: " + " => ".join(str(g) for g in best_chromosome))
 
-    utils.plot_result(city_info, best_chromosome)
+    utils.plot_tsp_result(city_info, best_chromosome)
 
 if __name__ == '__main__':
     run(num_chromosomes=4000, generations=500)
