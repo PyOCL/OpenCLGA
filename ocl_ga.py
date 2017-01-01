@@ -16,6 +16,13 @@ class OpenCLGA():
         self.__fitness_function = fitness_func
         self.__fitness_kernel_str = fitness_kernel_str
         self.__fitness_args = fitness_args
+
+        # { gen : {"best":  best_fitness,
+        #          "worst": worst_fitness,
+        #          "avg":   avg_fitness},
+        #  "avg_time_per_gen": avg. elapsed time per generation}
+        self.__dictStatistics = {}
+
         # Generally in GA, it depends on the problem to treat the maximal fitness
         # value as the best or to treat the minimal fitness value as the best.
         self.__fitnesses = numpy.zeros(self.__population, dtype=numpy.float32)
@@ -120,6 +127,9 @@ class OpenCLGA():
                                                ctx,
                                                chromosome_wrapper.get_mutation_kernel_names())
 
+    def __update_statistics(self, idx, best, worst, avg):
+
+
     def __run_impl(self, prob_mutate, prob_crossover):
         total_dna_size = self.__population * self.__sample_chromosome.dna_total_length
 
@@ -166,6 +176,7 @@ class OpenCLGA():
                                             (1,),
                                             *fitness_args).wait()
 
+        generation_start = time.time()
         ## start the evolution
         for i in range(self.__generations):
             self.__sample_chromosome.execute_crossover(self.__prg,
@@ -188,8 +199,17 @@ class OpenCLGA():
                                                 (self.__population,),
                                                 (1,),
                                                 *fitness_args).wait()
+
+            self.__dictStatistics[i] = {}
+            self.__dictStatistics[i]["best"] = self.__sample_chromosome.get_current_best()
+            self.__dictStatistics[i]["worst"] = self.__sample_chromosome.get_current_worst()
+            self.__dictStatistics[i]["avg"] = self.__sample_chromosome.get_current_avg()
+
             if self.__sample_chromosome.early_terminated:
                 break
+
+        avg_time_per_gen = (time.time() - generation_start) / float(len(self.__dictStatistics))
+        self.__dictStatistics["avg_time_per_gen"] = avg_time_per_gen
 
         cl.enqueue_read_buffer(self.__queue, dev_fitnesses, self.__fitnesses)
         cl.enqueue_read_buffer(self.__queue, dev_chromosomes, self.__np_chromosomes).wait()

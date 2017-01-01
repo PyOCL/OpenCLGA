@@ -100,11 +100,19 @@ class ShufflerChromosome:
         self.__dev_worst = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
                                      hostbuf=self.__worst)
         self.__dev_avg = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
-                                       hostbuf=self.__avg)
+                                   hostbuf=self.__avg)
         self.__dev_other_chromosomes = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
                                                  hostbuf=other_chromosomes)
         self.__dev_cross_map = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
                                          hostbuf=cross_map)
+    def get_current_best(self):
+        return self.__best[0]
+
+    def get_current_worst(self):
+        return self.__worst[0]
+
+    def get_current_avg(self):
+        return self.__avg[0]
 
     def get_populate_kernel_names(self):
         return ["shuffler_chromosome_populate"]
