@@ -194,10 +194,10 @@ class OpenCLGA():
         cl.enqueue_read_buffer(self.__queue, dev_fitnesses, self.__fitnesses)
         cl.enqueue_read_buffer(self.__queue, dev_chromosomes, self.__np_chromosomes).wait()
 
-    def get_the_best(self, opt = "max"):
-        assert opt in ["max", "min"]
+    def get_the_best(self):
+        assert self.__opt_for_max in ["max", "min"]
 
-        best_fitness = eval(opt)(value for value in self.__fitnesses)
+        best_fitness = eval(self.__opt_for_max)(value for value in self.__fitnesses)
         best_index = list(self.__fitnesses).index(best_fitness)
         print("Best fitness: %f @ %d"%(best_fitness, best_index))
 

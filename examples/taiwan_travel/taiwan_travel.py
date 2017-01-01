@@ -59,7 +59,7 @@ def run(num_chromosomes, generations):
     tsp_ga_cl.run(prob_mutate, prob_cross)
 
     print("run took", tsp_ga_cl.elapsed_time, "seconds")
-    best_chromosome, best_fitness = tsp_ga_cl.get_the_best("min")
+    best_chromosome, best_fitness = tsp_ga_cl.get_the_best()
     print("Shortest Path: " + " => ".join(cities[g]["name"] for g in best_chromosome))
 
     utils.plot_result(city_info, best_chromosome)
