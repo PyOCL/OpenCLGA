@@ -11,19 +11,20 @@ Option A. Refers to https://wiki.tiker.net/PyOpenCL
 
 Option B. My personal experience on Windows (just to install all required stuff in a quick way)
 
-    -- Step 1. Install platform opencl graphic driver, e.g. Intel CPU or Intel HD Grahics (https://software.intel.com/en-us/intel-opencl)
+  * Step 1. Install platform opencl graphic driver, e.g. Intel CPU or Intel HD Grahics (https://software.intel.com/en-us/intel-opencl)
 
-    -- Step 2. Install the following *\*.whl* for python from
+  * Step 2. Install the following *\*.whl* for python from
 
-        1) http://www.lfd.uci.edu/~gohlke/pythonlibs/#numpy
+     1. http://www.lfd.uci.edu/~gohlke/pythonlibs/#numpy
 
-        2) http://www.lfd.uci.edu/~gohlke/pythonlibs/#pyopencl
+     2. http://www.lfd.uci.edu/~gohlke/pythonlibs/#pyopencl
 
 Option C. Ubuntu 16.04 on Intel Gen 7th CPU with Intel SDK for OpenCL Application 2016 R3.
 
-    -- Step 1. Download SDK from https://software.intel.com/en-us/intel-opencl/download
+   * Step 1. Download SDK from https://software.intel.com/en-us/intel-opencl/download
 
-    -- Step 2. Install Intel OpenCL 2.1 Driver & ICD
+   * Step 2. Install Intel OpenCL 2.1 Driver & ICD
+   
     ```shellscript
         $> sudo apt-get install libnuma1 alien
         $> tar -xvf ./intel_sdk_for_opencl_2016_ubuntu_6.3.0.1904_x64.tgz
@@ -33,10 +34,12 @@ Option C. Ubuntu 16.04 on Intel Gen 7th CPU with Intel SDK for OpenCL Applicatio
         $> sudo apt-get install clinfo
         $> clinfo  # To verify platform information from OpenCL
     ```
+    
     You can verify the installed OpenCL driver is located in /opt/intel/ and
     the ICD loader is located in /etc/OpenCL/vendors.
 
-    -- Step 3. Create a virtual environment for pyopencl.
+   * Step 3. Create a virtual environment for pyopencl.
+   
     ```shellscript
         $> sudo apt-get install python3-pip python3-venv ocl-icd-*
         $> python3 -m venv [NameOfEnv]
@@ -46,7 +49,8 @@ Option C. Ubuntu 16.04 on Intel Gen 7th CPU with Intel SDK for OpenCL Applicatio
         <NameOfEnv>$> pip3 install pyopencl
     ```
 
-    -- Step 4. Verification
+   * Step 4. Verification
+    
     ```shellscript
         <NameOfEnv>$> python
         > import pyopencl as cl
