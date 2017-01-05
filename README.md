@@ -7,9 +7,9 @@ Please note that oclGA is implemented at Python 3.5 or above. It should work at 
 
 # Prerequisite: install PYOPENCL
 
-Option A. Refers to https://wiki.tiker.net/PyOpenCL
+Option A. Please refer to https://wiki.tiker.net/PyOpenCL to find your OS or
 
-Option B. My personal experience on Windows (just to install all required stuff in a quick way)
+Option B. Windows 10 (just to install all required stuff in a quick way)
 
   * Step 1. Install platform opencl graphic driver, e.g. Intel CPU or Intel HD Grahics (https://software.intel.com/en-us/intel-opencl)
 
@@ -19,11 +19,11 @@ Option B. My personal experience on Windows (just to install all required stuff 
 
      2. http://www.lfd.uci.edu/~gohlke/pythonlibs/#pyopencl
 
-Option C. Ubuntu 16.04 on Intel Gen 7th CPU with Intel SDK for OpenCL Application 2016 R3.
+Option C. Ubuntu 16.04
 
-   * Step 1. Download SDK from https://software.intel.com/en-us/intel-opencl/download
+   * Step 1. Install platform opencl graphic driver, e.g. Intel CPU or Intel HD Graphics (https://software.intel.com/en-us/intel-opencl/download)
 
-   * Step 2. Install Intel OpenCL 2.1 Driver & ICD
+   * Step 2. Install Intel OpenCL 2.1 Driver & ICD, if you use Intel devices:
    
     ```shellscript
         $> sudo apt-get install libnuma1 alien
@@ -57,29 +57,31 @@ Option C. Ubuntu 16.04 on Intel Gen 7th CPU with Intel SDK for OpenCL Applicatio
         > cl.create_some_context()
     ```
 
-# Try it out
+# Run oclGA examples
 
-1. Create virtual env (optional):
+1. Enter virtual env (optional):
+
+ * For Windows with MinGW environment
 
     ```shellscript
-        mkdir oclGA
-        virtualenv .
-        source Scripts/activate
+        $> source <NameOfEnv>/Scripts/activate
+    ```
+  * For Linux enviornment
+  
+    ```shellscript
+        $> source ./NameOfEnv/bin/activate
     ```
 
-2. Install the pyopencl from 1) http://www.lfd.uci.edu/~gohlke/pythonlibs/#numpy and 2) http://www.lfd.uci.edu/~gohlke/pythonlibs/#pyopencl
+3. Download the code from Github: https://github.com/PyOCL/oclGA/archive/master.zip or clone the git repo with the following command:
 
-    ```
-        pip install numpy-1.11.3+mkl-cp35-cp35m-win_amd64.whl
-        pip install pyopencl-2016.2.1+cl12-cp35-cp35m-win_amd64.whl
-    ```
-
-3. Download the code from Github: https://github.com/PyOCL/oclGA/archive/master.zip
+   ```shellscript
+       <NameOfEnv>$> git clone https://github.com/PyOCL/oclGA.git
+   ```
 
 4. Execute the code
 
-    ```
-        unzip oclGA-master.zip
-        cd oclGA-master
-        python examples/tsp/simple_tsp.py
+    ```shellscript
+        <NameOfEnv>$> unzip oclGA-master.zip
+        <NameOfEnv>$> cd oclGA-master
+        <NameOfEnv>$> python3 examples/tsp/simple_tsp.py
     ```
