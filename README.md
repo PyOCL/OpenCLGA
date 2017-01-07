@@ -9,7 +9,9 @@ Please note that oclGA is implemented at Python 3.5 or above. It should work at 
 
 Option A. Please refer to https://wiki.tiker.net/PyOpenCL to find your OS or
 
-Option B. Windows 10 (just to install all required stuff in a quick way)
+Option B. Install by ourself
+
+- Windows 10 (just to install all required stuff in a quick way)
 
   * Step 1. Install platform opencl graphic driver, e.g. Intel CPU or Intel HD Grahics (https://software.intel.com/en-us/intel-opencl)
 
@@ -19,7 +21,7 @@ Option B. Windows 10 (just to install all required stuff in a quick way)
 
      2. http://www.lfd.uci.edu/~gohlke/pythonlibs/#pyopencl
 
-Option C. Ubuntu 16.04
+- Ubuntu 16.04
 
    * Step 1. Install platform opencl graphic driver, e.g. Intel CPU or Intel HD Graphics (https://software.intel.com/en-us/intel-opencl/download)
 
@@ -52,10 +54,38 @@ Option C. Ubuntu 16.04
    * Step 4. Verification
     
     ```shellscript
-        <NameOfEnv>$> python
+        <NameOfEnv>$> python3
         > import pyopencl as cl
         > cl.create_some_context()
     ```
+    
+- Mac OS X
+
+    * Step 1. Install Python3
+        Since OpenCL drivers had already included in Mac OS X, we don't need to install any OpenCL driver by ourself. So, we can start from Python3.
+    ```
+        $> brew update
+        $> brew install python3
+        $> pip3 install virtualenv
+    ```
+        Please note that you may not need to install virtualenv if you already installed it with python 2.7.
+    
+    * Step 2. Create a virtual environment for pyopencl.
+        Before install pyopencl, we may need to install XCode developer console tool with `xcode-select --install` command. If you already had it, you don't need to run it.
+    ```
+        $> python3 -m venv [NameOfEnv]
+        $> source ./NameOfEnv/bin/activate
+        <NameOfEnv>$> pip3 install --upgrade pip
+        <NameOfEnv>$> pip3 install pycparser cffi numpy wheel
+        <NameOfEnv>$> pip3 install pyopencl
+    ```
+    
+    * Step 3. Verification
+    ```shellscript
+        <NameOfEnv>$> python3
+        > import pyopencl as cl
+        > cl.create_some_context()
+    ```    
 
 # Run oclGA examples
 
