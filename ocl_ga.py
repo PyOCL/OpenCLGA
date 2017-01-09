@@ -3,6 +3,7 @@ import sys
 import time
 import random
 import numpy
+import pickle
 import pyopencl as cl
 
 class OpenCLGA():
@@ -26,8 +27,11 @@ class OpenCLGA():
         # Generally in GA, it depends on the problem to treat the maximal fitness
         # value as the best or to treat the minimal fitness value as the best.
         self.__fitnesses = numpy.zeros(self.__population, dtype=numpy.float32)
-        self.__elapsed_time = None
+        self.__elapsed_time = 0
         self.__init_cl(extra_include_path)
+        self.__paused = False
+        self.__generation_index = 0
+        self.__generation_time_diff = 0
         self.__create_program()
 
     # public properties
@@ -127,9 +131,10 @@ class OpenCLGA():
                                                ctx,
                                                chromosome_wrapper.get_mutation_kernel_names())
 
-    def __run_impl(self, prob_mutate, prob_crossover):
+    def __preexecute_kernels(self):
         total_dna_size = self.__population * self.__sample_chromosome.dna_total_length
 
+        self.__fitnesses = numpy.zeros(self.__population, dtype=numpy.float32)
         self.__np_chromosomes = numpy.zeros(total_dna_size, dtype=numpy.int32)
 
         mf = cl.mem_flags
@@ -138,22 +143,24 @@ class OpenCLGA():
         rnum = [random.randint(0, 4294967295) for i in range(self.__population)]
         ## note: numpy.random.rand() gives us a list float32 and we cast it to uint32 at the calling
         ##       of kernel function. It just views the original byte order as uint32.
-        dev_rnum = cl.Buffer(self.__ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
+        self.__dev_rnum = cl.Buffer(self.__ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
                              hostbuf=numpy.array(rnum, dtype=numpy.uint32))
-        dev_chromosomes = cl.Buffer(self.__ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
-                                    hostbuf=self.__np_chromosomes)
-        dev_fitnesses = cl.Buffer(self.__ctx, mf.WRITE_ONLY, self.__fitnesses.nbytes)
 
-        fitness_args = [dev_chromosomes, dev_fitnesses]
+        self.__dev_chromosomes = cl.Buffer(self.__ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
+                                    hostbuf=self.__np_chromosomes)
+        self.__dev_fitnesses = cl.Buffer(self.__ctx, mf.WRITE_ONLY, self.__fitnesses.nbytes)
+
+        self.__fitness_args_list = [self.__dev_chromosomes, self.__dev_fitnesses]
 
         if self.__fitness_args is not None:
             ## create buffers for fitness arguments
             for arg in self.__fitness_args:
-                fitness_args.append(cl.Buffer(self.__ctx, mf.READ_ONLY | mf.COPY_HOST_PTR,
-                                              hostbuf=numpy.array(arg["v"],
-                                              dtype=self.__type_to_numpy_type(arg["t"]))))
+                self.__fitness_args_list.append(cl.Buffer(self.__ctx,
+                                                     mf.READ_ONLY | mf.COPY_HOST_PTR,
+                                                     hostbuf=numpy.array(arg["v"],
+                                                     dtype=self.__type_to_numpy_type(arg["t"]))))
 
-        cl.enqueue_copy(self.__queue, dev_fitnesses, self.__fitnesses)
+        cl.enqueue_copy(self.__queue, self.__dev_fitnesses, self.__fitnesses)
 
         ## call preexecute_kernels for internal data structure preparation
         self.__sample_chromosome.preexecute_kernels(self.__ctx, self.__queue, self.__population)
@@ -161,42 +168,44 @@ class OpenCLGA():
         ## dump information on kernel resources usage
         self.dump_kernel_info(self.__prg, self.__ctx, self.__sample_chromosome)
 
+    def __populate_first_generations(self, prob_mutate, prob_crossover):
         ## populate the first generation
         self.__sample_chromosome.execute_populate(self.__prg,
                                                   self.__queue,
                                                   self.__population,
-                                                  dev_chromosomes,
-                                                  dev_rnum)
+                                                  self.__dev_chromosomes,
+                                                  self.__dev_rnum)
 
         self.__prg.ocl_ga_calculate_fitness(self.__queue,
                                             (self.__population,),
                                             (1,),
-                                            *fitness_args).wait()
+                                            *self.__fitness_args_list).wait()
 
+    def __start_evolution(self, prob_mutate, prob_crossover):
         generation_start = time.time()
         ## start the evolution
-        for i in range(self.__generations):
+        for i in range(self.__generation_index, self.__generations):
             self.__sample_chromosome.execute_crossover(self.__prg,
                                                        self.__queue,
                                                        self.__population,
                                                        i,
                                                        prob_crossover,
-                                                       dev_chromosomes,
-                                                       dev_fitnesses,
-                                                       dev_rnum)
+                                                       self.__dev_chromosomes,
+                                                       self.__dev_fitnesses,
+                                                       self.__dev_rnum)
             self.__sample_chromosome.execute_mutation(self.__prg,
                                                       self.__queue,
                                                       self.__population,
                                                       i,
                                                       prob_mutate,
-                                                      dev_chromosomes,
-                                                      dev_fitnesses,
-                                                      dev_rnum)
+                                                      self.__dev_chromosomes,
+                                                      self.__dev_fitnesses,
+                                                      self.__dev_rnum)
+
             self.__prg.ocl_ga_calculate_fitness(self.__queue,
                                                 (self.__population,),
                                                 (1,),
-                                                *fitness_args).wait()
-
+                                                *self.__fitness_args_list).wait()
             self.__dictStatistics[i] = {}
             self.__dictStatistics[i]["best"] = self.__sample_chromosome.get_current_best()
             self.__dictStatistics[i]["worst"] = self.__sample_chromosome.get_current_worst()
@@ -205,11 +214,18 @@ class OpenCLGA():
             if self.__sample_chromosome.early_terminated:
                 break
 
-        avg_time_per_gen = (time.time() - generation_start) / float(len(self.__dictStatistics))
-        self.__dictStatistics["avg_time_per_gen"] = avg_time_per_gen
+            if self.__paused:
+                self.__generation_index = i + 1
+                self.__generation_time_diff = time.time() - generation_start
+                print("oclGA is paused")
+                return
 
-        cl.enqueue_read_buffer(self.__queue, dev_fitnesses, self.__fitnesses)
-        cl.enqueue_read_buffer(self.__queue, dev_chromosomes, self.__np_chromosomes).wait()
+        cl.enqueue_read_buffer(self.__queue, self.__dev_fitnesses, self.__fitnesses)
+        cl.enqueue_read_buffer(self.__queue, self.__dev_chromosomes, self.__np_chromosomes).wait()
+
+        total_time_consumption = time.time() - generation_start + self.__generation_time_diff
+        avg_time_per_gen = total_time_consumption / float(len(self.__dictStatistics))
+        self.__dictStatistics["avg_time_per_gen"] = avg_time_per_gen
 
         import utils
         utils.plot_ga_result(self.__dictStatistics)
@@ -228,11 +244,85 @@ class OpenCLGA():
         best = [v for v in self.__np_chromosomes[startGeneId:endGeneId]]
         return best, best_fitness
 
+    def __save_state(self, data):
+        # save data from intenal struct
+        data["generation_idx"] = self.__generation_index
+        data["statistics"] = self.__dictStatistics
+        data["generation_time_diff"] = self.__generation_time_diff
+        data["population"] = self.__population
+
+        # read data from kernel
+        rnum = numpy.zeros(self.__population, dtype=numpy.float32)
+        cl.enqueue_read_buffer(self.__queue, self.__dev_rnum, rnum)
+        cl.enqueue_read_buffer(self.__queue, self.__dev_fitnesses, self.__fitnesses)
+        cl.enqueue_read_buffer(self.__queue, self.__dev_chromosomes, self.__np_chromosomes).wait()
+        # save kernel memory to data
+        data["rnum"] = rnum
+        data["fitnesses"] = self.__fitnesses
+        data["chromosomes"] = self.__np_chromosomes
+
+        self.__sample_chromosome.save(data, self.__ctx, self.__queue, self.__population)
+
+    def __restore_state(self, data):
+        self.__generation_index = data["generation_idx"]
+        self.__dictStatistics = data["statistics"]
+        self.__generation_time_diff = data["generation_time_diff"]
+        self.__population = data["population"]
+
+        rnum = data["rnum"]
+        self.__fitnesses = data["fitnesses"]
+        self.__np_chromosomes = data["chromosomes"]
+        # restore CL variables
+        mf = cl.mem_flags
+        self.__dev_rnum = cl.Buffer(self.__ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
+                             hostbuf=numpy.array(rnum, dtype=numpy.uint32))
+        self.__dev_chromosomes = cl.Buffer(self.__ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
+                                    hostbuf=self.__np_chromosomes)
+        self.__dev_fitnesses = cl.Buffer(self.__ctx, mf.WRITE_ONLY, self.__fitnesses.nbytes)
+        self.__fitness_args_list = [self.__dev_chromosomes, self.__dev_fitnesses]
+        if self.__fitness_args is not None:
+            ## create buffers for fitness arguments
+            for arg in self.__fitness_args:
+                self.__fitness_args_list.append(cl.Buffer(self.__ctx,
+                                                     mf.READ_ONLY | mf.COPY_HOST_PTR,
+                                                     hostbuf=numpy.array(arg["v"],
+                                                     dtype=self.__type_to_numpy_type(arg["t"]))))
+        # Copy data from main memory to GPU memory
+        cl.enqueue_copy(self.__queue, self.__dev_fitnesses, self.__fitnesses)
+        cl.enqueue_copy(self.__queue, self.__dev_chromosomes, self.__np_chromosomes)
+        cl.enqueue_copy(self.__queue, self.__dev_rnum, rnum).wait()
+
+        self.__sample_chromosome.restore(data, self.__ctx, self.__queue, self.__population)
+
     # public methods
+    def prepare(self):
+        self.__preexecute_kernels()
+
     def run(self, prob_mutate, prob_crossover):
         # This function is not supposed to be overriden
         assert 0 <= prob_mutate <= 1
         assert 0 <= prob_crossover <= 1
         start_time = time.time()
-        self.__run_impl(prob_mutate, prob_crossover)
-        self.__elapsed_time = time.time() - start_time
+        if not self.__paused:
+            self.__populate_first_generations(prob_mutate, prob_crossover)
+
+        self.__paused = False
+        self.__start_evolution(prob_mutate, prob_crossover)
+        self.__elapsed_time += time.time() - start_time
+
+    def pause(self):
+        self.__paused = True
+
+    def save(self, filename):
+        assert self.__paused, "save is only availabled while paused"
+        data = dict()
+        self.__save_state(data)
+        f = open(filename, "wb")
+        pickle.dump(data, f)
+        f.close()
+
+    def restore(self, filename):
+        f = open(filename, "rb")
+        data = pickle.load(f)
+        f.close()
+        self.__restore_state(data)

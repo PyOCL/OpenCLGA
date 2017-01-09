@@ -6,11 +6,30 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 # start to import what we want.
 import random
 import json
+import signal
+import threading
 import utils
 from pathlib import Path
 from ocl_ga import OpenCLGA
 from shuffler_chromosome import ShufflerChromosome
 from simple_gene import SimpleGene
+
+class TaiwanTravelThread(threading.Thread):
+    def __init__(self, tsp_ga_cl, city_info):
+        threading.Thread.__init__(self)
+        self.__tsp_ga_cl = tsp_ga_cl
+        self.__city_info = city_info
+
+    def run(self):
+        self.paused = False
+        prob_mutate = 0.10
+        prob_cross = 0.80
+        self.__tsp_ga_cl.run(prob_mutate, prob_cross)
+
+        if not self.paused:
+            best_chromosome, best_fitness = self.__tsp_ga_cl.get_the_best()
+            print("Shortest Path: " + " => ".join(str(g) for g in best_chromosome))
+            utils.plot_tsp_result(self.__city_info, best_chromosome)
 
 def read_all_cities(file_name):
     file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), file_name)
@@ -54,15 +73,35 @@ def run(num_chromosomes, generations):
     tsp_ga_cl = OpenCLGA(sample, generations, num_chromosomes, fstr, "taiwan_fitness", None,
                          [ocl_kernels], opt = "min")
 
-    prob_mutate = 0.10
-    prob_cross = 0.80
-    tsp_ga_cl.run(prob_mutate, prob_cross)
+    if os.path.isfile(os.path.join(tsp_path, "test.pickle")):
+        print("test.pickle found, we will resume previous execution")
+        tsp_ga_cl.restore(os.path.join(tsp_path, "test.pickle"))
+    else:
+        tsp_ga_cl.prepare()
 
-    print("run took", tsp_ga_cl.elapsed_time, "seconds")
-    best_chromosome, best_fitness = tsp_ga_cl.get_the_best()
-    print("Shortest Path: " + " => ".join(cities[g]["name"] for g in best_chromosome))
+    def signal_handler(signal, frame):
+        print("You pressed Ctrl+C! We will try to pause execution before exit!")
+        if ttt.is_alive():
+            ttt.paused = True
+            tsp_ga_cl.pause()
+            ttt.join()
+        sys.exit(0)
 
-    utils.plot_tsp_result(city_info, best_chromosome)
+    signal.signal(signal.SIGINT, signal_handler)
+
+    ttt = TaiwanTravelThread(tsp_ga_cl, city_info)
+    ttt.start()
+
+    while(True):
+        user_input = input("(p for pause, r for resume, s for save)")
+        if "p" == user_input:
+            ttt.paused = True
+            tsp_ga_cl.pause()
+        elif "r" == user_input:
+            ttt = TaiwanTravelThread(tsp_ga_cl, city_info)
+            ttt.start()
+        elif "s" == user_input:
+            tsp_ga_cl.save(os.path.join(tsp_path, "test.pickle"))
 
 if __name__ == '__main__':
-    run(num_chromosomes=1000, generations=1000)
+    run(num_chromosomes=1000, generations=11)

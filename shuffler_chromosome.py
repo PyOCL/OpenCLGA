@@ -84,6 +84,55 @@ class ShufflerChromosome:
                                 "int chromosome_size);"
         return candidates + defines + improving_func_header
 
+    def save(self, data, ctx, queue, population):
+        total_dna_size = population * self.dna_total_length
+        # prepare memory
+        other_chromosomes = numpy.zeros(total_dna_size, dtype=numpy.int32)
+        cross_map = numpy.zeros(total_dna_size, dtype=numpy.int32)
+        ratios = numpy.zeros(population, dtype=numpy.float32)
+        # read data from cl
+        cl.enqueue_read_buffer(queue, self.__dev_ratios, ratios)
+        cl.enqueue_read_buffer(queue, self.__dev_best, self.__best)
+        cl.enqueue_read_buffer(queue, self.__dev_worst, self.__worst)
+        cl.enqueue_read_buffer(queue, self.__dev_avg, self.__avg)
+        cl.enqueue_read_buffer(queue, self.__dev_other_chromosomes, other_chromosomes)
+        cl.enqueue_read_buffer(queue, self.__dev_cross_map, cross_map).wait()
+        # save all of them
+        data["best"] = self.__best
+        data["worst"] = self.__worst
+        data["avg"] = self.__avg
+        data["other_chromosomes"] = other_chromosomes
+        data["cross_map"] = cross_map
+        data["ratios"] = ratios
+
+    def restore(self, data, ctx, queue, population):
+        self.__best = data["best"]
+        self.__worst = data["worst"]
+        self.__avg = data["avg"]
+        other_chromosomes = data["other_chromosomes"]
+        cross_map = data["cross_map"]
+        ratios = data["ratios"]
+        # prepare CL memory
+        mf = cl.mem_flags
+        self.__dev_ratios = cl.Buffer(ctx, mf.WRITE_ONLY, ratios.nbytes)
+        self.__dev_best = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
+                                    hostbuf=self.__best)
+        self.__dev_worst = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
+                                     hostbuf=self.__worst)
+        self.__dev_avg = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
+                                   hostbuf=self.__avg)
+        self.__dev_other_chromosomes = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
+                                                 hostbuf=other_chromosomes)
+        self.__dev_cross_map = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
+                                         hostbuf=cross_map)
+        # Copy data from main memory to GPU memory
+        cl.enqueue_copy(queue, self.__dev_ratios, ratios)
+        cl.enqueue_copy(queue, self.__dev_best, self.__best)
+        cl.enqueue_copy(queue, self.__dev_worst, self.__worst)
+        cl.enqueue_copy(queue, self.__dev_avg, self.__avg)
+        cl.enqueue_copy(queue, self.__dev_other_chromosomes, other_chromosomes)
+        cl.enqueue_copy(queue, self.__dev_cross_map, cross_map)
+
     def preexecute_kernels(self, ctx, queue, population):
         ## initialize global variables for kernel execution
         total_dna_size = population * self.dna_total_length
@@ -146,6 +195,7 @@ class ShufflerChromosome:
         cl.enqueue_read_buffer(queue, self.__dev_best, self.__best)
         cl.enqueue_read_buffer(queue, self.__dev_avg, self.__avg)
         cl.enqueue_read_buffer(queue, self.__dev_worst, self.__worst).wait()
+        print("{0}\t\t==> {1}".format(generation_idx, self.__best[0]))
 
         if self.early_terminated:
             return
