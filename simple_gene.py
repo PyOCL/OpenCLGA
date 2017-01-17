@@ -3,7 +3,6 @@ HUMAN_DNA_ELEMENTS = ["A","C","G","T"]
 
 class SimpleGene:
 
-
     @staticmethod
     def clone_gene(g):
         return SimpleGene(g.dna, g.elements, g.name)
@@ -54,3 +53,7 @@ class SimpleGene:
     def kernelize(self):
         elements_str = ", ".join([str(v) for v in self.elements_in_kernel])
         return "#define SIMPLE_GENE_ELEMENTS {" + elements_str + "}\n"
+
+    def from_kernel_value(self, v):
+        assert v > -1 and v < len(self.__elements)
+        return SimpleGene(self.__elements[v], self.__elements, self.__name)

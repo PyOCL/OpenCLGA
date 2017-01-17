@@ -69,6 +69,11 @@ class ShufflerChromosome:
     def early_terminated(self):
         return abs(self.__worst[0] - self.__best[0]) < 0.0001
 
+    def from_kernel_value(self, data):
+        assert len(data) == self.num_of_genes
+        genes = [self.__genes[idx].from_kernel_value(v) for idx, v in enumerate(data)]
+        return ShufflerChromosome(genes, self.__name)
+
     def use_improving_only_mutation(self, helper_func_name):
         self.__improving_func = helper_func_name
 

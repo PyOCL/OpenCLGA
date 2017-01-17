@@ -27,8 +27,9 @@ class TaiwanTravelThread(threading.Thread):
         self.__tsp_ga_cl.run(prob_mutate, prob_cross)
 
         if not self.paused:
-            best_chromosome, best_fitness = self.__tsp_ga_cl.get_the_best()
-            print("Shortest Path: " + " => ".join(str(g) for g in best_chromosome))
+            best_chromosome, best_fitness, best_info = self.__tsp_ga_cl.get_the_best()
+            print("Best Fitness: %f"%(best_fitness))
+            print("Shortest Path: " + " => ".join(g["name"] for g in best_info.dna))
             utils.plot_tsp_result(self.__city_info, best_chromosome)
 
 def read_all_cities(file_name):
@@ -60,7 +61,7 @@ def run(num_chromosomes, generations):
     ocl_kernels = os.path.realpath(os.path.join(tsp_path, "..", "..", "kernel"))
     tsp_kernels = os.path.join(tsp_path, "kernel")
 
-    sample = ShufflerChromosome([SimpleGene(v, city_ids) for v in city_ids])
+    sample = ShufflerChromosome([SimpleGene(v, cities) for v in city_ids])
     f = open(os.path.join(tsp_kernels, "taiwan_fitness.c"), "r")
     fstr = "".join(f.readlines())
     f.close()

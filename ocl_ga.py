@@ -235,14 +235,13 @@ class OpenCLGA():
 
         best_fitness = eval(self.__opt_for_max)(value for value in self.__fitnesses)
         best_index = list(self.__fitnesses).index(best_fitness)
-        print("Best fitness: %f @ %d"%(best_fitness, best_index))
 
         # We had convert chromosome to a cyclic gene. So, the num_of_genes in CL is more than python
         # by one.
         startGeneId = best_index * (self.__sample_chromosome.num_of_genes)
         endGeneId = (best_index + 1) * (self.__sample_chromosome.num_of_genes)
         best = [v for v in self.__np_chromosomes[startGeneId:endGeneId]]
-        return best, best_fitness
+        return best, best_fitness, self.__sample_chromosome.from_kernel_value(best)
 
     def __save_state(self, data):
         # save data from intenal struct
