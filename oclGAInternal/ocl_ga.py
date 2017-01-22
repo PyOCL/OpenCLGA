@@ -78,6 +78,10 @@ class OpenCLGA():
     # private methods
     def __init_cl(self, extra_include_path):
         # create OpenCL context, queue, and memory
+        # NOTE: Please set PYOPENCL_CTX=N (N is the device number you want to use)
+        #       at first if it's in external_process mode, otherwise a exception
+        #       will be thrown, since it's not in interactive mode.
+        # TODO: Select a reliable device during runtime by default.
         self.__ctx = cl.create_some_context()
         self.__queue = cl.CommandQueue(self.__ctx)
         self.__include_path = []

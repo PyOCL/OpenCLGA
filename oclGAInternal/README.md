@@ -26,7 +26,7 @@ Option B. Install by ourself
    * Step 1. Install platform opencl graphic driver, e.g. Intel CPU or Intel HD Graphics (https://software.intel.com/en-us/intel-opencl/download)
 
    * Step 2. Install Intel OpenCL 2.1 Driver & ICD, if you use Intel devices:
-   
+
     ```shellscript
         $> sudo apt-get install libnuma1 alien
         $> tar -xvf ./intel_sdk_for_opencl_2016_ubuntu_6.3.0.1904_x64.tgz
@@ -36,12 +36,12 @@ Option B. Install by ourself
         $> sudo apt-get install clinfo
         $> clinfo  # To verify platform information from OpenCL
     ```
-    
+
     You can verify the installed OpenCL driver is located in /opt/intel/ and
     the ICD loader is located in /etc/OpenCL/vendors.
 
    * Step 3. Create a virtual environment for pyopencl.
-   
+
     ```shellscript
         $> sudo apt-get install python3-pip python3-venv ocl-icd-*
         $> python3 -m venv [NameOfEnv]
@@ -52,13 +52,13 @@ Option B. Install by ourself
     ```
 
    * Step 4. Verification
-    
+
     ```shellscript
         <NameOfEnv>$> python3
         > import pyopencl as cl
         > cl.create_some_context()
     ```
-    
+
 - Mac OS X
 
     * Step 1. Install Python3
@@ -69,7 +69,7 @@ Option B. Install by ourself
         $> pip3 install virtualenv
     ```
         Please note that you may not need to install virtualenv if you already installed it with python 2.7.
-    
+
     * Step 2. Create a virtual environment for pyopencl.
         Before install pyopencl, we may need to install XCode developer console tool with `xcode-select --install` command. If you already had it, you don't need to run it.
     ```
@@ -79,7 +79,7 @@ Option B. Install by ourself
         <NameOfEnv>$> pip3 install pycparser cffi numpy wheel
         <NameOfEnv>$> pip3 install pyopencl
     ```
-    
+
     * Step 3. Verification
     ```shellscript
         <NameOfEnv>$> python3
@@ -97,7 +97,7 @@ Option B. Install by ourself
         $> source <NameOfEnv>/Scripts/activate
     ```
   * For Linux enviornment
-  
+
     ```shellscript
         $> source ./NameOfEnv/bin/activate
     ```
@@ -115,3 +115,4 @@ Option B. Install by ourself
         <NameOfEnv>$> cd oclGA-master
         <NameOfEnv>$> python3 examples/tsp/simple_tsp.py
     ```
+    * NOTE : In external process mode, if "no device" exception happen during create_some_context(), Please set PYOPENCL_CTX=N (N is the device number you want by default) at first.
