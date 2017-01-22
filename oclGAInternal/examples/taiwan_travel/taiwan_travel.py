@@ -1,9 +1,11 @@
 # We need to put ancenstor directory in sys.path to let us import utils and algorithm
 import os
 import sys
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 # start to import what we want.
+import time
 import random
 import json
 import signal
@@ -15,10 +17,11 @@ from shuffler_chromosome import ShufflerChromosome
 from simple_gene import SimpleGene
 
 class TaiwanTravelThread(threading.Thread):
-    def __init__(self, tsp_ga_cl, city_info):
+    def __init__(self, tsp_ga_cl, city_info, evt):
         threading.Thread.__init__(self)
         self.__tsp_ga_cl = tsp_ga_cl
         self.__city_info = city_info
+        self.end_thread_evt = evt
 
     def run(self):
         self.paused = False
@@ -31,6 +34,8 @@ class TaiwanTravelThread(threading.Thread):
             print("Best Fitness: %f"%(best_fitness))
             print("Shortest Path: " + " => ".join(g["name"] for g in best_info.dna))
             utils.plot_tsp_result(self.__city_info, best_chromosome)
+
+        self.end_thread_evt.set()
 
 def read_all_cities(file_name):
     file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), file_name)
@@ -52,7 +57,7 @@ def read_all_cities(file_name):
 
     return cities, city_info, city_infoX, city_infoY
 
-def run(num_chromosomes, generations):
+def run(num_chromosomes, generations, ext_proc):
     cities, city_info, city_infoX, city_infoY = read_all_cities("TW319_368Addresses-no-far-islands.json")
     city_ids = list(range(len(cities)))
     random.seed()
@@ -90,19 +95,32 @@ def run(num_chromosomes, generations):
 
     signal.signal(signal.SIGINT, signal_handler)
 
-    ttt = TaiwanTravelThread(tsp_ga_cl, city_info)
+    evt = threading.Event()
+    evt.clear()
+    ttt = TaiwanTravelThread(tsp_ga_cl, city_info, evt)
     ttt.start()
 
     while(True):
-        user_input = input("(p for pause, r for resume, s for save)")
-        if "p" == user_input:
-            ttt.paused = True
-            tsp_ga_cl.pause()
-        elif "r" == user_input:
-            ttt = TaiwanTravelThread(tsp_ga_cl, city_info)
-            ttt.start()
-        elif "s" == user_input:
-            tsp_ga_cl.save(os.path.join(tsp_path, "test.pickle"))
+        if ext_proc:
+            # TODO : Need to find a way for input p/r/s
+            if evt.is_set():
+                signal_handler(signal.SIGINT, None)
+                break
+            time.sleep(1)
+        else:
+            user_input = input("(p for pause, r for resume, s for save)")
+            if "p" == user_input:
+                ttt.paused = True
+                tsp_ga_cl.pause()
+            elif "r" == user_input:
+                ttt = TaiwanTravelThread(tsp_ga_cl, city_info)
+                ttt.start()
+            elif "s" == user_input:
+                tsp_ga_cl.save(os.path.join(tsp_path, "test.pickle"))
+
+# Exposed function
+def run_task(external_process = False):
+    run(num_chromosomes=100, generations=11, ext_proc=external_process)
 
 if __name__ == '__main__':
-    run(num_chromosomes=1000, generations=11)
+    run_task()
