@@ -7,8 +7,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 # start to import what we want.
 import time
 import random
+import pickle
 import json
 import signal
+import zipfile
 import threading
 import utils
 from pathlib import Path
@@ -57,6 +59,16 @@ def read_all_cities(file_name):
 
     return cities, city_info, city_infoX, city_infoY
 
+def create_result(tsp_ga_cl):
+    best_chromosome, best_fitness, best_info = tsp_ga_cl.get_the_best()
+    statistics = tsp_ga_cl.get_statistics()
+    res = {"best_info" : best_info,
+           "statistics" : statistics}
+    with zipfile.ZipFile("result.zip", 'w') as myzip:
+        myzip.writestr("result.info", pickle.dumps(res))
+    return "result.zip"
+
+
 def run(num_chromosomes, generations, ext_proc):
     cities, city_info, city_infoX, city_infoY = read_all_cities("TW319_368Addresses-no-far-islands.json")
     city_ids = list(range(len(cities)))
@@ -85,42 +97,47 @@ def run(num_chromosomes, generations, ext_proc):
     else:
         tsp_ga_cl.prepare()
 
+    evt = threading.Event()
+    evt.clear()
+
     def signal_handler(signal, frame):
         print("You pressed Ctrl+C! We will try to pause execution before exit!")
         if ttt.is_alive():
             ttt.paused = True
             tsp_ga_cl.pause()
             ttt.join()
-        sys.exit(0)
+        evt.set()
 
     signal.signal(signal.SIGINT, signal_handler)
 
-    evt = threading.Event()
-    evt.clear()
     ttt = TaiwanTravelThread(tsp_ga_cl, city_info, evt)
     ttt.start()
 
-    while(True):
-        if ext_proc:
-            # TODO : Need to find a way for input p/r/s
+    result_zip = "result.zip"
+    if ext_proc:
+        # TODO : Need to find a way for input p/r/s
+        while(True):
             if evt.is_set():
                 signal_handler(signal.SIGINT, None)
-                break
+                return create_result(tsp_ga_cl)
             time.sleep(1)
-        else:
+    else:
+        while(True):
             user_input = input("(p for pause, r for resume, s for save)")
             if "p" == user_input:
                 ttt.paused = True
                 tsp_ga_cl.pause()
             elif "r" == user_input:
-                ttt = TaiwanTravelThread(tsp_ga_cl, city_info)
+                evt.clear()
+                ttt = TaiwanTravelThread(tsp_ga_cl, city_info, evt)
                 ttt.start()
             elif "s" == user_input:
                 tsp_ga_cl.save(os.path.join(tsp_path, "test.pickle"))
+    return None
 
 # Exposed function
 def run_task(external_process = False):
-    run(num_chromosomes=100, generations=11, ext_proc=external_process)
+    return run(num_chromosomes=100, generations=11, ext_proc=external_process)
 
 if __name__ == '__main__':
     run_task()

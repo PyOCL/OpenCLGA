@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import shutil
 import traceback
 from simple_host_target.definition import send_task_to_host,\
@@ -38,8 +39,7 @@ def bytes_program_loader(bitstream):
         sys.path.append(oclGAInternalDir)
 
         import oclGAInternal.examples.taiwan_travel as tt
-        tt.run_task(external_process = True)
-        # result = exec(open("./oclGAInternal/examples/taiwan_travel/taiwan_travel.py").read(), globals(), locals())
+        result = tt.run_task(external_process = True)
     except:
         traceback.print_exc()
         if os.path.exists("./oclGAInternal.zip"):
@@ -47,13 +47,12 @@ def bytes_program_loader(bitstream):
         if os.path.exists("./oclGAInternal"):
             shutil.rmtree("./oclGAInternal")
 
-    # Create results !!
-    with zipfile.ZipFile('result.zip', 'w') as myzip:
-        myzip.writestr('result.info', result)
-
-    result_bitstream = None
-    with open("result.zip", "rb") as fn:
-        result_bitstream = fn.read()
+    result_bitstream = b""
+    if not os.path.exists(result):
+        print("No result is created !! Empty bitstream is returned !!")
+    else:
+        with open(result, "rb") as fn:
+            result_bitstream = fn.read()
     return result_bitstream
 """
 
@@ -113,7 +112,7 @@ def send_project(bitstream):
 
 def process_run_internal():
     import oclGAInternal.examples.taiwan_travel as tt
-    tt.run_task(external_process = True)
+    results = tt.run_task(external_process = True)
 
 def run_in_external_process():
     from multiprocessing import Process
@@ -122,7 +121,7 @@ def run_in_external_process():
     p.join()
     pass
 
-def pack_oclGA():
+def pack_and_send_oclGA():
     bitstream = create_and_read_oclGA_zip()
     send_project(bitstream)
     sht_proxy_shutdown()
@@ -130,8 +129,8 @@ def pack_oclGA():
         os.remove("./oclGAInternal.zip")
 
 if __name__ == "__main__":
-    # pack_oclGA()
+    pack_and_send_oclGA()
 
     # 1) Run oclGA in different process to check import dependency.
     # 2) To figure out a way to perform pause/resuem/save
-    run_in_external_process()
+    # run_in_external_process()

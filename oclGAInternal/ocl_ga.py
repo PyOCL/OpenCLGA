@@ -107,6 +107,9 @@ class OpenCLGA():
         f.close()
 
         fdbg = open("final.cl", 'w')
+        print("[oclGA] >>>>>>> ")
+        print(__file__)
+
         fdbg.write(codes + fstr)
         fdbg.close()
         self.__prg = cl.Program(self.__ctx, codes + fstr).build(self.__include_path);
@@ -233,6 +236,9 @@ class OpenCLGA():
 
         import utils
         utils.plot_ga_result(self.__dictStatistics)
+
+    def get_statistics(self):
+        return self.__dictStatistics
 
     def get_the_best(self):
         assert self.__opt_for_max in ["max", "min"]
