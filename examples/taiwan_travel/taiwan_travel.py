@@ -11,6 +11,7 @@ import pickle
 import json
 import signal
 import zipfile
+import traceback
 import threading
 import utils
 from pathlib import Path
@@ -59,14 +60,28 @@ def read_all_cities(file_name):
 
     return cities, city_info, city_infoX, city_infoY
 
-def create_result(tsp_ga_cl):
+def create_result_bitstream(tsp_ga_cl):
     best_chromosome, best_fitness, best_info = tsp_ga_cl.get_the_best()
     statistics = tsp_ga_cl.get_statistics()
     res = {"best_info" : best_info,
            "statistics" : statistics}
-    with zipfile.ZipFile("result.zip", 'w') as myzip:
-        myzip.writestr("result.info", pickle.dumps(res))
-    return "result.zip"
+
+    result = "result.zip"
+    result_bitstream = b""
+    try:
+        with zipfile.ZipFile(result, 'w') as myzip:
+            myzip.writestr("result.info", pickle.dumps(res))
+
+        if not os.path.exists(result):
+            print("No result is created !! Empty bitstream is returned !!")
+        else:
+            with open(result, "rb") as fn:
+                result_bitstream = fn.read()
+            os.remove(result)
+    except:
+        traceback.print_exc()
+
+    return result_bitstream
 
 
 def run(num_chromosomes, generations, ext_proc):
@@ -113,13 +128,12 @@ def run(num_chromosomes, generations, ext_proc):
     ttt = TaiwanTravelThread(tsp_ga_cl, city_info, evt)
     ttt.start()
 
-    result_zip = "result.zip"
     if ext_proc:
         # TODO : Need to find a way for input p/r/s
         while(True):
             if evt.is_set():
                 signal_handler(signal.SIGINT, None)
-                return create_result(tsp_ga_cl)
+                return create_result_bitstream(tsp_ga_cl)
             time.sleep(1)
     else:
         while(True):
@@ -133,7 +147,7 @@ def run(num_chromosomes, generations, ext_proc):
                 ttt.start()
             elif "s" == user_input:
                 tsp_ga_cl.save(os.path.join(tsp_path, "test.pickle"))
-    return None
+    return b""
 
 # Exposed function
 def run_task(external_process = False):

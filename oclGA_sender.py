@@ -18,41 +18,35 @@ def bytes_program_loader(bitstream):
 
     # Convert bytes array data into zip file
     try:
-        with open("./oclGAInternal.zip", "wb") as fn:
+        with open("./oclGA.zip", "wb") as fn:
             fn.write(bitstream)
     except:
         traceback.print_exc()
 
     # Extract files to execute
     try:
-        with zipfile.ZipFile('./oclGAInternal.zip') as myzip:
-            myzip.extractall('./oclGAInternal')
+        with zipfile.ZipFile('./oclGA.zip') as myzip:
+            myzip.extractall('./oclGA')
     except:
         traceback.print_exc()
 
     # Execution
-    result = ""
+    result_bitstream = b""
     try:
         # This code is actually executed in simple_host_target.definition namespace.
         currentDir = os.path.dirname(os.path.abspath(__file__))
-        oclGAInternalDir = os.path.join(currentDir, "oclGAInternal")
-        sys.path.append(oclGAInternalDir)
+        oclGADir = os.path.join(currentDir, "oclGA")
+        sys.path.append(oclGADir)
 
-        import oclGAInternal.examples.taiwan_travel as tt
-        result = tt.run_task(external_process = True)
+        import oclGA.examples.taiwan_travel as tt
+        result_bitstream = tt.run_task(external_process = True)
     except:
         traceback.print_exc()
-        if os.path.exists("./oclGAInternal.zip"):
-            os.remove("./oclGAInternal.zip")
-        if os.path.exists("./oclGAInternal"):
-            shutil.rmtree("./oclGAInternal")
+        if os.path.exists("./oclGA.zip"):
+            os.remove("./oclGA.zip")
+        if os.path.exists("./oclGA"):
+            shutil.rmtree("./oclGA")
 
-    result_bitstream = b""
-    if not os.path.exists(result):
-        print("No result is created !! Empty bitstream is returned !!")
-    else:
-        with open(result, "rb") as fn:
-            result_bitstream = fn.read()
     return result_bitstream
 """
 
@@ -81,15 +75,20 @@ def ensure_host_sender_ip_info():
         sys.exit(1)
     return ip_port_pairs
 
-def create_and_read_oclGA_zip():
-    shutil.make_archive("./oclGAInternal", "zip", "./oclGAInternal")
-    if not os.path.exists("./oclGAInternal.zip"):
+def create_and_read_oclGA_as_bitstream():
+    import tempfile
+    tmpFileName = os.path.join(tempfile.gettempdir(), "oclGA")
+    tmpFilePath = tmpFileName + ".zip"
+    shutil.make_archive(tmpFileName, "zip", "./")
+    if not os.path.exists(tmpFilePath):
         print("[Sender] Error, oclGA.zip is not created !!")
         sys.exit(1)
 
     bitstream = None
-    with open("oclGAInternal.zip", "rb") as fn:
+    with open(tmpFilePath, "rb") as fn:
         bitstream = fn.read()
+
+    os.remove(tmpFilePath)
     return bitstream
 
 def recv_project(serialized_result):
@@ -122,11 +121,9 @@ def run_in_external_process():
     pass
 
 def pack_and_send_oclGA():
-    bitstream = create_and_read_oclGA_zip()
+    bitstream = create_and_read_oclGA_as_bitstream()
     send_project(bitstream)
     sht_proxy_shutdown()
-    if os.path.exists("./oclGAInternal.zip"):
-        os.remove("./oclGAInternal.zip")
 
 if __name__ == "__main__":
     pack_and_send_oclGA()
