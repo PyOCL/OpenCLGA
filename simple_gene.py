@@ -50,9 +50,21 @@ class SimpleGene:
     def kernel_file(self):
         return "simple_gene.c"
 
-    def kernelize(self):
+    @property
+    def elements_length(self):
+        return len(self_elements)
+
+    @property
+    def mutate_func_name(self):
+        # Chromosome can use this function to execute built-in mutate function which choose an
+        # excluded elments randomly.
+        return "simple_gene_mutate"
+
+    @property
+    def elements_in_kernel_str(self):
+        # Chromosome can use this function to declare elements array
         elements_str = ", ".join([str(v) for v in self.elements_in_kernel])
-        return "#define SIMPLE_GENE_ELEMENTS {" + elements_str + "}\n"
+        return "{" + elements_str + "}\n"
 
     def from_kernel_value(self, v):
         assert v > -1 and v < len(self.__elements)

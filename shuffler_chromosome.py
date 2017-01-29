@@ -80,7 +80,7 @@ class ShufflerChromosome:
     def kernelize(self):
         improving_func = self.__improving_func if self.__improving_func is not None\
                                                else "shuffler_chromosome_dummy_improving_func"
-        candidates = self.__genes[0].kernelize()
+        candidates = "#define SIMPLE_GENE_ELEMENTS " + self.__genes[0].elements_in_kernel_str
         defines = "#define SHUFFLER_CHROMOSOME_GENE_SIZE " + str(self.num_of_genes) + "\n" +\
                   "#define IMPROVED_FITNESS_FUNC " + improving_func + "\n"
 
