@@ -36,7 +36,7 @@ class TaiwanTravelThread(threading.Thread):
             best_chromosome, best_fitness, best_info = self.__tsp_ga_cl.get_the_best()
             print("Best Fitness: %f"%(best_fitness))
             print("Shortest Path: " + " => ".join(g["name"] for g in best_info.dna))
-            utils.plot_tsp_result(self.__city_info, best_chromosome)
+            print("Press Ctrl+C to see the drawing and exit the program")
 
         self.end_thread_evt.set()
 
@@ -121,6 +121,9 @@ def run(num_chromosomes, generations, ext_proc):
             ttt.paused = True
             tsp_ga_cl.pause()
             ttt.join()
+        best_chromosome, best_fitness, best_info = tsp_ga_cl.get_the_best()
+        utils.plot_ga_result(tsp_ga_cl.get_statistics())
+        utils.plot_tsp_result(city_info, best_chromosome)
         evt.set()
 
     signal.signal(signal.SIGINT, signal_handler)

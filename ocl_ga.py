@@ -234,9 +234,6 @@ class OpenCLGA():
         avg_time_per_gen = total_time_consumption / float(len(self.__dictStatistics))
         self.__dictStatistics["avg_time_per_gen"] = avg_time_per_gen
 
-        import utils
-        utils.plot_ga_result(self.__dictStatistics)
-
     def get_statistics(self):
         return self.__dictStatistics
 

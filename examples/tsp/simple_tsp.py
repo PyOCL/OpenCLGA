@@ -41,6 +41,7 @@ def run(num_chromosomes, generations):
     prob_cross = 0.8
     tsp_ga_cl.run(prob_mutate, prob_cross)
 
+    utils.plot_ga_result(tsp_ga_cl.get_statistics())
     print("run took", tsp_ga_cl.elapsed_time, "seconds")
     best_chromosome, best_fitness, best_info = tsp_ga_cl.get_the_best()
     print("Best Fitness: %f"%(best_fitness))
