@@ -7,29 +7,6 @@ typedef struct {
   int genes[SHUFFLER_CHROMOSOME_GENE_SIZE];
 } __ShufflerChromosome;
 
-void dump_chromosomes(global __ShufflerChromosome* chromosomes,
-                      global float* fitnesses)
-{
-  int idx = get_global_id(0);
-  if (idx > 0) {
-    return;
-  }
-  for (int i = 0; i < POPULATION_SIZE; i++) {
-    __ShufflerChromosome chromosome = chromosomes[i];
-    if (fitnesses == NULL) {
-      printf("Chromosome[%d]:", i);
-    } else {
-      printf("Chromosome[%d]/dist[%f]:", i, fitnesses[i]);
-    }
-
-    for (int j = 0; j < SHUFFLER_CHROMOSOME_GENE_SIZE; j++) {
-        printf("->(%d)", chromosome.genes[j]);
-    }
-    printf("\n");
-  }
-  printf("\n");
-}
-
 void shuffler_chromosome_check_duplicate(global __ShufflerChromosome* chromosome) {
   for (int i = 0; i < SHUFFLER_CHROMOSOME_GENE_SIZE; i++) {
     for (int j = i + 1; j < SHUFFLER_CHROMOSOME_GENE_SIZE; j++) {
@@ -72,25 +49,6 @@ void shuffler_chromosome_swap(global __ShufflerChromosome* chromosome, int cp, i
   int temp_p = chromosome->genes[cp];
   chromosome->genes[cp] = chromosome->genes[p1];
   chromosome->genes[p1] = temp_p;
-}
-
-int shuffler_chromosome_random_choose(global __ShufflerChromosome* chromosomes,
-                                      global float* ratio,
-                                      uint* ra)
-{
-
-  // generate a random number from between 0 and 1
-  float rand_choose = rand_prob(ra);
-  float accumulated = 0.0;
-  int i;
-  // random choose a chromosome based on probability of each chromosome.
-  for (i = 0; i < POPULATION_SIZE;i++) {
-    accumulated += ratio[i];
-    if (accumulated > rand_choose) {
-      return i;
-    }
-  }
-  return POPULATION_SIZE - 1;
 }
 
 int shuffler_chromosome_dummy_improving_func(global int* chromosome,
@@ -146,31 +104,32 @@ __kernel void shuffler_chromosome_calc_ratio(global float* fitness,
   if (idx > 0) {
     return;
   }
-  float local_min = INT_MAX;
-  float local_max = 0;
-  if (OPTIMIZATION_FOR_MAX) {
-    calc_min_max_fitness(fitness, POPULATION_SIZE, &local_max, &local_min);
-    *best = local_max;
-    *worst = local_min;
-  } else {
-    calc_min_max_fitness(fitness, POPULATION_SIZE, &local_min, &local_max);
-    *best = local_min;
-    *worst = local_max;
-  }
-  float temp_worst = *worst;
-  float diffTotal = 0;
-  float avg_local = 0;
-  int i;
-  // we use total and diff to calculate the probability for each chromosome
-  for (i = 0; i < POPULATION_SIZE; i++) {
-    diffTotal += (temp_worst - fitness[i]) * (temp_worst - fitness[i]);
-    avg_local += fitness[i] / POPULATION_SIZE;
-  }
-  // calculate probability for each one
-  for (i = 0; i < POPULATION_SIZE; i++) {
-    ratio[i] = (temp_worst - fitness[i]) * (temp_worst - fitness[i]) / diffTotal;
-  }
-  *avg = avg_local;
+  utils_calc_ratio(fitness, ratio, best, worst, avg, idx, POPULATION_SIZE);
+  // float local_min = INT_MAX;
+  // float local_max = 0;
+  // if (OPTIMIZATION_FOR_MAX) {
+  //   calc_min_max_fitness(fitness, POPULATION_SIZE, &local_max, &local_min);
+  //   *best = local_max;
+  //   *worst = local_min;
+  // } else {
+  //   calc_min_max_fitness(fitness, POPULATION_SIZE, &local_min, &local_max);
+  //   *best = local_min;
+  //   *worst = local_max;
+  // }
+  // float temp_worst = *worst;
+  // float diffTotal = 0;
+  // float avg_local = 0;
+  // int i;
+  // // we use total and diff to calculate the probability for each chromosome
+  // for (i = 0; i < POPULATION_SIZE; i++) {
+  //   diffTotal += (temp_worst - fitness[i]) * (temp_worst - fitness[i]);
+  //   avg_local += fitness[i] / POPULATION_SIZE;
+  // }
+  // // calculate probability for each one
+  // for (i = 0; i < POPULATION_SIZE; i++) {
+  //   ratio[i] = (temp_worst - fitness[i]) * (temp_worst - fitness[i]) / diffTotal;
+  // }
+  // *avg = avg_local;
 }
 
 __kernel void shuffler_chromosome_pick_chromosomes(global int* cs,
@@ -194,7 +153,7 @@ __kernel void shuffler_chromosome_pick_chromosomes(global int* cs,
   global __ShufflerChromosome* chromosomes = (global __ShufflerChromosome*) cs;
   global __ShufflerChromosome* parent_other = (global __ShufflerChromosome*) p_other;
   int i;
-  int cross_idx = shuffler_chromosome_random_choose(chromosomes, ratio, ra);
+  int cross_idx = random_choose_by_ratio(ratio, ra, POPULATION_SIZE);
   // copy the chromosome to local memory for cross over
   for (i = 0; i < SHUFFLER_CHROMOSOME_GENE_SIZE; i++) {
     parent_other[idx].genes[i] = chromosomes[cross_idx].genes[i];

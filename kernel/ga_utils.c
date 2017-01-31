@@ -84,4 +84,58 @@ void init_rand(int idx, uint* holder)
   holder[0] = ParallelRNG(idx);
 }
 
+
+int random_choose_by_ratio(global float* ratio, uint* ra, int population)
+{
+
+  // generate a random number from between 0 and 1
+  float rand_choose = rand_prob(ra);
+  float accumulated = 0.0;
+  int i;
+  // random choose a chromosome based on probability of each chromosome.
+  for (i = 0; i < population; i++) {
+    accumulated += ratio[i];
+    if (accumulated > rand_choose) {
+      return i;
+    }
+  }
+  return population - 1;
+}
+
+void utils_calc_ratio(global float* fitness,
+                      global float* ratio,
+                      global float* best,
+                      global float* worst,
+                      global float* avg,
+                      int idx,
+                      int population)
+{
+  float local_min = INT_MAX;
+  float local_max = 0;
+#if OPTIMIZATION_FOR_MAX
+  calc_min_max_fitness(fitness, population, &local_max, &local_min);
+  *best = local_max;
+  *worst = local_min;
+#else
+  calc_min_max_fitness(fitness, population, &local_min, &local_max);
+  *best = local_min;
+  *worst = local_max;
+#endif
+
+  float temp_worst = *worst;
+  float diffTotal = 0;
+  float avg_local = 0;
+  int i;
+  // we use total and diff to calculate the probability for each chromosome
+  for (i = 0; i < population; i++) {
+    diffTotal += (temp_worst - fitness[i]) * (temp_worst - fitness[i]);
+    avg_local += fitness[i] / population;
+  }
+  // calculate probability for each one
+  for (i = 0; i < population; i++) {
+    ratio[i] = (temp_worst - fitness[i]) * (temp_worst - fitness[i]) / diffTotal;
+  }
+  *avg = avg_local;
+}
+
 #endif
