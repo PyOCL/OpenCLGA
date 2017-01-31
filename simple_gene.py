@@ -52,7 +52,7 @@ class SimpleGene:
 
     @property
     def elements_length(self):
-        return len(self_elements)
+        return len(self.__elements)
 
     @property
     def mutate_func_name(self):
