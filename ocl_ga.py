@@ -1,3 +1,5 @@
+#! /usr/bin/python3
+
 import os
 import sys
 import time
@@ -35,6 +37,10 @@ class OpenCLGA():
         self.__create_program()
 
     # public properties
+    @property
+    def paused(self):
+        return self.__paused
+
     @property
     def elapsed_time(self):
         return self.__elapsed_time
@@ -224,7 +230,8 @@ class OpenCLGA():
             if self.__paused:
                 self.__generation_index = i + 1
                 self.__generation_time_diff = time.time() - generation_start
-                print("oclGA is paused")
+                cl.enqueue_read_buffer(self.__queue, self.__dev_fitnesses, self.__fitnesses)
+                cl.enqueue_read_buffer(self.__queue, self.__dev_chromosomes, self.__np_chromosomes).wait()
                 return
 
         cl.enqueue_read_buffer(self.__queue, self.__dev_fitnesses, self.__fitnesses)

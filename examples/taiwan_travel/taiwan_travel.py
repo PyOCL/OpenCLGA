@@ -27,18 +27,16 @@ class TaiwanTravelThread(threading.Thread):
         self.end_thread_evt = evt
 
     def run(self):
-        self.paused = False
         prob_mutate = 0.10
         prob_cross = 0.80
         self.__tsp_ga_cl.run(prob_mutate, prob_cross)
 
-        if not self.paused:
+        if not self.__tsp_ga_cl.paused:
             best_chromosome, best_fitness, best_info = self.__tsp_ga_cl.get_the_best()
             print("Best Fitness: %f"%(best_fitness))
             print("Shortest Path: " + " => ".join(g["name"] for g in best_info.dna))
-            print("Press Ctrl+C to see the drawing and exit the program")
-
-        self.end_thread_evt.set()
+            # Set the event when the task is done rather than paused.
+            self.end_thread_evt.set()
 
 def read_all_cities(file_name):
     file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), file_name)
@@ -84,6 +82,21 @@ def create_result_bitstream(tsp_ga_cl):
     return result_bitstream
 
 
+def get_input():
+    input_data = None
+    if sys.platform in ["linux", "darwin"]:
+        import select
+        if select.select([sys.stdin], [], [], 0.1) == ([sys.stdin], [], []):
+            input_data = sys.stdin.readline().rstrip()
+    elif sys.platform == "win32":
+        import msvcrt
+        time.sleep(0.1)
+        if msvcrt.kbhit():
+            input_data = msvcrt.getch()
+    else:
+        pass
+    return input_data
+
 def run(num_chromosomes, generations, ext_proc):
     cities, city_info, city_infoX, city_infoY = read_all_cities("TW319_368Addresses-no-far-islands.json")
     city_ids = list(range(len(cities)))
@@ -118,12 +131,8 @@ def run(num_chromosomes, generations, ext_proc):
     def signal_handler(signal, frame):
         print("You pressed Ctrl+C! We will try to pause execution before exit!")
         if ttt.is_alive():
-            ttt.paused = True
             tsp_ga_cl.pause()
             ttt.join()
-        best_chromosome, best_fitness, best_info = tsp_ga_cl.get_the_best()
-        utils.plot_ga_result(tsp_ga_cl.get_statistics())
-        utils.plot_tsp_result(city_info, best_chromosome)
         evt.set()
 
     signal.signal(signal.SIGINT, signal_handler)
@@ -139,17 +148,31 @@ def run(num_chromosomes, generations, ext_proc):
                 return create_result_bitstream(tsp_ga_cl)
             time.sleep(1)
     else:
-        while(True):
-            user_input = input("(p for pause, r for resume, s for save)")
-            if "p" == user_input:
-                ttt.paused = True
-                tsp_ga_cl.pause()
-            elif "r" == user_input:
-                evt.clear()
-                ttt = TaiwanTravelThread(tsp_ga_cl, city_info, evt)
-                ttt.start()
-            elif "s" == user_input:
-                tsp_ga_cl.save(os.path.join(tsp_path, "test.pickle"))
+        while 1:
+            if evt.is_set():
+                # The thread has done its job.
+                best_chromosome, best_fitness, best_info = tsp_ga_cl.get_the_best()
+                utils.plot_ga_result(tsp_ga_cl.get_statistics())
+                utils.plot_tsp_result(city_info, best_chromosome)
+                break
+            user_input = get_input()
+            if not user_input:
+                # Nothing input
+                pass
+            else:
+                if "p" == user_input:
+                    print("pausing ...")
+                    tsp_ga_cl.pause()
+                elif "r" == user_input:
+                    print("resuming ...")
+                    evt.clear()
+                    ttt = TaiwanTravelThread(tsp_ga_cl, city_info, evt)
+                    ttt.start()
+                elif "s" == user_input:
+                    print("saving ...")
+                    tsp_ga_cl.save(os.path.join(tsp_path, "test.pickle"))
+                else:
+                    pass
     return b""
 
 # Exposed function
