@@ -128,7 +128,7 @@ class OpenCLGA():
         else:
             raise "unsupported python type"
 
-    def dump_kernel_info(self, prog, ctx, chromosome_wrapper, device = None):
+    def __dump_kernel_info(self, prog, ctx, chromosome_wrapper, device = None):
         sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
         import utils
         utils.calculate_estimated_kernel_usage(prog,
@@ -179,7 +179,7 @@ class OpenCLGA():
         self.__sample_chromosome.preexecute_kernels(self.__ctx, self.__queue, self.__population)
 
         ## dump information on kernel resources usage
-        self.dump_kernel_info(self.__prg, self.__ctx, self.__sample_chromosome)
+        self.__dump_kernel_info(self.__prg, self.__ctx, self.__sample_chromosome)
 
     def __populate_first_generations(self, prob_mutate, prob_crossover):
         ## populate the first generation
@@ -240,22 +240,6 @@ class OpenCLGA():
         total_time_consumption = time.time() - generation_start + self.__generation_time_diff
         avg_time_per_gen = total_time_consumption / float(len(self.__dictStatistics))
         self.__dictStatistics["avg_time_per_gen"] = avg_time_per_gen
-
-    def get_statistics(self):
-        return self.__dictStatistics
-
-    def get_the_best(self):
-        assert self.__opt_for_max in ["max", "min"]
-
-        best_fitness = eval(self.__opt_for_max)(value for value in self.__fitnesses)
-        best_index = list(self.__fitnesses).index(best_fitness)
-
-        # We had convert chromosome to a cyclic gene. So, the num_of_genes in CL is more than python
-        # by one.
-        startGeneId = best_index * (self.__sample_chromosome.num_of_genes)
-        endGeneId = (best_index + 1) * (self.__sample_chromosome.num_of_genes)
-        best = [v for v in self.__np_chromosomes[startGeneId:endGeneId]]
-        return best, best_fitness, self.__sample_chromosome.from_kernel_value(best)
 
     def __save_state(self, data):
         # save data from intenal struct
@@ -339,3 +323,19 @@ class OpenCLGA():
         data = pickle.load(f)
         f.close()
         self.__restore_state(data)
+
+    def get_statistics(self):
+        return self.__dictStatistics
+
+    def get_the_best(self):
+        assert self.__opt_for_max in ["max", "min"]
+
+        best_fitness = eval(self.__opt_for_max)(value for value in self.__fitnesses)
+        best_index = list(self.__fitnesses).index(best_fitness)
+
+        # We had convert chromosome to a cyclic gene. So, the num_of_genes in CL is more than python
+        # by one.
+        startGeneId = best_index * (self.__sample_chromosome.num_of_genes)
+        endGeneId = (best_index + 1) * (self.__sample_chromosome.num_of_genes)
+        best = [v for v in self.__np_chromosomes[startGeneId:endGeneId]]
+        return best, best_fitness, self.__sample_chromosome.from_kernel_value(best)
