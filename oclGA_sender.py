@@ -42,10 +42,11 @@ def bytes_program_loader(bitstream):
         result_bitstream = tt.run_task(external_process = True)
     except:
         traceback.print_exc()
-        if os.path.exists("./oclGA.zip"):
-            os.remove("./oclGA.zip")
-        if os.path.exists("./oclGA"):
-            shutil.rmtree("./oclGA")
+
+    if os.path.exists("./oclGA.zip"):
+        os.remove("./oclGA.zip")
+    if os.path.exists("./oclGA"):
+        shutil.rmtree("./oclGA")
 
     return result_bitstream
 """
