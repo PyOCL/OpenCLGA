@@ -48,8 +48,13 @@ def run(num_chromosomes, generations):
     fstr = "".join(f.readlines())
     f.close()
 
-    ga_cl = OpenCLGA(sample, generations, num_chromosomes, fstr, "expansion_fitness", None,
-                     [ocl_kernels], opt = "min")
+    ga_cl = OpenCLGA({"sample_chromosome": sample,
+                      "generations": generations,
+                      "population": num_chromosomes,
+                      "fitness_kernel_str": fstr,
+                      "fitness_func": "expansion_fitness",
+                      "extra_include_path": [ocl_kernels],
+                      "opt_for_max": "min"})
 
     ga_cl.prepare()
 

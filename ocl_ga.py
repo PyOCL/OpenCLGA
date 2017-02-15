@@ -9,16 +9,15 @@ import pickle
 import pyopencl as cl
 
 class OpenCLGA():
-    def __init__(self, sample_chromosome, generations, population, fitness_kernel_str, fitness_func,
-                 fitness_args, extra_include_path=[], opt = "max"):
-        self.__sample_chromosome = sample_chromosome
-        self.__generations = generations
-        self.__population = population
-        self.__opt_for_max = opt
+    def __init__(self, options):
+        self.__sample_chromosome = options["sample_chromosome"]
+        self.__generations = options["generations"]
+        self.__population = options["population"]
+        self.__opt_for_max = options["opt_for_max"] if "opt_for_max" in options else "max"
         self.__np_chromosomes = None
-        self.__fitness_function = fitness_func
-        self.__fitness_kernel_str = fitness_kernel_str
-        self.__fitness_args = fitness_args
+        self.__fitness_function = options["fitness_func"]
+        self.__fitness_kernel_str = options["fitness_kernel_str"]
+        self.__fitness_args = options["fitness_args"] if "fitness_args" in options else None
 
         # { gen : {"best":  best_fitness,
         #          "worst": worst_fitness,
@@ -30,10 +29,11 @@ class OpenCLGA():
         # value as the best or to treat the minimal fitness value as the best.
         self.__fitnesses = numpy.zeros(self.__population, dtype=numpy.float32)
         self.__elapsed_time = 0
-        self.__init_cl(extra_include_path)
+        self.__init_cl(options["extra_include_path"] if "extra_include_path" in options else [])
         self.__paused = False
         self.__generation_index = 0
         self.__generation_time_diff = 0
+        self.__debug_mode = "debug" in options
         self.__create_program()
 
     # public properties
@@ -85,8 +85,8 @@ class OpenCLGA():
     def __init_cl(self, extra_include_path):
         # create OpenCL context, queue, and memory
         # NOTE: Please set PYOPENCL_CTX=N (N is the device number you want to use)
-        #       at first if it's in external_process mode, otherwise a exception
-        #       will be thrown, since it's not in interactive mode.
+        #       at first if it"s in external_process mode, otherwise a exception
+        #       will be thrown, since it"s not in interactive mode.
         # TODO: Select a reliable device during runtime by default.
         self.__ctx = cl.create_some_context()
         self.__queue = cl.CommandQueue(self.__ctx)
@@ -94,11 +94,11 @@ class OpenCLGA():
         kernel_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "kernel")
         paths = extra_include_path + [kernel_path]
         for path in paths:
-            escapedPath = path.replace(' ', '^ ') if sys.platform.startswith('win')\
-                                                  else path.replace(' ', '\\ ')
+            escapedPath = path.replace(" ", "^ ") if sys.platform.startswith("win")\
+                                                  else path.replace(" ", "\\ ")
             # After looking into the source code of pyopencl/__init__.py
             # "-I" and folder path should be sepearetd. And " should not included in string path.
-            self.__include_path.append('-I')
+            self.__include_path.append("-I")
             self.__include_path.append(os.path.join(os.getcwd(), escapedPath))
 
     def __create_program(self):
@@ -111,13 +111,11 @@ class OpenCLGA():
         f = open(os.path.join(kernel_path, "ocl_ga.c"), "r")
         fstr = "".join(f.readlines())
         f.close()
+        if self.__debug_mode:
+            fdbg = open("final.cl", "w")
+            fdbg.write(codes + fstr)
+            fdbg.close()
 
-        fdbg = open("final.cl", 'w')
-        print("[oclGA] >>>>>>> ")
-        print(__file__)
-
-        fdbg.write(codes + fstr)
-        fdbg.close()
         self.__prg = cl.Program(self.__ctx, codes + fstr).build(self.__include_path);
 
     def __type_to_numpy_type(self, t):

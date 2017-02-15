@@ -30,10 +30,16 @@ def run(num_chromosomes, generations):
     pointX = [str(city_info[v][0]) for v in city_info];
     pointY = [str(city_info[v][1]) for v in city_info]
 
-    tsp_ga_cl = OpenCLGA(sample, generations, num_chromosomes, fstr, "simple_tsp_fitness",
-                         [{"t": "float", "v": pointX, "n": "x"},
-                          {"t": "float", "v": pointY, "n": "y"}],
-                         [ocl_kernels], opt = "min")
+    tsp_ga_cl = OpenCLGA({"sample_chromosome": sample,
+                          "generations": generations,
+                          "population": num_chromosomes,
+                          "fitness_kernel_str": fstr,
+                          "fitness_func": "simple_tsp_fitness",
+                          "fitness_args": [{"t": "float", "v": pointX, "n": "x"},
+                                           {"t": "float", "v": pointY, "n": "y"}],
+                          "extra_include_path": [ocl_kernels],
+                          "opt_for_max": "min",
+                          "debug": True})
 
     tsp_ga_cl.prepare()
 
@@ -49,4 +55,4 @@ def run(num_chromosomes, generations):
     utils.plot_tsp_result(city_info, best_chromosome)
 
 if __name__ == '__main__':
-    run(num_chromosomes=4000, generations=500)
+    run(num_chromosomes=4000, generations=1000)

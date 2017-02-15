@@ -116,8 +116,13 @@ def run(num_chromosomes, generations, ext_proc):
            fstr
 
     sample.use_improving_only_mutation("improving_only_mutation_helper")
-    tsp_ga_cl = OpenCLGA(sample, generations, num_chromosomes, fstr, "taiwan_fitness", None,
-                         [ocl_kernels], opt = "min")
+    tsp_ga_cl = OpenCLGA({"sample_chromosome": sample,
+                          "generations": generations,
+                          "population": num_chromosomes,
+                          "fitness_kernel_str": fstr,
+                          "fitness_func": "taiwan_fitness",
+                          "extra_include_path": [ocl_kernels],
+                          "opt_for_max": "min"})
 
     if os.path.isfile(os.path.join(tsp_path, "test.pickle")):
         print("test.pickle found, we will resume previous execution")
