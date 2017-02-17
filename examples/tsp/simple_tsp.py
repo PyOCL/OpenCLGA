@@ -31,7 +31,10 @@ def run(num_chromosomes, generations):
     pointY = [str(city_info[v][1]) for v in city_info]
 
     tsp_ga_cl = OpenCLGA({"sample_chromosome": sample,
-                          "generations": generations,
+                          "termination": {
+                            "type": "count",
+                            "count": generations
+                          },
                           "population": num_chromosomes,
                           "fitness_kernel_str": fstr,
                           "fitness_func": "simple_tsp_fitness",

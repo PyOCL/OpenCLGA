@@ -11,7 +11,7 @@ import pyopencl as cl
 class OpenCLGA():
     def __init__(self, options):
         self.__sample_chromosome = options["sample_chromosome"]
-        self.__generations = options["generations"]
+        self.__termination = options["termination"]
         self.__population = options["population"]
         self.__opt_for_max = options["opt_for_max"] if "opt_for_max" in options else "max"
         self.__np_chromosomes = None
@@ -192,45 +192,73 @@ class OpenCLGA():
                                             (1,),
                                             *self.__fitness_args_list).wait()
 
-    def __start_evolution(self, prob_mutate, prob_crossover):
-        generation_start = time.time()
-        ## start the evolution
-        for i in range(self.__generation_index, self.__generations):
-            self.__sample_chromosome.execute_crossover(self.__prg,
-                                                       self.__queue,
-                                                       self.__population,
-                                                       i,
-                                                       prob_crossover,
-                                                       self.__dev_chromosomes,
-                                                       self.__dev_fitnesses,
-                                                       self.__dev_rnum)
-            self.__sample_chromosome.execute_mutation(self.__prg,
-                                                      self.__queue,
-                                                      self.__population,
-                                                      i,
-                                                      prob_mutate,
-                                                      self.__dev_chromosomes,
-                                                      self.__dev_fitnesses,
-                                                      self.__dev_rnum)
+    def __execute_single_generation(self, index, prob_mutate, prob_crossover):
+        self.__sample_chromosome.execute_crossover(self.__prg,
+                                                   self.__queue,
+                                                   self.__population,
+                                                   index,
+                                                   prob_crossover,
+                                                   self.__dev_chromosomes,
+                                                   self.__dev_fitnesses,
+                                                   self.__dev_rnum)
+        self.__sample_chromosome.execute_mutation(self.__prg,
+                                                  self.__queue,
+                                                  self.__population,
+                                                  index,
+                                                  prob_mutate,
+                                                  self.__dev_chromosomes,
+                                                  self.__dev_fitnesses,
+                                                  self.__dev_rnum)
 
-            self.__prg.ocl_ga_calculate_fitness(self.__queue,
-                                                (self.__population,),
-                                                (1,),
-                                                *self.__fitness_args_list).wait()
-            self.__dictStatistics[i] = {}
-            self.__dictStatistics[i]["best"] = self.__sample_chromosome.get_current_best()
-            self.__dictStatistics[i]["worst"] = self.__sample_chromosome.get_current_worst()
-            self.__dictStatistics[i]["avg"] = self.__sample_chromosome.get_current_avg()
+        self.__prg.ocl_ga_calculate_fitness(self.__queue,
+                                            (self.__population,),
+                                            (1,),
+                                            *self.__fitness_args_list).wait()
+        self.__dictStatistics[index] = {}
+        self.__dictStatistics[index]["best"] = self.__sample_chromosome.get_current_best()
+        self.__dictStatistics[index]["worst"] = self.__sample_chromosome.get_current_worst()
+        self.__dictStatistics[index]["avg"] = self.__sample_chromosome.get_current_avg()
 
+    def __evolve_by_count(self, count, prob_mutate, prob_crossover):
+        start_time = time.time()
+        for i in range(self.__generation_index, count):
+            self.__execute_single_generation(i, prob_mutate, prob_crossover)
             if self.__sample_chromosome.early_terminated:
                 break
 
             if self.__paused:
                 self.__generation_index = i + 1
-                self.__generation_time_diff = time.time() - generation_start
+                self.__generation_time_diff = time.time() - start_time
                 cl.enqueue_read_buffer(self.__queue, self.__dev_fitnesses, self.__fitnesses)
                 cl.enqueue_read_buffer(self.__queue, self.__dev_chromosomes, self.__np_chromosomes).wait()
-                return
+                break
+
+    def __evolve_by_time(self, max_time, prob_mutate, prob_crossover):
+        start_time = time.time()
+        while True:
+            self.__execute_single_generation(self.__generation_index, prob_mutate, prob_crossover)
+            # calculate elapsed time
+            elapsed_time = time.time() - start_time + self.__generation_time_diff
+            self.__generation_index = self.__generation_index + 1
+            if self.__sample_chromosome.early_terminated or elapsed_time > max_time:
+                break
+
+            if self.__paused:
+                self.__generation_time_diff = time.time() - start_time
+                cl.enqueue_read_buffer(self.__queue, self.__dev_fitnesses, self.__fitnesses)
+                cl.enqueue_read_buffer(self.__queue, self.__dev_chromosomes, self.__np_chromosomes).wait()
+                break
+
+    def __start_evolution(self, prob_mutate, prob_crossover):
+        generation_start = time.time()
+        ## start the evolution
+        if self.__termination["type"] == "time":
+            self.__evolve_by_time(self.__termination["time"], prob_mutate, prob_crossover)
+        elif self.__termination["type"] == "count":
+            self.__evolve_by_count(self.__termination["count"], prob_mutate, prob_crossover)
+
+        if self.__paused:
+            return;
 
         cl.enqueue_read_buffer(self.__queue, self.__dev_fitnesses, self.__fitnesses)
         cl.enqueue_read_buffer(self.__queue, self.__dev_chromosomes, self.__np_chromosomes).wait()

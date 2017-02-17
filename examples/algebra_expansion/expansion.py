@@ -49,7 +49,10 @@ def run(num_chromosomes, generations):
     f.close()
 
     ga_cl = OpenCLGA({"sample_chromosome": sample,
-                      "generations": generations,
+                      "termination": {
+                        "type": "count",
+                        "count": generations
+                      },
                       "population": num_chromosomes,
                       "fitness_kernel_str": fstr,
                       "fitness_func": "expansion_fitness",

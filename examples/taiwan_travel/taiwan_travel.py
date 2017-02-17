@@ -92,7 +92,7 @@ def get_input():
         import msvcrt
         time.sleep(0.1)
         if msvcrt.kbhit():
-            input_data = msvcrt.getch()
+            input_data = msvcrt.getch().decode("utf-8")
     else:
         pass
     return input_data
@@ -117,7 +117,10 @@ def run(num_chromosomes, generations, ext_proc):
 
     sample.use_improving_only_mutation("improving_only_mutation_helper")
     tsp_ga_cl = OpenCLGA({"sample_chromosome": sample,
-                          "generations": generations,
+                          "termination": {
+                            "type": "time",
+                            "time": 60 * 10 # 2 minutes
+                          },
                           "population": num_chromosomes,
                           "fitness_kernel_str": fstr,
                           "fitness_func": "taiwan_fitness",
