@@ -15,7 +15,7 @@ Option B. Install by ourself
 
   * Step 1. Install platform opencl graphic driver, e.g. Intel CPU or Intel HD Grahics (https://software.intel.com/en-us/intel-opencl)
 
-  * Step 2. Install the following *\*.whl* for python from
+  * Step 2. Install the following `*.whl` for python from
 
      1. http://www.lfd.uci.edu/~gohlke/pythonlibs/#numpy
 
@@ -61,8 +61,7 @@ Option B. Install by ourself
 
 - Mac OS X
 
-    * Step 1. Install Python3
-        Since OpenCL drivers had already included in Mac OS X, we don't need to install any OpenCL driver by ourself. So, we can start from Python3.
+    * Step 1. Install Python3: since OpenCL drivers had already included in Mac OS X, we don't need to install any OpenCL driver by ourself. So, we can start from Python3.
     ```
         $> brew update
         $> brew install python3
@@ -70,8 +69,7 @@ Option B. Install by ourself
     ```
         Please note that you may not need to install virtualenv if you already installed it with python 2.7.
 
-    * Step 2. Create a virtual environment for pyopencl.
-        Before install pyopencl, we may need to install XCode developer console tool with `xcode-select --install` command. If you already had it, you don't need to run it.
+    * Step 2. Create a virtual environment for pyopencl: before install pyopencl, we may need to install XCode developer console tool with `xcode-select --install` command. If you already had it, you don't need to run it.
     ```
         $> python3 -m venv [NameOfEnv]
         $> source ./NameOfEnv/bin/activate
