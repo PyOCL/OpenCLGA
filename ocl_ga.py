@@ -10,30 +10,8 @@ import pyopencl as cl
 
 class OpenCLGA():
     def __init__(self, options):
-        self.__sample_chromosome = options["sample_chromosome"]
-        self.__termination = options["termination"]
-        self.__population = options["population"]
-        self.__opt_for_max = options["opt_for_max"] if "opt_for_max" in options else "max"
-        self.__np_chromosomes = None
-        self.__fitness_function = options["fitness_func"]
-        self.__fitness_kernel_str = options["fitness_kernel_str"]
-        self.__fitness_args = options["fitness_args"] if "fitness_args" in options else None
-
-        # { gen : {"best":  best_fitness,
-        #          "worst": worst_fitness,
-        #          "avg":   avg_fitness},
-        #  "avg_time_per_gen": avg. elapsed time per generation}
-        self.__dictStatistics = {}
-
-        # Generally in GA, it depends on the problem to treat the maximal fitness
-        # value as the best or to treat the minimal fitness value as the best.
-        self.__fitnesses = numpy.zeros(self.__population, dtype=numpy.float32)
-        self.__elapsed_time = 0
+        self.__init_members(options)
         self.__init_cl(options["extra_include_path"] if "extra_include_path" in options else [])
-        self.__paused = False
-        self.__generation_index = 0
-        self.__generation_time_diff = 0
-        self.__debug_mode = "debug" in options
         self.__create_program()
 
     # public properties
@@ -82,6 +60,31 @@ class OpenCLGA():
                "#include \"" + self.__sample_chromosome.kernel_file + "\"\n\n"
 
     # private methods
+    def __init_members(self, options):
+        self.__sample_chromosome = options["sample_chromosome"]
+        self.__termination = options["termination"]
+        self.__population = options["population"]
+        self.__opt_for_max = options["opt_for_max"] if "opt_for_max" in options else "max"
+        self.__np_chromosomes = None
+        self.__fitness_function = options["fitness_func"]
+        self.__fitness_kernel_str = options["fitness_kernel_str"]
+        self.__fitness_args = options["fitness_args"] if "fitness_args" in options else None
+
+        # { gen : {"best":  best_fitness,
+        #          "worst": worst_fitness,
+        #          "avg":   avg_fitness},
+        #  "avg_time_per_gen": avg. elapsed time per generation}
+        self.__dictStatistics = {}
+
+        # Generally in GA, it depends on the problem to treat the maximal fitness
+        # value as the best or to treat the minimal fitness value as the best.
+        self.__fitnesses = numpy.zeros(self.__population, dtype=numpy.float32)
+        self.__elapsed_time = 0
+        self.__paused = False
+        self.__generation_index = 0
+        self.__generation_time_diff = 0
+        self.__debug_mode = "debug" in options
+
     def __init_cl(self, extra_include_path):
         # create OpenCL context, queue, and memory
         # NOTE: Please set PYOPENCL_CTX=N (N is the device number you want to use)
