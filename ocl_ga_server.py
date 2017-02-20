@@ -3,6 +3,8 @@ import traceback
 
 class OpenCLGAServer():
     def __init__(self, options, port=12345):
+        self.__paused = False
+        self.__forceStop = False
         self.__options = options
         self.__callbacks = {
             "connected": [],
@@ -57,6 +59,9 @@ class OpenCLGAServer():
 
     def run(self, prob_mutate, prob_crossover):
         pass
+
+    def stop(self):
+        self.__forceStop = True
 
     def pause(self):
         self.__paused = True

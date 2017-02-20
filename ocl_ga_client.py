@@ -24,6 +24,9 @@ class OpenCLGAClient(OpenCLGA):
     def run(self, prob_mutate, prob_crossover):
         raise RuntimeError("OpenCL Client doesn't support this one")
 
+    def stop(self):
+        raise RuntimeError("OpenCL Client doesn't support this one")
+
     def pause(self):
         raise RuntimeError("OpenCL Client doesn't support this one")
 
