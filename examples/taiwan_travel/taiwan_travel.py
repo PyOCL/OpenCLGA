@@ -97,6 +97,9 @@ def get_input():
         pass
     return input_data
 
+def show_generation_info(index, data_dict):
+    print("{0}\t\t==> {1}".format(index, data_dict["best"]))
+
 def run(num_chromosomes, generations, ext_proc):
     cities, city_info, city_infoX, city_infoY = read_all_cities("TW319_368Addresses-no-far-islands.json")
     city_ids = list(range(len(cities)))
@@ -125,7 +128,8 @@ def run(num_chromosomes, generations, ext_proc):
                           "fitness_kernel_str": fstr,
                           "fitness_func": "taiwan_fitness",
                           "extra_include_path": [ocl_kernels],
-                          "opt_for_max": "min"})
+                          "opt_for_max": "min",
+                          "generation_callback": show_generation_info})
 
     if os.path.isfile(os.path.join(tsp_path, "test.pickle")):
         print("test.pickle found, we will resume previous execution")

@@ -186,7 +186,6 @@ class SimpleChromosome:
         cl.enqueue_read_buffer(queue, self.__dev_best, self.__best)
         cl.enqueue_read_buffer(queue, self.__dev_avg, self.__avg)
         cl.enqueue_read_buffer(queue, self.__dev_worst, self.__worst).wait()
-        print("{0}\t\t==> {1}".format(generation_idx, self.__best[0]))
 
         if self.early_terminated:
             return

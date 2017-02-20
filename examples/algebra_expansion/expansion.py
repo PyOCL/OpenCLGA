@@ -9,6 +9,10 @@ import utils
 from ocl_ga import OpenCLGA
 from simple_chromosome import SimpleChromosome
 from simple_gene import SimpleGene
+
+def show_generation_info(index, data_dict):
+    print("{0}\t\t==> {1}".format(index, data_dict["best"]))
+
 '''
 In this example, we are trying to find the expansion of an algebra:
   (X + Y)^10 = aX^10 + bX^9Y + cX^8Y^2 ... + iX^2Y^8 + jXY^9 + kY^10
@@ -57,7 +61,8 @@ def run(num_chromosomes, generations):
                       "fitness_kernel_str": fstr,
                       "fitness_func": "expansion_fitness",
                       "extra_include_path": [ocl_kernels],
-                      "opt_for_max": "min"})
+                      "opt_for_max": "min",
+                      "generation_callback": show_generation_info})
 
     ga_cl.prepare()
 

@@ -85,6 +85,8 @@ class OpenCLGA():
         self.__generation_index = 0
         self.__generation_time_diff = 0
         self.__debug_mode = "debug" in options
+        self.__generation_callback = options["generation_callback"]\
+                                        if "generation_callback" in options else None
 
     def __init_cl(self, extra_include_path):
         # create OpenCL context, queue, and memory
@@ -222,6 +224,8 @@ class OpenCLGA():
         self.__dictStatistics[index]["best"] = self.__sample_chromosome.get_current_best()
         self.__dictStatistics[index]["worst"] = self.__sample_chromosome.get_current_worst()
         self.__dictStatistics[index]["avg"] = self.__sample_chromosome.get_current_avg()
+        if self.__generation_callback is not None:
+            self.__generation_callback(index, self.__dictStatistics[index])
 
     def __evolve_by_count(self, count, prob_mutate, prob_crossover):
         start_time = time.time()

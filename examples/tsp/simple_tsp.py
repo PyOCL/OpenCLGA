@@ -11,6 +11,9 @@ from ocl_ga import OpenCLGA
 from shuffler_chromosome import ShufflerChromosome
 from simple_gene import SimpleGene
 
+def show_generation_info(index, data_dict):
+    print("{0}\t\t==> {1}".format(index, data_dict["best"]))
+
 def run(num_chromosomes, generations):
     num_cities = 20
     random.seed(119)
@@ -42,7 +45,8 @@ def run(num_chromosomes, generations):
                                            {"t": "float", "v": pointY, "n": "y"}],
                           "extra_include_path": [ocl_kernels],
                           "opt_for_max": "min",
-                          "debug": True})
+                          "debug": True,
+                          "generation_callback": show_generation_info})
 
     tsp_ga_cl.prepare()
 
