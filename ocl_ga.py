@@ -81,6 +81,7 @@ class OpenCLGA():
         self.__fitnesses = numpy.zeros(self.__population, dtype=numpy.float32)
         self.__elapsed_time = 0
         self.__paused = False
+        self.__forceStop = False;
         self.__generation_index = 0
         self.__generation_time_diff = 0
         self.__debug_mode = "debug" in options
@@ -235,6 +236,8 @@ class OpenCLGA():
                 cl.enqueue_read_buffer(self.__queue, self.__dev_fitnesses, self.__fitnesses)
                 cl.enqueue_read_buffer(self.__queue, self.__dev_chromosomes, self.__np_chromosomes).wait()
                 break
+            if self.__forceStop:
+                break
 
     def __evolve_by_time(self, max_time, prob_mutate, prob_crossover):
         start_time = time.time()
@@ -250,6 +253,8 @@ class OpenCLGA():
                 self.__generation_time_diff = time.time() - start_time
                 cl.enqueue_read_buffer(self.__queue, self.__dev_fitnesses, self.__fitnesses)
                 cl.enqueue_read_buffer(self.__queue, self.__dev_chromosomes, self.__np_chromosomes).wait()
+                break
+            if self.__forceStop:
                 break
 
     def __start_evolution(self, prob_mutate, prob_crossover):
@@ -335,6 +340,9 @@ class OpenCLGA():
         self.__paused = False
         self.__start_evolution(prob_mutate, prob_crossover)
         self.__elapsed_time += time.time() - start_time
+
+    def stop(self):
+        self.__forceStop = True
 
     def pause(self):
         self.__paused = True

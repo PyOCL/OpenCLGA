@@ -179,6 +179,9 @@ def run(num_chromosomes, generations, ext_proc):
                 elif "s" == user_input:
                     print("saving ...")
                     tsp_ga_cl.save(os.path.join(tsp_path, "test.pickle"))
+                elif "x" == user_input:
+                    print("force stop")
+                    tsp_ga_cl.stop()
                 else:
                     pass
     return b""
