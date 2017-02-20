@@ -1,12 +1,13 @@
 #!/usr/bin/python3
-
+import pyopencl as cl
 from ocl_ga import OpenCLGA
 
-class OpenCLGAClient(OpenCLGA):
-
+class OpenCLGAClient():
     def __init__(self, ip, port=12345):
         self.__server_ip = ip
         self.__server_port = port
+        self.__contexts = self.__create_cl(self.__list_devices()))
+        #TODO: try to fork as more as possible process to host each context and connect to server.
 
     def __connect():
         pass
@@ -17,27 +18,16 @@ class OpenCLGAClient(OpenCLGA):
     def __process_data(self, data):
         pass
 
-    # public APIs
-    def prepare(self):
-        raise RuntimeError("OpenCL Client doesn't support this one")
+    def __list_devices(self):
+        devices = []
+        for platform in cl.get_platforms():
+            for device in platform.get_devices():
+                devices.append(device)
+        return devices
 
-    def run(self, prob_mutate, prob_crossover):
-        raise RuntimeError("OpenCL Client doesn't support this one")
+    def __create_cl(self, devices):
+        # we create one context based on device
+        return [cl.Context(devices=[device]) for device in devices]
 
-    def stop(self):
-        raise RuntimeError("OpenCL Client doesn't support this one")
-
-    def pause(self):
-        raise RuntimeError("OpenCL Client doesn't support this one")
-
-    def save(self, filename):
-        raise RuntimeError("OpenCL Client doesn't support this one")
-
-    def restore(self, filename):
-        raise RuntimeError("OpenCL Client doesn't support this one")
-
-    def get_statistics(self):
-        raise RuntimeError("OpenCL Client doesn't support this one")
-
-    def get_the_best(self):
-        raise RuntimeError("OpenCL Client doesn't support this one")
+if __name__ == '__main__':
+    OpenCLGAClient("0.0.0.0")

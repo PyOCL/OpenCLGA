@@ -7,9 +7,9 @@ class OpenCLGAServer():
         self.__forceStop = False
         self.__options = options
         self.__callbacks = {
-            "connected": [],
-            "disconnected": [],
-            "result": []
+            "connected": [], # for notifying users that a client is connected
+            "disconnected": [], # for notifying users that a client is disconnected
+            "message": [] # for notifying users that a message is received from client
         }
         self.__listen_at(port)
 
@@ -21,9 +21,17 @@ class OpenCLGAServer():
         pass
 
     def __send(self, command, data):
+        '''
+        Send method should send a dict with type property for command type and data property for
+        command data. The whole payload should be translated into pickle structure.
+        '''
         pass
 
-    def __process_data(self, data):
+    def __process_data(self, payload):
+        '''
+        Once we receive a payload dict which has a type property for command type and data property
+        for command data.
+        '''
         pass
 
     def __notify(self, name, data):

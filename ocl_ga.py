@@ -11,7 +11,9 @@ import pyopencl as cl
 class OpenCLGA():
     def __init__(self, options):
         self.__init_members(options)
-        self.__init_cl(options["extra_include_path"] if "extra_include_path" in options else [])
+        extra_path = options["extra_include_path"] if "extra_include_path" in options else []
+        cl_context = options["cl_context"] if "cl_context" in options else None
+        self.__init_cl(cl_context, extra_path)
         self.__create_program()
 
     # public properties
@@ -88,13 +90,13 @@ class OpenCLGA():
         self.__generation_callback = options["generation_callback"]\
                                         if "generation_callback" in options else None
 
-    def __init_cl(self, extra_include_path):
+    def __init_cl(self, cl_context, extra_include_path):
         # create OpenCL context, queue, and memory
         # NOTE: Please set PYOPENCL_CTX=N (N is the device number you want to use)
         #       at first if it"s in external_process mode, otherwise a exception
         #       will be thrown, since it"s not in interactive mode.
         # TODO: Select a reliable device during runtime by default.
-        self.__ctx = cl.create_some_context()
+        self.__ctx = cl_context if cl_context is not None else cl.create_some_context()
         self.__queue = cl.CommandQueue(self.__ctx)
         self.__include_path = []
         kernel_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "kernel")
