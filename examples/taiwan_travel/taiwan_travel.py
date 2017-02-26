@@ -51,10 +51,17 @@ def read_all_cities(file_name):
             city = cities_groups[group][city_key]
             cities.append({"x": float(city["Longitude"]), "y": float(city["Latitude"]),
                            "address": city["Address"], "name": city["Name"]})
-            city_id = len(cities)
-            city_info[city_id - 1] = (float(city["Longitude"]), float(city["Latitude"]))
-            city_infoX.append(float(city["Longitude"]))
-            city_infoY.append(float(city["Latitude"]))
+
+    # to sort cities is very important for save and restore becase the sequence of name in json
+    # object is not the same.
+    cities = sorted(cities, key=lambda city: -city["y"])
+
+    for idx in range(len(cities)):
+        city = cities[idx]
+        city_id = idx
+        city_info[city_id] = (float(city["x"]), float(city["y"]))
+        city_infoX.append(float(city["x"]))
+        city_infoY.append(float(city["y"]))
 
     return cities, city_info, city_infoX, city_infoY
 
@@ -98,7 +105,7 @@ def get_input():
     return input_data
 
 def show_generation_info(index, data_dict):
-    print("{0}\t\t==> {1}".format(index, data_dict["best"]))
+    print("{0}\t\t==> {1} ~ {2}".format(index, data_dict["best"], data_dict["worst"]))
 
 def run(num_chromosomes, generations, ext_proc):
     cities, city_info, city_infoX, city_infoY = read_all_cities("TW319_368Addresses-no-far-islands.json")
@@ -192,7 +199,7 @@ def run(num_chromosomes, generations, ext_proc):
 
 # Exposed function
 def run_task(external_process = False):
-    return run(num_chromosomes=100, generations=11, ext_proc=external_process)
+    return run(num_chromosomes=4, generations=50, ext_proc=external_process)
 
 if __name__ == '__main__':
     run_task()

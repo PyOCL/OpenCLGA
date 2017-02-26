@@ -105,31 +105,6 @@ __kernel void shuffler_chromosome_calc_ratio(global float* fitness,
     return;
   }
   utils_calc_ratio(fitness, ratio, best, worst, avg, idx, POPULATION_SIZE);
-  // float local_min = INT_MAX;
-  // float local_max = 0;
-  // if (OPTIMIZATION_FOR_MAX) {
-  //   calc_min_max_fitness(fitness, POPULATION_SIZE, &local_max, &local_min);
-  //   *best = local_max;
-  //   *worst = local_min;
-  // } else {
-  //   calc_min_max_fitness(fitness, POPULATION_SIZE, &local_min, &local_max);
-  //   *best = local_min;
-  //   *worst = local_max;
-  // }
-  // float temp_worst = *worst;
-  // float diffTotal = 0;
-  // float avg_local = 0;
-  // int i;
-  // // we use total and diff to calculate the probability for each chromosome
-  // for (i = 0; i < POPULATION_SIZE; i++) {
-  //   diffTotal += (temp_worst - fitness[i]) * (temp_worst - fitness[i]);
-  //   avg_local += fitness[i] / POPULATION_SIZE;
-  // }
-  // // calculate probability for each one
-  // for (i = 0; i < POPULATION_SIZE; i++) {
-  //   ratio[i] = (temp_worst - fitness[i]) * (temp_worst - fitness[i]) / diffTotal;
-  // }
-  // *avg = avg_local;
 }
 
 __kernel void shuffler_chromosome_pick_chromosomes(global int* cs,

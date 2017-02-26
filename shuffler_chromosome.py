@@ -117,7 +117,7 @@ class ShufflerChromosome:
         other_chromosomes = data["other_chromosomes"]
         cross_map = data["cross_map"]
         ratios = data["ratios"]
-        # prepare CL memory
+        # build CL memory from restored memory
         mf = cl.mem_flags
         self.__dev_ratios = cl.Buffer(ctx, mf.WRITE_ONLY, ratios.nbytes)
         self.__dev_best = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
@@ -130,13 +130,6 @@ class ShufflerChromosome:
                                                  hostbuf=other_chromosomes)
         self.__dev_cross_map = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
                                          hostbuf=cross_map)
-        # Copy data from main memory to GPU memory
-        cl.enqueue_copy(queue, self.__dev_ratios, ratios)
-        cl.enqueue_copy(queue, self.__dev_best, self.__best)
-        cl.enqueue_copy(queue, self.__dev_worst, self.__worst)
-        cl.enqueue_copy(queue, self.__dev_avg, self.__avg)
-        cl.enqueue_copy(queue, self.__dev_other_chromosomes, other_chromosomes)
-        cl.enqueue_copy(queue, self.__dev_cross_map, cross_map)
 
     def preexecute_kernels(self, ctx, queue, population):
         ## initialize global variables for kernel execution
