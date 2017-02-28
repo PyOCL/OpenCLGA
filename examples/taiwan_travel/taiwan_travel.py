@@ -162,24 +162,20 @@ def get_taiwan_travel_info():
     fstr = "".join(f.readlines())
     f.close()
 
-    fstr = "#define TAIWAN_POINT_X {" + ", ".join([str(v) for v in city_infoX]) + "}\n" +\
-           "#define TAIWAN_POINT_Y {" + ", ".join([str(v) for v in city_infoY]) + "}\n" +\
-           fstr
-
-    sample.use_improving_only_mutation("improving_only_mutation_helper")
+    # It seems we don't need to use this helper if we enlarge the population size. Please
+    # re-evaluate and remove or uncomment the following line:
+    # sample.use_improving_only_mutation("improving_only_mutation_helper")
     sample.repopulate_diff = {"type": "best_avg",
                               "diff": 1000}
 
-                        #   "termination": {
-                        #     "type": "time",
-                        #     "time": 60 * 10
-                        #   },
     dict_info = {"sample_chromosome": sample,
                  "termination": { "type": "count",
                                   "count": 1000000 },
-                 "population": 1280,
+                 "population": 10240,
                  "fitness_kernel_str": fstr,
                  "fitness_func": "taiwan_fitness",
+                 "fitness_args": [{"t": "float", "v": city_infoX, "n": "x"},
+                                  {"t": "float", "v": city_infoY, "n": "y"}],
                  "extra_include_path": [ocl_kernels],
                  "opt_for_max": "min",
                  "generation_callback": show_generation_info,

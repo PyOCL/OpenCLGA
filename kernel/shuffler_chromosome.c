@@ -53,7 +53,7 @@ void shuffler_chromosome_swap(global __ShufflerChromosome* chromosome, int cp, i
 
 int shuffler_chromosome_dummy_improving_func(global int* chromosome,
                                              int idx,
-                                             int chromosome_size)
+                                             int chromosome_size FITNESS_ARGS)
 {
   return 0;
 }
@@ -61,7 +61,7 @@ int shuffler_chromosome_dummy_improving_func(global int* chromosome,
 __kernel void shuffler_chromosome_single_gene_mutate(global int* cs,
                                                      float prob_mutate,
                                                      global uint* input_rand,
-                                                     int improve)
+                                                     int improve FITNESS_ARGS)
 {
   int idx = get_global_id(0);
   // out of bound kernel task for padding
@@ -81,7 +81,8 @@ __kernel void shuffler_chromosome_single_gene_mutate(global int* cs,
   uint j;
   if (improve == 1) {
     // we only gives global int* type to IMPROVED_FITNESS_FUNC instead of __ShufflerChromosome
-    j = IMPROVED_FITNESS_FUNC((global int*)(chromosomes + idx), i, SHUFFLER_CHROMOSOME_GENE_SIZE);
+    j = IMPROVED_FITNESS_FUNC((global int*)(chromosomes + idx), i,
+                              SHUFFLER_CHROMOSOME_GENE_SIZE FITNESS_ARGV);
     if (i != j) {
       shuffler_chromosome_swap(chromosomes + idx, i, j);
     }

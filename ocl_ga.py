@@ -150,6 +150,23 @@ class OpenCLGA():
                                                ctx,
                                                chromosome_wrapper.get_mutation_kernel_names())
 
+    def __prepare_fitness_args(self):
+        mf = cl.mem_flags
+        self.__fitness_args_list = [self.__dev_chromosomes, self.__dev_fitnesses]
+
+        self.__extra_fitness_args_list = []
+
+        if self.__fitness_args is not None:
+            ## create buffers for fitness arguments
+            for arg in self.__fitness_args:
+                cl_buffer = cl.Buffer(self.__ctx,
+                                mf.READ_ONLY | mf.COPY_HOST_PTR,
+                                hostbuf=numpy.array(arg["v"],
+                                dtype=self.__type_to_numpy_type(arg["t"])))
+                self.__extra_fitness_args_list.append(cl_buffer)
+        # concatenate two fitness args list
+        self.__fitness_args_list = self.__fitness_args_list + self.__extra_fitness_args_list
+
     def __preexecute_kernels(self):
         total_dna_size = self.__population * self.__sample_chromosome.dna_total_length
 
@@ -168,16 +185,7 @@ class OpenCLGA():
         self.__dev_chromosomes = cl.Buffer(self.__ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
                                     hostbuf=self.__np_chromosomes)
         self.__dev_fitnesses = cl.Buffer(self.__ctx, mf.WRITE_ONLY, self.__fitnesses.nbytes)
-
-        self.__fitness_args_list = [self.__dev_chromosomes, self.__dev_fitnesses]
-
-        if self.__fitness_args is not None:
-            ## create buffers for fitness arguments
-            for arg in self.__fitness_args:
-                self.__fitness_args_list.append(cl.Buffer(self.__ctx,
-                                                     mf.READ_ONLY | mf.COPY_HOST_PTR,
-                                                     hostbuf=numpy.array(arg["v"],
-                                                     dtype=self.__type_to_numpy_type(arg["t"]))))
+        self.__prepare_fitness_args()
 
         cl.enqueue_copy(self.__queue, self.__dev_fitnesses, self.__fitnesses)
 
@@ -216,7 +224,8 @@ class OpenCLGA():
                                                   prob_mutate,
                                                   self.__dev_chromosomes,
                                                   self.__dev_fitnesses,
-                                                  self.__dev_rnum)
+                                                  self.__dev_rnum,
+                                                  self.__extra_fitness_args_list)
 
         self.__prg.ocl_ga_calculate_fitness(self.__queue,
                                             (self.__population,),
@@ -321,14 +330,7 @@ class OpenCLGA():
                                     hostbuf=self.__np_chromosomes)
         self.__dev_fitnesses = cl.Buffer(self.__ctx, mf.WRITE_ONLY | mf.COPY_HOST_PTR,
                                          hostbuf=self.__fitnesses)
-        self.__fitness_args_list = [self.__dev_chromosomes, self.__dev_fitnesses]
-        if self.__fitness_args is not None:
-            ## create buffers for fitness arguments
-            for arg in self.__fitness_args:
-                self.__fitness_args_list.append(cl.Buffer(self.__ctx,
-                                                     mf.READ_ONLY | mf.COPY_HOST_PTR,
-                                                     hostbuf=numpy.array(arg["v"],
-                                                     dtype=self.__type_to_numpy_type(arg["t"]))))
+        self.__prepare_fitness_args()
 
         self.__sample_chromosome.restore(data, self.__ctx, self.__queue, self.__population)
         self.__paused = True

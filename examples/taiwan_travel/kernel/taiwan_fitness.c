@@ -5,16 +5,16 @@ float calc_spherical_distance(float x1, float y1, float x2, float y2)
   float rad_x2 = x2 * 3.141592653589793 / 180.0;
   float a = rad_x1 - rad_x2;
   float b = y1 * 3.141592653589793 / 180.0 - y2 * 3.141592653589793 / 180.0;
-  float s = 2 * asin(sqrt(pow(sin(a/2),2)+cos(rad_x1)*cos(rad_x2)*pow(sin(b/2),2)));
+  float s = 2.0 * asin(sqrt(pow(sin(a / 2), 2) + cos(rad_x1) * cos(rad_x2) * pow(sin(b / 2), 2)));
   s = s * 6378.137;
   return s;
 }
 
-float taiwan_calc_fitness(global __ShufflerChromosome* chromosome, int chromosome_size)
+float taiwan_calc_fitness(global __ShufflerChromosome* chromosome,
+                          int chromosome_size,
+                          global float* pointsX,
+                          global float* pointsY)
 {
-  float pointsX[] = TAIWAN_POINT_X;
-  float pointsY[] = TAIWAN_POINT_Y;
-
   float dist = 0.0;
   for (int i = 0; i < chromosome_size - 1; i++) {
     dist += calc_spherical_distance(pointsX[chromosome->genes[i + 1]],
@@ -30,10 +30,12 @@ float taiwan_calc_fitness(global __ShufflerChromosome* chromosome, int chromosom
 
 void taiwan_fitness(global __ShufflerChromosome* chromosome,
                     global float* fitnesses,
-                     int chromosome_size,
-                     int chromosome_count)
+                    int chromosome_size,
+                    int chromosome_count,
+                    global float* pointsX,
+                    global float* pointsY)
 {
-  *fitnesses = taiwan_calc_fitness(chromosome, chromosome_size);
+  *fitnesses = taiwan_calc_fitness(chromosome, chromosome_size, pointsX, pointsY);
 }
 
 void taiwan_fitness_swap(global __ShufflerChromosome* chromosome, int cp, int p1)
@@ -45,15 +47,14 @@ void taiwan_fitness_swap(global __ShufflerChromosome* chromosome, int cp, int p1
 
 int improving_only_mutation_helper(global int* c,
                                    int idx,
-                                   int chromosome_size)
+                                   int chromosome_size,
+                                   global float* pointsX,
+                                   global float* pointsY)
 {
   global __ShufflerChromosome* chromosome = (global __ShufflerChromosome*) c;
   // We will search the one whose distance is shorter than original one
-  float pointsX[] = TAIWAN_POINT_X;
-  float pointsY[] = TAIWAN_POINT_Y;
-
   int best_index = idx;
-  float shortest = taiwan_calc_fitness(chromosome, chromosome_size);
+  float shortest = taiwan_calc_fitness(chromosome, chromosome_size, pointsX, pointsY);
   float current;
 
   for (int i = 0; i < chromosome_size - 1; i++) {
@@ -61,7 +62,7 @@ int improving_only_mutation_helper(global int* c,
       continue;
     }
     taiwan_fitness_swap(chromosome, i, idx);
-    current = taiwan_calc_fitness(chromosome, chromosome_size);
+    current = taiwan_calc_fitness(chromosome, chromosome_size, pointsX, pointsY);
     taiwan_fitness_swap(chromosome, i, idx);
     if (current < shortest) {
       shortest = current;

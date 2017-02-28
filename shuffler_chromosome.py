@@ -95,7 +95,7 @@ class ShufflerChromosome:
 
         improving_func_header = "int " + improving_func + "(global int* c," +\
                                 "int idx," +\
-                                "int chromosome_size);"
+                                "int chromosome_size FITNESS_ARGS);"
         return candidates + defines + improving_func_header
 
     def save(self, data, ctx, queue, population):
@@ -251,11 +251,14 @@ class ShufflerChromosome:
 
 
     def execute_mutation(self, prg, queue, population, generation_idx, prob_mutate,
-                         dev_chromosomes, dev_fitnesses, dev_rnum):
+                         dev_chromosomes, dev_fitnesses, dev_rnum, extra_list):
+
+        args = [dev_chromosomes,
+                numpy.float32(prob_mutate),
+                dev_rnum,
+                numpy.int32(self.__improving_func is not None)]
+        args = args + extra_list
         prg.shuffler_chromosome_single_gene_mutate(queue,
                                             (population,),
                                             (1,),
-                                            dev_chromosomes,
-                                            numpy.float32(prob_mutate),
-                                            dev_rnum,
-                                            numpy.int32(self.__improving_func is not None)).wait()
+                                            *args).wait()
