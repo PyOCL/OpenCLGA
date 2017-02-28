@@ -16,7 +16,7 @@ float taiwan_calc_fitness(global __ShufflerChromosome* chromosome, int chromosom
   float pointsY[] = TAIWAN_POINT_Y;
 
   float dist = 0.0;
-  for (int i = 0; i < chromosome_size-1; i++) {
+  for (int i = 0; i < chromosome_size - 1; i++) {
     dist += calc_spherical_distance(pointsX[chromosome->genes[i + 1]],
                                     pointsY[chromosome->genes[i + 1]],
                                     pointsX[chromosome->genes[i]],

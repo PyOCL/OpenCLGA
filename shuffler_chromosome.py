@@ -18,6 +18,7 @@ class ShufflerChromosome:
         self.__best = numpy.zeros(1, dtype=numpy.float32)
         self.__worst = numpy.zeros(1, dtype=numpy.float32)
         self.__avg = numpy.zeros(1, dtype=numpy.float32)
+        self.__repopulate_diff = None
 
     @property
     def num_of_genes(self):
@@ -67,7 +68,15 @@ class ShufflerChromosome:
 
     @property
     def early_terminated(self):
-        return abs(self.__worst[0] - self.__best[0]) < 0.0001
+        return False
+
+    @property
+    def repopulate_diff(self):
+        return self.__repopulate_diff
+
+    @repopulate_diff.setter
+    def repopulate_diff(self, v):
+        self.__repopulate_diff = v
 
     def from_kernel_value(self, data):
         assert len(data) == self.num_of_genes
@@ -117,7 +126,7 @@ class ShufflerChromosome:
         other_chromosomes = data["other_chromosomes"]
         cross_map = data["cross_map"]
         ratios = data["ratios"]
-        # prepare CL memory
+        # build CL memory from restored memory
         mf = cl.mem_flags
         self.__dev_ratios = cl.Buffer(ctx, mf.WRITE_ONLY, ratios.nbytes)
         self.__dev_best = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
@@ -130,13 +139,6 @@ class ShufflerChromosome:
                                                  hostbuf=other_chromosomes)
         self.__dev_cross_map = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
                                          hostbuf=cross_map)
-        # Copy data from main memory to GPU memory
-        cl.enqueue_copy(queue, self.__dev_ratios, ratios)
-        cl.enqueue_copy(queue, self.__dev_best, self.__best)
-        cl.enqueue_copy(queue, self.__dev_worst, self.__worst)
-        cl.enqueue_copy(queue, self.__dev_avg, self.__avg)
-        cl.enqueue_copy(queue, self.__dev_other_chromosomes, other_chromosomes)
-        cl.enqueue_copy(queue, self.__dev_cross_map, cross_map)
 
     def preexecute_kernels(self, ctx, queue, population):
         ## initialize global variables for kernel execution
@@ -179,6 +181,20 @@ class ShufflerChromosome:
     def get_mutation_kernel_names(self):
         return ["shuffler_chromosome_single_gene_mutate"]
 
+    def is_repopulating(self, best, avg, worst):
+        if self.repopulate_diff is None:
+            return False
+
+        assert("type" in self.repopulate_diff)
+        assert("diff" in self.repopulate_diff)
+
+        if self.repopulate_diff["type"] == "best_worst":
+            return abs(best - worst) < self.repopulate_diff["diff"]
+        elif self.repopulate_diff["type"] == "best_avg":
+            return abs(best - avg) < self.repopulate_diff["diff"]
+
+        return False
+
     def execute_populate(self, prg, queue, population, dev_chromosomes, dev_rnum):
         prg.shuffler_chromosome_populate(queue,
                                          (population,),
@@ -201,7 +217,12 @@ class ShufflerChromosome:
         cl.enqueue_read_buffer(queue, self.__dev_avg, self.__avg)
         cl.enqueue_read_buffer(queue, self.__dev_worst, self.__worst).wait()
 
-        if self.early_terminated:
+        if self.is_repopulating(self.__best[0], self.__avg[0], self.__worst[0]):
+            prg.shuffler_chromosome_populate(queue,
+                                             (int(population * 9 / 10) + 1,),
+                                             (1,),
+                                             dev_chromosomes,
+                                             dev_rnum).wait()
             return
 
         prg.shuffler_chromosome_pick_chromosomes(queue,

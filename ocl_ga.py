@@ -83,7 +83,7 @@ class OpenCLGA():
         self.__fitnesses = numpy.zeros(self.__population, dtype=numpy.float32)
         self.__elapsed_time = 0
         self.__paused = False
-        self.__forceStop = False;
+        self.__forceStop = False
         self.__generation_index = 0
         self.__generation_time_diff = 0
         self.__debug_mode = "debug" in options
@@ -293,7 +293,7 @@ class OpenCLGA():
         data["population"] = self.__population
 
         # read data from kernel
-        rnum = numpy.zeros(self.__population, dtype=numpy.float32)
+        rnum = numpy.zeros(self.__population, dtype=numpy.uint32)
         cl.enqueue_read_buffer(self.__queue, self.__dev_rnum, rnum)
         cl.enqueue_read_buffer(self.__queue, self.__dev_fitnesses, self.__fitnesses)
         cl.enqueue_read_buffer(self.__queue, self.__dev_chromosomes, self.__np_chromosomes).wait()
@@ -313,13 +313,14 @@ class OpenCLGA():
         rnum = data["rnum"]
         self.__fitnesses = data["fitnesses"]
         self.__np_chromosomes = data["chromosomes"]
-        # restore CL variables
+        # build CL memory from restored memory
         mf = cl.mem_flags
         self.__dev_rnum = cl.Buffer(self.__ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
                              hostbuf=numpy.array(rnum, dtype=numpy.uint32))
         self.__dev_chromosomes = cl.Buffer(self.__ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
                                     hostbuf=self.__np_chromosomes)
-        self.__dev_fitnesses = cl.Buffer(self.__ctx, mf.WRITE_ONLY, self.__fitnesses.nbytes)
+        self.__dev_fitnesses = cl.Buffer(self.__ctx, mf.WRITE_ONLY | mf.COPY_HOST_PTR,
+                                         hostbuf=self.__fitnesses)
         self.__fitness_args_list = [self.__dev_chromosomes, self.__dev_fitnesses]
         if self.__fitness_args is not None:
             ## create buffers for fitness arguments
@@ -328,12 +329,9 @@ class OpenCLGA():
                                                      mf.READ_ONLY | mf.COPY_HOST_PTR,
                                                      hostbuf=numpy.array(arg["v"],
                                                      dtype=self.__type_to_numpy_type(arg["t"]))))
-        # Copy data from main memory to GPU memory
-        cl.enqueue_copy(self.__queue, self.__dev_fitnesses, self.__fitnesses)
-        cl.enqueue_copy(self.__queue, self.__dev_chromosomes, self.__np_chromosomes)
-        cl.enqueue_copy(self.__queue, self.__dev_rnum, rnum).wait()
 
         self.__sample_chromosome.restore(data, self.__ctx, self.__queue, self.__population)
+        self.__paused = True
 
     # public methods
     def prepare(self):
@@ -344,6 +342,7 @@ class OpenCLGA():
         assert 0 <= prob_mutate <= 1
         assert 0 <= prob_crossover <= 1
         start_time = time.time()
+        # We only need to populate first generation at first time, not paused and not restored
         if not self.__paused:
             self.__populate_first_generations(prob_mutate, prob_crossover)
 

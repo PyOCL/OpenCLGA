@@ -47,10 +47,17 @@ def read_all_cities(file_name):
             city = cities_groups[group][city_key]
             cities.append({"x": float(city["Longitude"]), "y": float(city["Latitude"]),
                            "address": city["Address"], "name": city["Name"]})
-            city_id = len(cities)
-            city_info[city_id - 1] = (float(city["Longitude"]), float(city["Latitude"]))
-            city_infoX.append(float(city["Longitude"]))
-            city_infoY.append(float(city["Latitude"]))
+
+    # to sort cities is very important for save and restore becase the sequence of name in json
+    # object is not the same.
+    cities = sorted(cities, key=lambda city: -city["y"])
+
+    for idx in range(len(cities)):
+        city = cities[idx]
+        city_id = idx
+        city_info[city_id] = (float(city["x"]), float(city["y"]))
+        city_infoX.append(float(city["x"]))
+        city_infoY.append(float(city["y"]))
 
     return cities, city_info, city_infoX, city_infoY
 
@@ -112,8 +119,6 @@ class TaiwanTravel(object):
         self.tsp_ga_cl.stop()
         self.plot_results()
 
-
-
 def get_input():
     data = None
     try:
@@ -160,6 +165,9 @@ def send_taiwan_travel_cmddata(cmd, data):
         pass
 
 def get_taiwan_travel_info():
+    '''
+    NOTE : Config TaiwanTravel GA parameters in dictionary 'dict_info'.
+    '''
     cities, city_info, city_infoX, city_infoY = read_all_cities("TW319_368Addresses-no-far-islands.json")
     city_ids = list(range(len(cities)))
     random.seed()
@@ -178,12 +186,17 @@ def get_taiwan_travel_info():
            fstr
 
     sample.use_improving_only_mutation("improving_only_mutation_helper")
+    sample.repopulate_diff = {"type": "best_avg",
+                              "diff": 1000}
 
-    tsp_path = tsp_path
+                        #   "termination": {
+                        #     "type": "time",
+                        #     "time": 60 * 10
+                        #   },
     dict_info = {"sample_chromosome": sample,
-                 "termination": { "type": "time",
-                                  "time": 60 * 10 },
-                 "population": 100,
+                 "termination": { "type": "count",
+                                  "count": 1000000 },
+                 "population": 1280,
                  "fitness_kernel_str": fstr,
                  "fitness_func": "taiwan_fitness",
                  "extra_include_path": [ocl_kernels],
