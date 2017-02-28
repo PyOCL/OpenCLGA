@@ -105,7 +105,7 @@ def get_input():
     return input_data
 
 def show_generation_info(index, data_dict):
-    print("{0}\t\t==> {1} ~ {2}".format(index, data_dict["best"], data_dict["worst"]))
+    print("{0}\t\t==> {1} ~ {2} ~ {3}".format(index, data_dict["best"], data_dict["avg"], data_dict["worst"]))
 
 def run(num_chromosomes, generations, ext_proc):
     cities, city_info, city_infoX, city_infoY = read_all_cities("TW319_368Addresses-no-far-islands.json")
@@ -126,10 +126,12 @@ def run(num_chromosomes, generations, ext_proc):
            fstr
 
     sample.use_improving_only_mutation("improving_only_mutation_helper")
+    sample.repopulate_diff = {"type": "best_avg",
+                              "diff": 1000}
     tsp_ga_cl = OpenCLGA({"sample_chromosome": sample,
                           "termination": {
-                            "type": "time",
-                            "time": 60 * 10 # 2 minutes
+                            "type": "count",
+                            "count": generations
                           },
                           "population": num_chromosomes,
                           "fitness_kernel_str": fstr,
@@ -193,13 +195,17 @@ def run(num_chromosomes, generations, ext_proc):
                 elif "x" == user_input:
                     print("force stop")
                     tsp_ga_cl.stop()
+                    if tsp_ga_cl.paused:
+                        # if it is paused, we need to resume it to hit force stop criteria..
+                        ttt = TaiwanTravelThread(tsp_ga_cl, city_info, evt)
+                        ttt.start()
                 else:
                     pass
     return b""
 
 # Exposed function
 def run_task(external_process = False):
-    return run(num_chromosomes=4, generations=50, ext_proc=external_process)
+    return run(num_chromosomes=1280, generations=1000000, ext_proc=external_process)
 
 if __name__ == '__main__':
     run_task()
