@@ -79,22 +79,28 @@ class OpenCLGAServer():
         if (name in self.__callbacks):
             self.__callbacks[name].remove(func)
 
-    def prepare(self):
+    def prepare(self, info):
+        data = {"command" : "prepare", "data" : info}
+        self.server.send(repr(data))
         pass
 
     def run(self, prob_mutate, prob_crossover):
         assert self.server != None
+        data = {"command" : "run", "data" : None}
+        self.server.send(repr(data))
         pass
 
     def stop(self):
         assert self.server != None
         self.__forceStop = True
-        self.server.send("stop")
+        data = {"command" : "stop", "data" : None}
+        self.server.send(repr(data))
 
     def pause(self):
         assert self.server != None
         self.__paused = True
-        self.server.send("pause")
+        data = {"command" : "pause", "data" : None}
+        self.server.send(repr(data))
 
     def save(self, filename):
         assert self.server != None
@@ -111,13 +117,14 @@ class OpenCLGAServer():
         pass
 
     def shutdown(self):
-        self.server.send("exit")
-        # TODO : Go shutdown after checking all clients are dead.
-        time.sleep(1)
+        data = {"command" : "exit", "data" : None}
+        self.server.send(repr(data))
+        while self.server.get_connected_lists() != []:
+            time.sleep(0.2)
         self.server.shutdown()
         self.server = None
 
-if __name__ == "__main__":
+def start_ocl_ga_server():
     def get_input():
         data = None
         try:
@@ -139,21 +146,26 @@ if __name__ == "__main__":
 
     try:
         oclGAServer = OpenCLGAServer("")
-        print("Press r+<Enter> to run");
-        print("Press p+<Enter> to pause")
-        print("Press x+<Enter> to stop")
-        print("Press s+<Enter> to save")
-        print("Press ctrl+c to exit")
+        print("Press prepare + <Enter> to prepare")
+        print("Press run     + <Enter> to run");
+        print("Press pause   + <Enter> to pause")
+        print("Press save    + <Enter> to save")
+        print("Press stop    + <Enter> to stop")
+        print("Press ctrl    + c       to exit")
 
+        import examples.taiwan_travel as tt
         while True:
             user_input = get_input()
-            if "p" == user_input:
+            if "prepare" == user_input:
+                info = tt.get_taiwan_travel_info()
+                oclGAServer.prepare(info)
+            elif "pause" == user_input:
                 oclGAServer.pause()
-            elif "r" == user_input:
+            elif "run" == user_input:
                 oclGAServer.run(0.1, 0.3)
-            elif "x" == user_input:
+            elif "stop" == user_input:
                 oclGAServer.stop()
-            elif "s" == user_input:
+            elif "save" == user_input:
                 oclGAServer.save("saved.pickle")
             elif "exit" == user_input:
                 oclGAServer.shutdown()
@@ -161,3 +173,6 @@ if __name__ == "__main__":
                 break
     except:
         traceback.print_exc()
+
+if __name__ == "__main__":
+    start_ocl_ga_server()

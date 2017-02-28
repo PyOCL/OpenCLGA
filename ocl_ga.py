@@ -243,6 +243,8 @@ class OpenCLGA():
                 cl.enqueue_read_buffer(self.__queue, self.__dev_chromosomes, self.__np_chromosomes).wait()
                 break
             if self.__forceStop:
+                cl.enqueue_read_buffer(self.__queue, self.__dev_fitnesses, self.__fitnesses)
+                cl.enqueue_read_buffer(self.__queue, self.__dev_chromosomes, self.__np_chromosomes).wait()
                 break
 
     def __evolve_by_time(self, max_time, prob_mutate, prob_crossover):
@@ -261,6 +263,8 @@ class OpenCLGA():
                 cl.enqueue_read_buffer(self.__queue, self.__dev_chromosomes, self.__np_chromosomes).wait()
                 break
             if self.__forceStop:
+                cl.enqueue_read_buffer(self.__queue, self.__dev_fitnesses, self.__fitnesses)
+                cl.enqueue_read_buffer(self.__queue, self.__dev_chromosomes, self.__np_chromosomes).wait()
                 break
 
     def __start_evolution(self, prob_mutate, prob_crossover):

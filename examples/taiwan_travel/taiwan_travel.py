@@ -20,11 +20,9 @@ from shuffler_chromosome import ShufflerChromosome
 from simple_gene import SimpleGene
 
 class TaiwanTravelThread(threading.Thread):
-    def __init__(self, tsp_ga_cl, city_info, evt):
+    def __init__(self, tsp_ga_cl):
         threading.Thread.__init__(self)
         self.__tsp_ga_cl = tsp_ga_cl
-        self.__city_info = city_info
-        self.end_thread_evt = evt
 
     def run(self):
         prob_mutate = 0.10
@@ -35,8 +33,6 @@ class TaiwanTravelThread(threading.Thread):
             best_chromosome, best_fitness, best_info = self.__tsp_ga_cl.get_the_best()
             print("Best Fitness: %f"%(best_fitness))
             print("Shortest Path: " + " => ".join(g["name"] for g in best_info.dna))
-            # Set the event when the task is done rather than paused.
-            self.end_thread_evt.set()
 
 def read_all_cities(file_name):
     file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), file_name)
@@ -58,49 +54,112 @@ def read_all_cities(file_name):
 
     return cities, city_info, city_infoX, city_infoY
 
-def create_result_bitstream(tsp_ga_cl):
-    best_chromosome, best_fitness, best_info = tsp_ga_cl.get_the_best()
-    statistics = tsp_ga_cl.get_statistics()
-    res = {"best_info" : best_info,
-           "statistics" : statistics}
-
-    result = "result.zip"
-    result_bitstream = b""
-    try:
-        with zipfile.ZipFile(result, 'w') as myzip:
-            myzip.writestr("result.info", pickle.dumps(res))
-
-        if not os.path.exists(result):
-            print("No result is created !! Empty bitstream is returned !!")
-        else:
-            with open(result, "rb") as fn:
-                result_bitstream = fn.read()
-            os.remove(result)
-    except:
-        traceback.print_exc()
-
-    return result_bitstream
-
-
-def get_input():
-    input_data = None
-    if sys.platform in ["linux", "darwin"]:
-        import select
-        if select.select([sys.stdin], [], [], 0.1) == ([sys.stdin], [], []):
-            input_data = sys.stdin.readline().rstrip()
-    elif sys.platform == "win32":
-        import msvcrt
-        time.sleep(0.1)
-        if msvcrt.kbhit():
-            input_data = msvcrt.getch().decode("utf-8")
-    else:
-        pass
-    return input_data
-
 def show_generation_info(index, data_dict):
     print("{0}\t\t==> {1}".format(index, data_dict["best"]))
 
-def run(num_chromosomes, generations, ext_proc):
+class TaiwanTravel(object):
+    def __init__(self):
+        self.tsp_path = None
+        self.city_info = {}
+        self.tsp_ga_cl = None
+        self.ttthread = None
+
+    def shutdown(self):
+        if self.tsp_ga_cl:
+            self.tsp_ga_cl.stop()
+        if self.ttthread:
+            self.ttthread.close()
+        self.ttthread = None
+        self.tsp_ga_cl = None
+        self.tsp_path = None
+        pass
+
+    def plot_results(self):
+        # NOTE : A workaround to ensure np_chromosome data is read from device.
+        #        As we're trying to plot result right after calling break, we may
+        #        get all 0 in the chromosome buffer.
+        time.sleep(2)
+
+        best_chromosome, best_fitness, best_info = self.tsp_ga_cl.get_the_best()
+        utils.plot_ga_result(self.tsp_ga_cl.get_statistics())
+        utils.plot_tsp_result(self.city_info, best_chromosome)
+
+    def prepare(self, dict_info):
+        self.tsp_ga_cl = OpenCLGA(dict_info)
+        self.tsp_path = dict_info.get("tsp_path", "")
+        self.city_info = dict_info.get("city_info", {})
+        if os.path.isfile(os.path.join(self.tsp_path, "test.pickle")):
+            print("test.pickle found, we will resume previous execution")
+            print("resuming ...")
+            self.tsp_ga_cl.restore(os.path.join(self.tsp_path, "test.pickle"))
+        else:
+            self.tsp_ga_cl.prepare()
+        self.ttthread = TaiwanTravelThread(self.tsp_ga_cl)
+
+    def start(self):
+        self.ttthread.start()
+
+    def pause(self):
+        print("pausing ...")
+        self.tsp_ga_cl.pause()
+
+    def save(self):
+        print("saving ...")
+        self.tsp_ga_cl.save(os.path.join(self.tsp_path, "test.pickle"))
+
+    def stop(self):
+        print("force stop")
+        self.tsp_ga_cl.stop()
+        self.plot_results()
+
+
+
+def get_input():
+    data = None
+    try:
+        if sys.platform in ["linux", "darwin"]:
+            import select
+            time.sleep(0.1)
+            if select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], []):
+                data = sys.stdin.readline().rstrip()
+        elif sys.platform == "win32":
+            import msvcrt
+            time.sleep(0.1)
+            if msvcrt.kbhit():
+                data = msvcrt.getch().decode("utf-8")
+        else:
+            pass
+    except KeyboardInterrupt:
+        data = "exit"
+    return data
+
+tt = None
+def send_taiwan_travel_cmddata(cmd, data):
+    print("[TT] cmd = %s"%(cmd))
+    global tt
+    if cmd == "prepare":
+        tt = TaiwanTravel()
+        info = pickle.loads(data)
+        tt.prepare(info)
+    elif cmd == "run":
+        assert tt != None
+        tt.start()
+    elif cmd == "pause":
+        assert tt != None
+        tt.pause()
+    elif cmd == "restore":
+        assert tt != None
+        ttt.restore()
+    elif cmd == "save":
+        assert tt != None
+        tt.save()
+    elif cmd == "stop":
+        assert tt != None
+        tt.stop()
+    else:
+        pass
+
+def get_taiwan_travel_info():
     cities, city_info, city_infoX, city_infoY = read_all_cities("TW319_368Addresses-no-far-islands.json")
     city_ids = list(range(len(cities)))
     random.seed()
@@ -119,80 +178,43 @@ def run(num_chromosomes, generations, ext_proc):
            fstr
 
     sample.use_improving_only_mutation("improving_only_mutation_helper")
-    tsp_ga_cl = OpenCLGA({"sample_chromosome": sample,
-                          "termination": {
-                            "type": "time",
-                            "time": 60 * 10 # 2 minutes
-                          },
-                          "population": num_chromosomes,
-                          "fitness_kernel_str": fstr,
-                          "fitness_func": "taiwan_fitness",
-                          "extra_include_path": [ocl_kernels],
-                          "opt_for_max": "min",
-                          "generation_callback": show_generation_info})
 
-    if os.path.isfile(os.path.join(tsp_path, "test.pickle")):
-        print("test.pickle found, we will resume previous execution")
-        tsp_ga_cl.restore(os.path.join(tsp_path, "test.pickle"))
-    else:
-        tsp_ga_cl.prepare()
-
-    evt = threading.Event()
-    evt.clear()
-
-    def signal_handler(signal, frame):
-        print("You pressed Ctrl+C! We will try to pause execution before exit!")
-        if ttt.is_alive():
-            tsp_ga_cl.pause()
-            ttt.join()
-        evt.set()
-
-    signal.signal(signal.SIGINT, signal_handler)
-
-    ttt = TaiwanTravelThread(tsp_ga_cl, city_info, evt)
-    ttt.start()
-
-    if ext_proc:
-        # TODO : Need to find a way for input p/r/s
-        while(True):
-            if evt.is_set():
-                signal_handler(signal.SIGINT, None)
-                return create_result_bitstream(tsp_ga_cl)
-            time.sleep(1)
-    else:
-        while 1:
-            if evt.is_set():
-                # The thread has done its job.
-                best_chromosome, best_fitness, best_info = tsp_ga_cl.get_the_best()
-                utils.plot_ga_result(tsp_ga_cl.get_statistics())
-                utils.plot_tsp_result(city_info, best_chromosome)
-                break
-            user_input = get_input()
-            if not user_input:
-                # Nothing input
-                pass
-            else:
-                if "p" == user_input:
-                    print("pausing ...")
-                    tsp_ga_cl.pause()
-                elif "r" == user_input:
-                    print("resuming ...")
-                    evt.clear()
-                    ttt = TaiwanTravelThread(tsp_ga_cl, city_info, evt)
-                    ttt.start()
-                elif "s" == user_input:
-                    print("saving ...")
-                    tsp_ga_cl.save(os.path.join(tsp_path, "test.pickle"))
-                elif "x" == user_input:
-                    print("force stop")
-                    tsp_ga_cl.stop()
-                else:
-                    pass
-    return b""
-
-# Exposed function
-def run_task(external_process = False):
-    return run(num_chromosomes=100, generations=11, ext_proc=external_process)
+    tsp_path = tsp_path
+    dict_info = {"sample_chromosome": sample,
+                 "termination": { "type": "time",
+                                  "time": 60 * 10 },
+                 "population": 100,
+                 "fitness_kernel_str": fstr,
+                 "fitness_func": "taiwan_fitness",
+                 "extra_include_path": [ocl_kernels],
+                 "opt_for_max": "min",
+                 "generation_callback": show_generation_info,
+                 "tsp_path" : tsp_path,
+                 "city_info" : city_info}
+    serialized_info = pickle.dumps(dict_info)
+    return serialized_info
 
 if __name__ == '__main__':
-    run_task()
+    serialized_info = get_taiwan_travel_info()
+    send_taiwan_travel_cmddata("prepare", serialized_info)
+    send_taiwan_travel_cmddata("run", None)
+    try:
+        print("Press pause   + <Enter> to pause")
+        print("Press resume  + <Enter> to resume")
+        print("Press save    + <Enter> to save")
+        print("Press stop    + <Enter> to stop")
+        print("Press ctrl    + c       to exit")
+        while True:
+            user_input = get_input()
+            if "pause" == user_input:
+                send_taiwan_travel_cmddata("pause", None)
+            elif user_input in ["stop", "exit"]:
+                send_taiwan_travel_cmddata("stop", None)
+                break
+            elif "save" == user_input:
+                send_taiwan_travel_cmddata("save", None)
+            elif "resume" == user_input:
+                send_taiwan_travel_cmddata("prepare", serialized_info)
+                send_taiwan_travel_cmddata("run", None)
+    except KeyboardInterrupt:
+        traceback.print_exc()

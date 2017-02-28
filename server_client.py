@@ -14,10 +14,10 @@ class SrvClient(object):
 
     def shutdown(self):
         try:
-            print(" Client goes down ... ")
+            print(" SrvClient(%s) goes down ... "%(str(self.socket.getpeername())))
             self.socket.shutdown(socket.SHUT_RDWR)
         except:
-            pass
+            traceback.print_exc()
         finally:
             self.socket.close()
             self.socket = None
@@ -74,6 +74,8 @@ class ReceiveDataHandler(object):
         data = s.recv(2048)
         if data and len(data):
             self.temp_data[key] = self.temp_data.get(key, b"") + data
+            return True
+        return False
 
     def _extract_specific_task(self, s, a):
         assert self.callbacks_info != {}
@@ -204,6 +206,10 @@ class Server(ReceiveDataHandler):
             self.thread = None
         print("[Server] Shutting down ... end")
 
+    def get_connected_lists(self):
+        names = [str(sc.socket.getpeername()) for sc in list(self.srv_clients.keys())]
+        return names
+
     def __loop_for_connections(self):
         read_list = [self.socket]
         try:
@@ -222,13 +228,18 @@ class Server(ReceiveDataHandler):
                         print("[%s] Connected !"%(str(addr)))
                     else:
                         for sc, a in list(self.srv_clients.items()):
-                            c = sc.socket
-                            if c is s:
-                                # Collect & append data.
-                                self._check_for_recv(c, a)
-                            # Analyze if data is received completely
-                            if self._extract_specific_task(c, a):
-                                self._remove_temp_data(c, a)
+                            # Collect & append data.
+                            if s is sc.socket:
+                                if self._check_for_recv(s, a):
+                                    # Analyze if data is received completely
+                                    if self._extract_specific_task(s, a):
+                                        self._remove_temp_data(s, a)
+                                else:
+                                    # A readable socket without any data indicates
+                                    # a disconnected socket.
+                                    read_list.remove(s)
+                                    self.srv_clients.pop(sc)
+                                    sc.shutdown()
                 time.sleep(0.01)
         except:
             traceback.print_exc()
