@@ -125,19 +125,29 @@ class OpenCLGAServer():
         self.server = None
 
 def start_ocl_ga_server():
+    lines = ""
     def get_input():
+        nonlocal lines
         data = None
         try:
             if sys.platform in ["linux", "darwin"]:
                 import select
-                time.sleep(0.1)
+                time.sleep(0.01)
                 if select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], []):
                     data = sys.stdin.readline().rstrip()
             elif sys.platform == "win32":
                 import msvcrt
-                time.sleep(0.1)
+                time.sleep(0.01)
                 if msvcrt.kbhit():
                     data = msvcrt.getch().decode("utf-8")
+                    if data == "\r":
+                        # Enter is pressed
+                        data = lines
+                        lines = ""
+                    else:
+                        lines += data
+                        print(data)
+                        data = None
             else:
                 pass
         except KeyboardInterrupt:

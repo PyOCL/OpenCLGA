@@ -119,25 +119,6 @@ class TaiwanTravel(object):
         self.tsp_ga_cl.stop()
         self.plot_results()
 
-def get_input():
-    data = None
-    try:
-        if sys.platform in ["linux", "darwin"]:
-            import select
-            time.sleep(0.1)
-            if select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], []):
-                data = sys.stdin.readline().rstrip()
-        elif sys.platform == "win32":
-            import msvcrt
-            time.sleep(0.1)
-            if msvcrt.kbhit():
-                data = msvcrt.getch().decode("utf-8")
-        else:
-            pass
-    except KeyboardInterrupt:
-        data = "exit"
-    return data
-
 tt = None
 def send_taiwan_travel_cmddata(cmd, data):
     print("[TT] cmd = %s"%(cmd))
@@ -207,7 +188,36 @@ def get_taiwan_travel_info():
     serialized_info = pickle.dumps(dict_info)
     return serialized_info
 
-if __name__ == '__main__':
+def start_tt_ocl_ga():
+    lines = ""
+    def get_input():
+        nonlocal lines
+        data = None
+        try:
+            if sys.platform in ["linux", "darwin"]:
+                import select
+                time.sleep(0.01)
+                if select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], []):
+                    data = sys.stdin.readline().rstrip()
+            elif sys.platform == "win32":
+                import msvcrt
+                time.sleep(0.01)
+                if msvcrt.kbhit():
+                    data = msvcrt.getch().decode("utf-8")
+                    if data == "\r":
+                        # Enter is pressed
+                        data = lines
+                        lines = ""
+                    else:
+                        lines += data
+                        print(data)
+                        data = None
+            else:
+                pass
+        except KeyboardInterrupt:
+            data = "exit"
+        return data
+
     serialized_info = get_taiwan_travel_info()
     send_taiwan_travel_cmddata("prepare", serialized_info)
     send_taiwan_travel_cmddata("run", None)
@@ -231,3 +241,6 @@ if __name__ == '__main__':
                 send_taiwan_travel_cmddata("run", None)
     except KeyboardInterrupt:
         traceback.print_exc()
+
+if __name__ == '__main__':
+    start_tt_ocl_ga()

@@ -127,7 +127,7 @@ oclClient = None
 def start_ocl_ga_client():
     global oclClient
     assert oclClient == None
-    oclClient = OpenCLGAClient("0.0.0.0")
+    oclClient = OpenCLGAClient("127.0.0.1")
     try:
         import examples.taiwan_travel as tt
         oclClient.setup_recv_handler(tt.send_taiwan_travel_cmddata)
