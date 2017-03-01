@@ -102,11 +102,13 @@ class OpenCLGAServer():
         data = {"command" : "pause", "data" : None}
         self.server.send(repr(data))
 
-    def save(self, filename):
+    def save(self, filename = None):
         assert self.server != None
-        raise RuntimeError("OpenCL Server doesn't support save or restore")
+        data = {"command" : "save", "data" : filename}
+        self.server.send(repr(data))
 
-    def restore(self, filename):
+    def restore(self, filename = None):
+        assert self.server != None
         raise RuntimeError("OpenCL Server doesn't support save or restore")
 
     def get_statistics(self):
@@ -124,7 +126,7 @@ class OpenCLGAServer():
         self.server.shutdown()
         self.server = None
 
-def start_ocl_ga_server():
+def start_ocl_ga_server(info_getter):
     lines = ""
     def get_input():
         nonlocal lines
@@ -158,25 +160,33 @@ def start_ocl_ga_server():
         oclGAServer = OpenCLGAServer("")
         print("Press prepare + <Enter> to prepare")
         print("Press run     + <Enter> to run");
+        print("Press restore + <Enter> to restore");
         print("Press pause   + <Enter> to pause")
-        print("Press save    + <Enter> to save")
+        print("Press save    + <Enter> to save (filename:saved.pickle)")
         print("Press stop    + <Enter> to stop")
         print("Press ctrl    + c       to exit")
 
-        import examples.taiwan_travel as tt
         while True:
             user_input = get_input()
             if "prepare" == user_input:
-                info = tt.get_taiwan_travel_info()
+                info = info_getter()
                 oclGAServer.prepare(info)
             elif "pause" == user_input:
                 oclGAServer.pause()
             elif "run" == user_input:
+                # TODO : deliver cross/mutate probability correctly
                 oclGAServer.run(0.1, 0.3)
             elif "stop" == user_input:
                 oclGAServer.stop()
             elif "save" == user_input:
-                oclGAServer.save("saved.pickle")
+                oclGAServer.save()
+            elif "restore" == user_input:
+                info = info_getter()
+                oclGAServer.prepare(info)
+                # TODO : A workaround to avoid the problem which 2 sequencial
+                #        commands processed in ReceiveDataHandler.
+                time.sleep(1)
+                oclGAServer.run(0.1, 0.3)
             elif "exit" == user_input:
                 oclGAServer.shutdown()
                 print("[OpenCLGAServer] Bye Bye !!")
@@ -185,4 +195,7 @@ def start_ocl_ga_server():
         traceback.print_exc()
 
 if __name__ == "__main__":
-    start_ocl_ga_server()
+    # NOTE : NOT support executing ocl_ga_server.py directly.
+    #        Please call start_ocl_ga_server from each example.
+    assert False, "NOT support executing ocl_ga_client.py directly. "\
+                  "Please call start_ocl_ga_server in each example."

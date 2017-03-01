@@ -7,12 +7,13 @@ from multiprocessing import Process, Pipe
 from ocl_ga import OpenCLGA
 # note: we can use multiprocessing.Queue or multiprocessing.Value to exchange data
 class OpenCLGAWorker(Process):
-    def __init__(self, platform_index, device_index, conn, handler):
+    def __init__(self, platform_index, device_index, conn, recv_handler, send_handler):
         super().__init__()
         self.__platform_index = platform_index
         self.__device_index = device_index
         self.conn = conn
-        self.recveiver_handler = handler
+        self.recv_handler = recv_handler
+        self.send_handler = send_handler
 
     def __create_context(self):
         platform = cl.get_platforms()[self.__platform_index]
@@ -26,7 +27,10 @@ class OpenCLGAWorker(Process):
         while True:
             if self.conn.poll():
                 dict_msg = self.conn.recv()
-                self.recveiver_handler(dict_msg["command"], dict_msg["data"])
+                self.recv_handler(dict_msg["command"], dict_msg["data"],
+                                  cl_ctx = ctx,
+                                  platform_index = self.__platform_index,
+                                  device_index = self.__device_index)
             time.sleep(0.01)
 
 
@@ -39,11 +43,13 @@ class OpenCLGAClient():
         self.__proc_2_pipe = {}
         #TODO: try to fork as more as possible process to host each context and connect to server.
         self.client = None
-        self.recveiver_handler = None
+        self.recv_handler = None
+        self.send_handler = None
         self.__connect()
 
-    def setup_recv_handler(self, handler):
-        self.recveiver_handler = handler
+    def setup_handler(self, recv_handler, send_handler):
+        self.recv_handler = recv_handler
+        self.send_handler = send_handler
 
         self.__create_workers_for_devices()
         self.__start_workers()
@@ -72,7 +78,7 @@ class OpenCLGAClient():
         '''
         # Conver bytearray "data" to string-like object
         msg = str(data, 'ASCII')
-        print("[Client] processing data : %s"%(msg))
+        # print("[Client] processing data : %s"%(msg))
         dict_msg = eval(msg)
         if dict_msg.get("command", "") == "exit":
             self.__shutdown()
@@ -91,9 +97,10 @@ class OpenCLGAClient():
                 self.__fork_process(pidx, didx)
 
     def __fork_process(self, platform_index, device_index):
-        assert self.recveiver_handler != None
+        assert self.recv_handler != None
         client_conn, worker_conn = Pipe()
-        process = OpenCLGAWorker(platform_index, device_index, worker_conn, self.recveiver_handler)
+        process = OpenCLGAWorker(platform_index, device_index, worker_conn,
+                                 self.recv_handler, self.send_handler)
         self.__workerProcesses.append(process)
         self.__proc_2_pipe[process] = client_conn
 
@@ -124,13 +131,12 @@ class OpenCLGAClient():
         return self.alive
 
 oclClient = None
-def start_ocl_ga_client():
+def start_ocl_ga_client(recv_handler, send_handler):
     global oclClient
     assert oclClient == None
     oclClient = OpenCLGAClient("127.0.0.1")
     try:
-        import examples.taiwan_travel as tt
-        oclClient.setup_recv_handler(tt.send_taiwan_travel_cmddata)
+        oclClient.setup_handler(recv_handler, send_handler)
         while True:
             if not oclClient.is_alive():
                 print("[OpenCLGAClient] Bye Bye !!")
@@ -141,4 +147,8 @@ def start_ocl_ga_client():
     oclClient = None
 
 if __name__ == '__main__':
-    start_ocl_ga_client()
+    # NOTE : NOT support executing ocl_ga_client.py directly.
+    #        Please call start_ocl_ga_client from each example.
+    assert False, "NOT support executing ocl_ga_client.py directly. "\
+                  "Please call start_ocl_ga_client in each example."
+    pass

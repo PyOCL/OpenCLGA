@@ -67,6 +67,7 @@ def show_generation_info(index, data_dict):
 class TaiwanTravel(object):
     def __init__(self):
         self.tsp_path = None
+        self.saved_filename = ""
         self.city_info = {}
         self.tsp_ga_cl = None
         self.ttthread = None
@@ -75,7 +76,7 @@ class TaiwanTravel(object):
         if self.tsp_ga_cl:
             self.tsp_ga_cl.stop()
         if self.ttthread:
-            self.ttthread.close()
+            self.ttthread.join()
         self.ttthread = None
         self.tsp_ga_cl = None
         self.tsp_path = None
@@ -95,12 +96,20 @@ class TaiwanTravel(object):
         self.tsp_ga_cl = OpenCLGA(dict_info)
         self.tsp_path = dict_info.get("tsp_path", "")
         self.city_info = dict_info.get("city_info", {})
-        if os.path.isfile(os.path.join(self.tsp_path, "test.pickle")):
-            print("test.pickle found, we will resume previous execution")
+        self.saved_filename = dict_info.get("saved_filename", "")
+
+        if os.path.isfile(os.path.join(self.tsp_path, self.saved_filename)):
+            print("%s found, we will resume previous execution"%(self.saved_filename))
             print("resuming ...")
-            self.tsp_ga_cl.restore(os.path.join(self.tsp_path, "test.pickle"))
+            self.tsp_ga_cl.restore(os.path.join(self.tsp_path, self.saved_filename))
         else:
             self.tsp_ga_cl.prepare()
+
+        # TODO : Need to close the thread gracefully.
+        if self.ttthread:
+            self.ttthread.join()
+            self.ttthread = None
+
         self.ttthread = TaiwanTravelThread(self.tsp_ga_cl)
 
     def start(self):
@@ -112,7 +121,9 @@ class TaiwanTravel(object):
 
     def save(self):
         print("saving ...")
-        self.tsp_ga_cl.save(os.path.join(self.tsp_path, "test.pickle"))
+        assert self.saved_filename != ""
+        print(self.saved_filename)
+        self.tsp_ga_cl.save(os.path.join(self.tsp_path, self.saved_filename))
 
     def stop(self):
         print("force stop")
@@ -120,12 +131,16 @@ class TaiwanTravel(object):
         self.plot_results()
 
 tt = None
-def send_taiwan_travel_cmddata(cmd, data):
+def recv_taiwan_travel_cmddata(cmd, data, cl_ctx = None,
+                               platform_index = 0, device_index = 0):
     print("[TT] cmd = %s"%(cmd))
     global tt
     if cmd == "prepare":
-        tt = TaiwanTravel()
+        if not tt:
+            tt = TaiwanTravel()
         info = pickle.loads(data)
+        info['cl_context'] = cl_ctx
+        info['saved_filename'] = info['saved_filename']%(platform_index, device_index)
         tt.prepare(info)
     elif cmd == "run":
         assert tt != None
@@ -134,8 +149,7 @@ def send_taiwan_travel_cmddata(cmd, data):
         assert tt != None
         tt.pause()
     elif cmd == "restore":
-        assert tt != None
-        ttt.restore()
+        assert False
     elif cmd == "save":
         assert tt != None
         tt.save()
@@ -144,6 +158,12 @@ def send_taiwan_travel_cmddata(cmd, data):
         tt.stop()
     else:
         pass
+
+def send_taiwan_travel_cmddata(cmd, data):
+    '''
+    Send results or anything back to Server.
+    '''
+    pass
 
 def get_taiwan_travel_info():
     '''
@@ -180,63 +200,84 @@ def get_taiwan_travel_info():
                  "opt_for_max": "min",
                  "generation_callback": show_generation_info,
                  "tsp_path" : tsp_path,
-                 "city_info" : city_info}
+                 "city_info" : city_info,
+                 "saved_filename" : "test%d%d.pickle"}
     serialized_info = pickle.dumps(dict_info)
     return serialized_info
 
-def start_tt_ocl_ga():
-    lines = ""
-    def get_input():
-        nonlocal lines
-        data = None
-        try:
-            if sys.platform in ["linux", "darwin"]:
-                import select
-                time.sleep(0.01)
-                if select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], []):
-                    data = sys.stdin.readline().rstrip()
-            elif sys.platform == "win32":
-                import msvcrt
-                time.sleep(0.01)
-                if msvcrt.kbhit():
-                    data = msvcrt.getch().decode("utf-8")
-                    if data == "\r":
-                        # Enter is pressed
-                        data = lines
-                        lines = ""
-                    else:
-                        lines += data
-                        print(data)
-                        data = None
-            else:
-                pass
-        except KeyboardInterrupt:
-            data = "exit"
-        return data
+
+lines_input = ""
+def get_input():
+    data = None
+    try:
+        if sys.platform in ["linux", "darwin"]:
+            import select
+            time.sleep(0.01)
+            if select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], []):
+                data = sys.stdin.readline().rstrip()
+        elif sys.platform == "win32":
+            global lines_input
+            import msvcrt
+            time.sleep(0.01)
+            if msvcrt.kbhit():
+                data = msvcrt.getch().decode("utf-8")
+                if data == "\r":
+                    # Enter is pressed
+                    data = lines_input
+                    lines_input = ""
+                else:
+                    lines_input += data
+                    print(data)
+                    data = None
+        else:
+            pass
+    except KeyboardInterrupt:
+        data = "exit"
+    return data
+
+def start_tt_ocl_ga(standalone = False):
+    if not standalone:
+        from ocl_ga_client import start_ocl_ga_client
+        start_ocl_ga_client(recv_taiwan_travel_cmddata, send_taiwan_travel_cmddata)
+        return
 
     serialized_info = get_taiwan_travel_info()
-    send_taiwan_travel_cmddata("prepare", serialized_info)
-    send_taiwan_travel_cmddata("run", None)
+    recv_taiwan_travel_cmddata("prepare", serialized_info)
+    recv_taiwan_travel_cmddata("run", None)
     try:
         print("Press pause   + <Enter> to pause")
-        print("Press resume  + <Enter> to resume")
+        print("Press restore + <Enter> to restore")
         print("Press save    + <Enter> to save")
         print("Press stop    + <Enter> to stop")
         print("Press ctrl    + c       to exit")
         while True:
             user_input = get_input()
             if "pause" == user_input:
-                send_taiwan_travel_cmddata("pause", None)
+                recv_taiwan_travel_cmddata("pause", None)
             elif user_input in ["stop", "exit"]:
-                send_taiwan_travel_cmddata("stop", None)
+                recv_taiwan_travel_cmddata("stop", None)
                 break
             elif "save" == user_input:
-                send_taiwan_travel_cmddata("save", None)
-            elif "resume" == user_input:
-                send_taiwan_travel_cmddata("prepare", serialized_info)
-                send_taiwan_travel_cmddata("run", None)
+                recv_taiwan_travel_cmddata("save", None)
+            elif "restore" == user_input:
+                recv_taiwan_travel_cmddata("prepare", serialized_info)
+                recv_taiwan_travel_cmddata("run", None)
     except KeyboardInterrupt:
         traceback.print_exc()
 
 if __name__ == '__main__':
-    start_tt_ocl_ga()
+    print("Press 1 + <Enter> to run as OCL GA Server.")
+    print("Press 2 + <Enter> to run as OCL GA Client.")
+    print("Press 3 + <Enter> to run Taiwan Travel OCL GA in standalone mode.")
+    while True:
+        user_input = get_input()
+        if user_input == "1":
+            from ocl_ga_server import start_ocl_ga_server
+            start_ocl_ga_server(get_taiwan_travel_info)
+            break
+        elif user_input == "2":
+            start_tt_ocl_ga(standalone = False)
+            break
+        elif user_input == "3":
+            start_tt_ocl_ga(standalone = True)
+            break

@@ -1,1 +1,1 @@
-from .taiwan_travel import send_taiwan_travel_cmddata, get_taiwan_travel_info
+from .taiwan_travel import get_taiwan_travel_info
