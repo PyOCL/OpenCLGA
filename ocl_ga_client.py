@@ -1,240 +1,168 @@
 #!/usr/bin/python3
-import pyopencl as cl
-import socket
-import time
+import argparse
 import pickle
+import pyopencl as cl
+import random
+import tempfile
 import threading
-from multiprocessing import Process, Pipe
+import time
+
+from logger import Logger
+from multiprocessing import Process
 from ocl_ga import OpenCLGA
-from abc import ABC, abstractmethod
+from server_client import Client, OP_MSG_BEGIN, OP_MSG_END
 
-class IOpenCLGA(ABC):
-    @abstractmethod
-    def prepare(self, info):
-        pass
-    @abstractmethod
-    def run(self):
-        pass
-    @abstractmethod
-    def pause(self):
-        pass
-    @abstractmethod
-    def save(self):
-        pass
-    @abstractmethod
-    def stop(self):
-        pass
-    @abstractmethod
-    def get_statistics(self):
-        pass
-    @abstractmethod
-    def get_statistics(self):
-        pass
-    @abstractmethod
-    def get_the_best(self):
-        pass
-
-from generaltaskthread import Task, TaskThread
-class MonitorWorkerTask(Task):
-    def __init__(self, proc_2_conn, callback, evt):
-        Task.__init__(self)
-        self.proc_2_conn = proc_2_conn
-        self.callback = callback
-        self.evt = evt
-
-    def run(self):
-        print("[Client][WorkerMonitor] monitoring ... ")
-        while True:
-            time.sleep(0.01)
-            if self.evt.is_set():
-                print("[Client][Monitor] stop monitoring ... ")
-                break
-            # Receiving results from Worker Process, and callback to Target
-            for conn in list(self.proc_2_conn.values()):
-                if conn and conn.poll():
-                    msg = conn.recv()
-                    # print("[Client] received result from OCL Worker : %s"%(msg))
-                    self.callback(msg)
+oclClient = None
 
 class OpenCLGAWorker(Process):
-    def __init__(self, platform_index, device_index, conn):
+    def __init__(self, platform_index, device_index, server, port):
         super().__init__()
-        self.__platform_index = platform_index
-        self.__device_index = device_index
-        self.conn = conn
-
-    def __create_context(self):
-        platform = cl.get_platforms()[self.__platform_index]
-        self.__device = platform.get_devices()[self.__device_index]
-        self.__context = cl.Context(devices=[self.__device])
-        return self.__context
+        self.alive = True
+        self.platform_index = platform_index
+        self.device_index = device_index
+        self.server = server
+        self.port = port
 
     def run(self):
-        ctx = self.__create_context()
-        print('Worker started for context {}'.format(self.__device.name))
-
-        ga_target = None
-        def recv_handler(cmd, data):
-            nonlocal ga_target
-            print("[TT] cmd = %s"%(cmd))
-            if cmd == "prepare":
-                assert ga_target == None
-                info = pickle.loads(data)
-                info['cl_context'] = ctx
-                info['saved_filename'] = info['saved_filename']%(self.__platform_index, self.__device_index)
-                ga_target = info['instantiation_func']()
-                ga_target.prepare(info)
-            elif cmd == "run":
-                assert ga_target != None
-                ga_target.run()
-            elif cmd == "pause":
-                assert ga_target != None
-                ga_target.pause()
-            elif cmd == "save":
-                assert ga_target != None
-                ga_target.save()
-            elif cmd == "stop":
-                assert ga_target != None
-                ga_target.stop()
-            elif cmd == "best":
-                # TODO : Maybe return results in a specific class.
-                assert ga_target != None
-                return { "type" : "best",
-                         "device"   : (self.__device_index, self.__device.name),
-                         "platform_idx" : self.__platform_index,
-                         "result"  : ga_target.get_the_best(),
-                         "city_info" : ga_target.get_city_info() }
-            elif cmd == "statistics":
-                # TODO : Maybe return results in a specific class.
-                assert ga_target != None
-                return { "type" : "statistics",
-                         "device"   : (self.__device_index, self.__device.name),
-                         "platform_idx" : self.__platform_index,
-                         "result"  : ga_target.get_statistics() }
-            else:
-                assert False, "Unexpected comand !!"
-
-        while True:
-            result = None
-            if self.conn.poll():
-                dict_msg = self.conn.recv()
-                result = recv_handler(dict_msg["command"], dict_msg["data"])
-            if result:
-                self.conn.send(result)
-            time.sleep(0.01)
-
-
-class OpenCLGAClient():
-    def __init__(self, ip, port=12345):
-        self.alive = True
-        self.__server_ip = ip
-        self.__server_port = port
-        self.__workerProcesses = []
-        self.__proc_2_pipe = {}
-        #TODO: try to fork as more as possible process to host each context and connect to server.
-        self.client = None
-        self.__result_monitor = None
-
-        self.__create_workers_for_devices()
-        self.__start_workers()
-        self.__connect()
-
-    def __connect(self):
-        from server_client import Client, OP_MSG_BEGIN, OP_MSG_END
-        self.client = Client(self.__server_ip, self.__server_port)
+        random.seed()
+        self.logger = Logger()
+        self.notifier = threading.Condition()
+        self.create_context()
+        self.logger.info("Worker created for context {}".format(self.device.name))
+        self.logger.info("Worker [{0}] connect to server {1}:{2}".format(
+                            self.device.name, self.server, self.port))
+        self.client = Client(self.server, self.port)
         self.client.setup_callbacks_info({0 : { "pre" : OP_MSG_BEGIN,
                                                 "post": OP_MSG_END,
-                                                "callback" : self.__process_data}})
+                                                "callback" : self.process_data}})
+        self.send({"type": "device_info",
+                   "device_name": self.device.name})
+        self.logger.info("Worker [{0}] wait for commands".format(self.device.name))
+        self.notifier.acquire()
+        self.notifier.wait()
+        self.notifier.release()
 
-        self.monitor_break_evt = threading.Event()
-        self.monitor_break_evt.clear()
-        self.monitor = TaskThread(name = "monitor_thread")
-        self.monitor.daemon = True
-        self.monitor.start()
-        self.monitor.addtask(MonitorWorkerTask(self.__proc_2_pipe,
-                                               self.__recv_from_worker,
-                                               self.monitor_break_evt))
+    def create_context(self):
+        platform = cl.get_platforms()[self.platform_index]
+        self.device = platform.get_devices()[self.device_index]
+        self.context = cl.Context(devices=[self.device])
+        return self.context
 
-        pass
+    def send_and_dump_info(self, index, data):
+        self.logger.verbose("{0}\t\t==> {1} ~ {2} ~ {3}".format(index, data["best"], data["avg"],
+                                                                data["worst"]))
+        self.send({"type": "generation_result",
+                   "index": index,
+                   "result": data})
 
-    def __recv_from_worker(self, dict_result):
-        result_type = dict_result["type"]
-        self.__send(repr(dict_result))
+    def run_ocl_ga(self, prob_mutate=0.1, prob_cross=0.8):
+        self.logger.info("Worker [{}]: oclGA run with {}/{}".format(self.device.name,
+                                                                    prob_mutate, prob_cross))
+        self.ocl_ga.run(prob_mutate, prob_cross)
+        self.send({"type": "end"})
 
-    def __send(self, data):
-        if self.client:
-            self.client.send(data)
-        pass
+    def create_ocl_ga(self, options):
+        print(options["sample_chromosome"])
+        options["cl_context"] = self.context
+        options["generation_callback"] = self.send_and_dump_info
+        self.ocl_ga = OpenCLGA(options)
+        self.ocl_ga.prepare()
+        self.logger.info("Worker [{}]: oclGA prepared".format(self.device.name))
 
-    def __process_data(self, data):
+    def process_data(self, data):
         '''
         Called when data is received from server.
         '''
+        global logger
         # Conver bytearray "data" to string-like object
         msg = str(data, 'ASCII')
-        # print("[Client] processing data : %s"%(msg))
         dict_msg = eval(msg)
-        if dict_msg.get("command", "") == "exit":
-            self.__shutdown()
+        cmd = dict_msg["command"]
+        payload = dict_msg["data"]
+        self.logger.verbose("Worker [{}]: cmd received = {}".format(self.device.name, cmd))
+        if cmd == "prepare":
+            self.create_ocl_ga(pickle.loads(payload))
+        elif cmd == "pause":
+            self.ocl_ga.pause()
+        elif cmd == "stop":
+            self.ocl_ga.stop()
+        elif cmd == "save":
+            state_file = tempfile.NamedTemporaryFile(delete=False)
+            state_file.close()
+            self.ocl_ga.save(state_file.name)
+            fd = open(state_file.name, 'rb')
+            self.send({"type": "save",
+                       "result": fd.read()})
+            fd.close()
+        elif cmd == "best":
+            self.send({"type": "best",
+                       "result": self.ocl_ga.get_the_best()})
+        elif cmd == "statistics":
+            self.send({"type": "statistics",
+                       "result": self.ocl_ga.get_statistics()})
+        elif cmd == "run":
+            self.ocl_ga_thread = threading.Thread(target=self.run_ocl_ga)
+            self.ocl_ga_thread.start()
+        elif cmd == "exit":
+            self.client.shutdown()
+            self.notifier.acquire()
+            self.notifier.notifyAll()
+            self.notifier.release()
+            self.alive = False
         else:
-            # Sending message to WorkerProcesses
-            for proc, conn in list(self.__proc_2_pipe.items()):
-                conn.send(dict_msg)
-        pass
+            self.logger.error("unknown command {}".format(cmd))
 
-    def __create_workers_for_devices(self):
+    def send(self, data):
+        self.client.send(repr(data))
+
+class OpenCLGAClient():
+    def __init__(self, server, port=12345):
+        self.__workerProcesses = []
+        self.create_workers_for_devices(server, port)
+        self.start_workers()
+
+    def create_workers_for_devices(self, server, ip):
         devices = []
         platforms = cl.get_platforms()
-        for pidx in range(len(platforms)):
-            devices = platforms[pidx].get_devices()
-            for didx in range(len(devices)):
-                self.__fork_process(pidx, didx)
+        self.__fork_process(0, 0, server, ip)
+        # for pidx in range(len(platforms)):
+        #     devices = platforms[pidx].get_devices()
+        #     for didx in range(len(devices)):
+        #         self.__fork_process(pidx, didx, server, ip)
 
-    def __fork_process(self, platform_index, device_index):
-        client_conn, worker_conn = Pipe()
-        process = OpenCLGAWorker(platform_index, device_index, worker_conn)
+    def __fork_process(self, platform_index, device_index, server, ip):
+        process = OpenCLGAWorker(platform_index, device_index, server, ip)
         self.__workerProcesses.append(process)
-        self.__proc_2_pipe[process] = client_conn
 
-    def __start_workers(self):
+    def start_workers(self):
         for worker in self.__workerProcesses:
             worker.start()
 
-    def __stop_workers(self):
-        while list(self.__proc_2_pipe.keys()):
-            proc, conn = self.__proc_2_pipe.popitem()
-            conn.close()
+    def stop_workers(self):
         for worker in self.__workerProcesses:
             print('process is alive'.format(worker.is_alive()))
             worker.terminate()
         self.__workerProcesses = []
 
-    def __shutdown(self):
-        if self.monitor:
-            self.monitor_break_evt.set()
-            self.monitor.stop()
-            self.monitor = None
-        if self.client:
-            self.client.shutdown()
-        self.client = None
-        self.__stop_workers()
+    def shutdown(self):
+        self.stop_workers()
         self.alive = False
 
-    def shutdown(self):
-        self.__shutdown()
-
     def is_alive(self):
-        return self.alive
+        alive = True
+        for worker in self.__workerProcesses:
+            alive = alive and worker.is_alive()
+        return alive
 
-oclClient = None
-def start_ocl_ga_client():
+def start_ocl_ga_client(server="127.0.0.1", port=12345):
     global oclClient
     assert oclClient == None
-    oclClient = OpenCLGAClient("127.0.0.1")
+    logger = Logger()
+    oclClient = OpenCLGAClient(server, port)
     try:
         while True:
             if not oclClient.is_alive():
-                print("[OpenCLGAClient] Bye Bye !!")
+                logger.info("[OpenCLGAClient] Bye Bye !!")
                 break
             time.sleep(0.01)
     except KeyboardInterrupt:
@@ -242,8 +170,8 @@ def start_ocl_ga_client():
     oclClient = None
 
 if __name__ == '__main__':
-    # NOTE : NOT support executing ocl_ga_client.py directly.
-    #        Please call start_ocl_ga_client from each example.
-    assert False, "NOT support executing ocl_ga_client.py directly. "\
-                  "Please call start_ocl_ga_client in each example."
-    pass
+    parser = argparse.ArgumentParser(description='oclGA client help')
+    parser.add_argument('server', metavar='ip', type=str,
+                        help='the server ip or address')
+    args = parser.parse_args()
+    start_ocl_ga_client(args.server)

@@ -11,7 +11,6 @@ import pickle
 from pathlib import Path
 from shuffler_chromosome import ShufflerChromosome
 from simple_gene import SimpleGene
-from taiwan_travel import show_generation_info, TaiwanTravel
 
 def read_all_cities(file_name):
     file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), file_name)
@@ -73,11 +72,9 @@ def get_taiwan_travel_info():
                                   {"t": "float", "v": city_infoY, "n": "y"}],
                  "extra_include_path": [ocl_kernels],
                  "opt_for_max": "min",
-                 "generation_callback": show_generation_info,
                  "tsp_path" : tsp_path,
                  "city_info" : city_info,
-                 "saved_filename" : "test%d%d.pickle",
-                 "instantiation_func":TaiwanTravel}
+                 "saved_filename" : "test%d%d.pickle"}
     serialized_info = pickle.dumps(dict_info)
     return serialized_info
 
