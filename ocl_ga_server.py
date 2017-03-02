@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import sys
 import time
+import utils
 import socket
 import select
 import threading
@@ -43,13 +44,29 @@ class OpenCLGAServer():
         '''
         pass
 
-    def __process_data(self, payload):
+    def __process_data(self, data):
         '''
         Once we receive a payload dict which has a type property for command type and data property
         for command data.
         '''
-        print("[Server] __process_data : %s"%(str(payload)))
-        pass
+        try:
+            # Conver bytearray "data" to string-like object
+            msg = str(data, 'ASCII')
+            dict_msg = eval(msg)
+            result_type = dict_msg["type"]
+            print("[Server] __process_data from client, type = %s "%(result_type))
+
+            if dict_msg["type"] == "statistics":
+                st = dict_msg["result"]
+                # TODO : Still need to move this plot function into Main thread.
+                utils.plot_ga_result(st)
+            elif dict_msg["type"] == "best":
+                best_chromosome = dict_msg["result"]
+                city_info = dict_msg["city_info"]
+                # TODO : Still need to move this plot function into Main thread.
+                utils.plot_tsp_result(city_info, best_chromosome)
+        except:
+            traceback.print_exc()
 
     def __notify(self, name, data):
         if name not in self.__callbacks:
@@ -112,10 +129,15 @@ class OpenCLGAServer():
         raise RuntimeError("OpenCL Server doesn't support save or restore")
 
     def get_statistics(self):
-        # think a good way to deal with asymmetric statistics
+        assert self.server != None
+        data = {"command" : "statistics", "data" : None}
+        self.server.send(repr(data))
         pass
 
     def get_the_best(self):
+        assert self.server != None
+        data = {"command" : "best", "data" : None}
+        self.server.send(repr(data))
         pass
 
     def shutdown(self):
@@ -158,13 +180,15 @@ def start_ocl_ga_server(info_getter):
 
     try:
         oclGAServer = OpenCLGAServer("")
-        print("Press prepare + <Enter> to prepare")
-        print("Press run     + <Enter> to run");
-        print("Press restore + <Enter> to restore");
-        print("Press pause   + <Enter> to pause")
-        print("Press save    + <Enter> to save (filename:saved.pickle)")
-        print("Press stop    + <Enter> to stop")
-        print("Press ctrl    + c       to exit")
+        print("Press prepare    + <Enter> to prepare")
+        print("Press run        + <Enter> to run");
+        print("Press restore    + <Enter> to restore");
+        print("Press pause      + <Enter> to pause")
+        print("Press save       + <Enter> to save (filename:saved.pickle)")
+        print("Press stop       + <Enter> to stop")
+        print("Press plot_st    + <Enter> to plot statistics")
+        print("Press plot_best  + <Enter> to plot best")
+        print("Press ctrl       + c       to exit")
 
         while True:
             user_input = get_input()
@@ -180,6 +204,10 @@ def start_ocl_ga_server(info_getter):
                 oclGAServer.stop()
             elif "save" == user_input:
                 oclGAServer.save()
+            elif "plot_st" == user_input:
+                oclGAServer.get_statistics()
+            elif "plot_best" == user_input:
+                oclGAServer.get_the_best()
             elif "restore" == user_input:
                 info = info_getter()
                 oclGAServer.prepare(info)
