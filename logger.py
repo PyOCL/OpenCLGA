@@ -11,7 +11,7 @@ def logv(msg):
 def logw(msg):
     print("[WARNING] " + msg)
 def loge(msg):
-    print("[ERROR] " + msg)
+    print("\033[1;31m[ERROR] " + msg + "\033[m")
 
 class Logger(object):
     def __init__(self):
