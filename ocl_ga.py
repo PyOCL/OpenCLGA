@@ -13,6 +13,7 @@ class OpenCLGA():
         self.__init_members(options)
         extra_path = options["extra_include_path"] if "extra_include_path" in options else []
         cl_context = options["cl_context"] if "cl_context" in options else None
+        self.__saved_filename = options.get("saved_filename", "")
         self.__init_cl(cl_context, extra_path)
         self.__create_program()
 
@@ -343,6 +344,7 @@ class OpenCLGA():
         # This function is not supposed to be overriden
         assert 0 <= prob_mutate <= 1
         assert 0 <= prob_crossover <= 1
+        self.__forceStop = False
         start_time = time.time()
         # We only need to populate first generation at first time, not paused and not restored
         if not self.__paused:
@@ -358,16 +360,19 @@ class OpenCLGA():
     def pause(self):
         self.__paused = True
 
-    def save(self, filename):
+    def save(self, filename = None):
         assert self.__paused, "save is only availabled while paused"
         data = dict()
         self.__save_state(data)
-        f = open(filename, "wb")
+        fname = self.__saved_filename if self.__saved_filename else filename
+        f = open(fname, "wb")
         pickle.dump(data, f)
         f.close()
 
-    def restore(self, filename):
-        f = open(filename, "rb")
+    def restore(self, filename = None):
+        fname = self.__saved_filename if self.__saved_filename else filename
+        # TODO : Should check file existence ?
+        f = open(fname, "rb")
         data = pickle.load(f)
         f.close()
         self.__restore_state(data)

@@ -72,8 +72,6 @@ def get_taiwan_travel_info():
                                   {"t": "float", "v": city_infoY, "n": "y"}],
                  "extra_include_path": [ocl_kernels],
                  "opt_for_max": "min",
-                 "tsp_path" : tsp_path,
-                 "city_info" : city_info,
                  "saved_filename" : "test%d%d.pickle"}
     serialized_info = pickle.dumps(dict_info)
     return serialized_info
@@ -114,8 +112,8 @@ def start_ocl_ga_local(info_getter):
     info['saved_filename'] = info['saved_filename']%(0, 0)
     ga_target = info['instantiation_func']()
     ga_target.prepare(info)
-    ga_target.run()
     try:
+        print("Press run     + <Enter> to run")
         print("Press pause   + <Enter> to pause")
         print("Press restore + <Enter> to restore")
         print("Press save    + <Enter> to save")
@@ -125,8 +123,10 @@ def start_ocl_ga_local(info_getter):
         print("Press ctrl    + c       to exit")
         while True:
             user_input = get_input()
-            if "pause" == user_input:
+            if user_input == "pause":
                 ga_target.pause()
+            elif user_input == "run":
+                ga_target.run()
             elif user_input == "stop":
                 ga_target.stop()
             elif user_input == "plot_st":
@@ -137,23 +137,33 @@ def start_ocl_ga_local(info_getter):
                 utils.plot_tsp_result(ga_target.get_city_info(), best_chromosome)
             elif user_input == "exit":
                 break
-            elif "save" == user_input:
+            elif user_input == "save":
                 ga_target.save()
-            elif "restore" == user_input:
-                ga_target.prepare(info)
-                ga_target.run()
+            elif user_input == "restore":
+                ga_target.restore()
     except KeyboardInterrupt:
         traceback.print_exc()
 
 if __name__ == '__main__':
     print("Press 1 + <Enter> to run as a OCL GA Server for remote clients.")
-    print("Press 2 + <Enter> to run Taiwan Travel OCL GA independently.")
+
+    # TODO : Fixed local TaiwanTravel
+    # print("Press 2 + <Enter> to run Taiwan Travel OCL GA independently.")
+
+    def callback_from_client(info):
+        # TODO : Need to plot information in Mainthread.
+        if "best" in info:
+            cities, city_info, city_infoX, city_infoY = read_all_cities("TW319_368Addresses-no-far-islands.json")
+            utils.plot_tsp_result(city_info, info["best"])
+        if "statistics" in info:
+            utils.plot_ga_result(info["statistics"])
+
     while True:
         user_input = get_input()
         if user_input == "1":
             from ocl_ga_server import start_ocl_ga_server
-            start_ocl_ga_server(get_taiwan_travel_info)
+            start_ocl_ga_server(get_taiwan_travel_info, {"message" : callback_from_client})
             break
-        elif user_input == "2":
-            start_ocl_ga_local(get_taiwan_travel_info)
-            break
+        # elif user_input == "2":
+        #     start_ocl_ga_local(get_taiwan_travel_info)
+        #     break

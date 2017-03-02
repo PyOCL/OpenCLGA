@@ -22,25 +22,48 @@ class OpenCLGAWorker(Process):
         self.device_index = device_index
         self.server = server
         self.port = port
+        self.client = None
+        self.notifier = None
+
+    def terminate(self):
+        if self.client:
+            self.client.shutdown()
+        if self.notifier:
+            self.notifier.notifyAll()
+        self.client = None
+        self.alive = False
+        self.notifier = None
+        super(OpenCLGAWorker, self).terminate()
 
     def run(self):
         random.seed()
         self.logger = Logger()
-        self.notifier = threading.Condition()
-        self.create_context()
-        self.logger.info("Worker created for context {}".format(self.device.name))
-        self.logger.info("Worker [{0}] connect to server {1}:{2}".format(
-                            self.device.name, self.server, self.port))
-        self.client = Client(self.server, self.port)
-        self.client.setup_callbacks_info({0 : { "pre" : OP_MSG_BEGIN,
-                                                "post": OP_MSG_END,
-                                                "callback" : self.process_data}})
-        self.send({"type": "device_info",
-                   "device_name": self.device.name})
+        try:
+            self.create_context()
+            self.logger.info("Worker created for context {}".format(self.device.name))
+            self.logger.info("Worker [{0}] connect to server {1}:{2}".format(
+                                self.device.name, self.server, self.port))
+        except:
+            self.logger.error("Create OpenCL context failed !")
+            return
+        try:
+            self.client = Client(self.server, self.port)
+            self.client.setup_callbacks_info({0 : { "pre" : OP_MSG_BEGIN,
+                                                    "post": OP_MSG_END,
+                                                    "callback" : self.process_data}})
+            self.send({"type": "device_info",
+                       "device_name": self.device.name})
+        except ConnectionRefusedError:
+            self.logger.error("Connection refused! Please check Server status.")
+            self.client = None
+            return
+
         self.logger.info("Worker [{0}] wait for commands".format(self.device.name))
-        self.notifier.acquire()
-        self.notifier.wait()
-        self.notifier.release()
+        self.notifier = threading.Condition()
+        with self.notifier:
+        # self.notifier.acquire()
+            self.notifier.wait()
+        # self.notifier.release()
 
     def create_context(self):
         platform = cl.get_platforms()[self.platform_index]
@@ -86,17 +109,23 @@ class OpenCLGAWorker(Process):
             self.ocl_ga.pause()
         elif cmd == "stop":
             self.ocl_ga.stop()
+        elif cmd == "restore":
+            self.ocl_ga.restore(payload)
         elif cmd == "save":
-            state_file = tempfile.NamedTemporaryFile(delete=False)
-            state_file.close()
-            self.ocl_ga.save(state_file.name)
-            fd = open(state_file.name, 'rb')
+            # NOTE : Need to think about this ... too large !
+            # state_file = tempfile.NamedTemporaryFile(delete=False)
+            self.ocl_ga.save(payload)
+            # saved_filename  = state_file.name
+            # with open(state_file.name, 'rb') as fd:
             self.send({"type": "save",
-                       "result": fd.read()})
-            fd.close()
+                       "result": None})
+            # state_file.close()
         elif cmd == "best":
+            # TODO : A workaround to get best chromesome back for TSP
+            #       May need to pickle this tuple as it contains specific data structure.
+            best_chromosome, best_fitness, chromesome_kernel = self.ocl_ga.get_the_best()
             self.send({"type": "best",
-                       "result": self.ocl_ga.get_the_best()})
+                       "result": repr(best_chromosome)})
         elif cmd == "statistics":
             self.send({"type": "statistics",
                        "result": self.ocl_ga.get_statistics()})
@@ -105,15 +134,15 @@ class OpenCLGAWorker(Process):
             self.ocl_ga_thread.start()
         elif cmd == "exit":
             self.client.shutdown()
-            self.notifier.acquire()
-            self.notifier.notifyAll()
-            self.notifier.release()
+            with self.notifier:
+                self.notifier.notifyAll()
             self.alive = False
         else:
             self.logger.error("unknown command {}".format(cmd))
 
     def send(self, data):
-        self.client.send(repr(data))
+        if self.client:
+            self.client.send(repr(data))
 
 class OpenCLGAClient():
     def __init__(self, server, port=12345):
@@ -122,13 +151,11 @@ class OpenCLGAClient():
         self.start_workers()
 
     def create_workers_for_devices(self, server, ip):
-        devices = []
         platforms = cl.get_platforms()
-        self.__fork_process(0, 0, server, ip)
-        # for pidx in range(len(platforms)):
-        #     devices = platforms[pidx].get_devices()
-        #     for didx in range(len(devices)):
-        #         self.__fork_process(pidx, didx, server, ip)
+        for pidx in range(len(platforms)):
+            devices = platforms[pidx].get_devices()
+            for didx in range(len(devices)):
+                self.__fork_process(pidx, didx, server, ip)
 
     def __fork_process(self, platform_index, device_index, server, ip):
         process = OpenCLGAWorker(platform_index, device_index, server, ip)

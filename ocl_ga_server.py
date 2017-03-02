@@ -58,13 +58,13 @@ class OpenCLGAServer():
 
             if dict_msg["type"] == "statistics":
                 st = dict_msg["result"]
-                # TODO : Still need to move this plot function into Main thread.
-                utils.plot_ga_result(st)
+                self.__notify("message", {"statistics" : st})
             elif dict_msg["type"] == "best":
-                best_chromosome = dict_msg["result"]
-                city_info = dict_msg["city_info"]
-                # TODO : Still need to move this plot function into Main thread.
-                utils.plot_tsp_result(city_info, best_chromosome)
+                best_chromosome = eval(dict_msg["result"])
+                self.__notify("message", {"best" : best_chromosome})
+            elif dict_msg["type"] == "save":
+                saved_filename = dict_msg["result"]
+
         except:
             traceback.print_exc()
 
@@ -126,7 +126,8 @@ class OpenCLGAServer():
 
     def restore(self, filename = None):
         assert self.server != None
-        raise RuntimeError("OpenCL Server doesn't support save or restore")
+        data = {"command" : "restore", "data" : filename}
+        self.server.send(repr(data))
 
     def get_statistics(self):
         assert self.server != None
@@ -141,6 +142,7 @@ class OpenCLGAServer():
         pass
 
     def shutdown(self):
+        assert self.server != None
         data = {"command" : "exit", "data" : None}
         self.server.send(repr(data))
         while self.server.get_connected_lists() != []:
@@ -148,7 +150,7 @@ class OpenCLGAServer():
         self.server.shutdown()
         self.server = None
 
-def start_ocl_ga_server(info_getter):
+def start_ocl_ga_server(info_getter, callbacks = {}):
     lines = ""
     def get_input():
         nonlocal lines
@@ -180,6 +182,8 @@ def start_ocl_ga_server(info_getter):
 
     try:
         oclGAServer = OpenCLGAServer("")
+        for name, callback in list(callbacks.items()):
+            oclGAServer.on(name, callback)
         print("Press prepare    + <Enter> to prepare")
         print("Press run        + <Enter> to run");
         print("Press restore    + <Enter> to restore");
@@ -209,12 +213,7 @@ def start_ocl_ga_server(info_getter):
             elif "plot_best" == user_input:
                 oclGAServer.get_the_best()
             elif "restore" == user_input:
-                info = info_getter()
-                oclGAServer.prepare(info)
-                # TODO : A workaround to avoid the problem which 2 sequencial
-                #        commands processed in ReceiveDataHandler.
-                time.sleep(1)
-                oclGAServer.run(0.1, 0.3)
+                oclGAServer.restore()
             elif "exit" == user_input:
                 oclGAServer.shutdown()
                 print("[OpenCLGAServer] Bye Bye !!")
