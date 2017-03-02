@@ -162,12 +162,18 @@ class Client(ReceiveDataHandler):
         data = bytearray(msg, "ASCII") if msg != None and type(msg) == str else msg
         if data != None:
             totalsent = 0
-            while totalsent < len(data):
-                sent = self.socket.send(data[totalsent:])
-                if sent == 0:
-                    raise RuntimeError("socket connection broken")
-                totalsent = totalsent + sent
-            print("%d bytes data has been sent successfully !"%(totalsent))
+            try:
+                while totalsent < len(data):
+                    sent = self.socket.send(data[totalsent:])
+                    if sent == 0:
+                        raise RuntimeError("socket connection broken")
+                    totalsent = totalsent + sent
+                print("%d bytes data has been sent successfully !"%(totalsent))
+            except ConnectionResetError:
+                print("ConnectionResetError : Connection reset by peer")
+            except:
+                print("Error while sending data via socket ...")
+                pass
 
 class Server(ReceiveDataHandler):
     def __init__(self, ip = "", port = 5000, max_client = 10):
