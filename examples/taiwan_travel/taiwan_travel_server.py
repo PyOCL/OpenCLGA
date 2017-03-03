@@ -8,6 +8,7 @@ import json
 import utils
 import random
 import pickle
+import traceback
 from pathlib import Path
 from shuffler_chromosome import ShufflerChromosome
 from simple_gene import SimpleGene
@@ -72,7 +73,9 @@ def get_taiwan_travel_info():
                                   {"t": "float", "v": city_infoY, "n": "y"}],
                  "extra_include_path": [ocl_kernels],
                  "opt_for_max": "min",
-                 "saved_filename" : "test%d%d.pickle"}
+                 "saved_filename" : "test%d%d.pickle",
+                 "prob_mutation" : 0.1,
+                 "prob_crossover" : 0.8,}
     serialized_info = pickle.dumps(dict_info)
     return serialized_info
 
@@ -105,13 +108,26 @@ def get_input():
         data = "exit"
     return data
 
+def show_generation_info(index, data_dict):
+    msg = "{0}\t\t==> {1}".format(index, data_dict["best"])
+    print(msg)
+
+def run_ocl_ga(ga, prob_mutation, prob_crossover):
+    ga.run(prob_mutation, prob_crossover)
+    print("[Local] OpenCLGA run end !")
+
 def start_ocl_ga_local(info_getter):
     serialized_info = info_getter()
-
     info = pickle.loads(serialized_info)
     info['saved_filename'] = info['saved_filename']%(0, 0)
-    ga_target = info['instantiation_func']()
-    ga_target.prepare(info)
+    info["generation_callback"] = show_generation_info
+    prob_mutation = info['prob_mutation']
+    prob_crossover = info['prob_crossover']
+
+    import threading
+    from ocl_ga import OpenCLGA
+    ga_target = OpenCLGA(info)
+    ga_target.prepare()
     try:
         print("Press run     + <Enter> to run")
         print("Press pause   + <Enter> to pause")
@@ -126,7 +142,8 @@ def start_ocl_ga_local(info_getter):
             if user_input == "pause":
                 ga_target.pause()
             elif user_input == "run":
-                ga_target.run()
+                ocl_ga_thread = threading.Thread(target=run_ocl_ga, args=(ga_target, prob_mutation, prob_crossover))
+                ocl_ga_thread.start()
             elif user_input == "stop":
                 ga_target.stop()
             elif user_input == "plot_st":
@@ -146,9 +163,7 @@ def start_ocl_ga_local(info_getter):
 
 if __name__ == '__main__':
     print("Press 1 + <Enter> to run as a OCL GA Server for remote clients.")
-
-    # TODO : Fixed local TaiwanTravel
-    # print("Press 2 + <Enter> to run Taiwan Travel OCL GA independently.")
+    print("Press 2 + <Enter> to run Taiwan Travel OCL GA independently.")
 
     def callback_from_client(info):
         # TODO : Need to plot information in Mainthread.
@@ -164,6 +179,6 @@ if __name__ == '__main__':
             from ocl_ga_server import start_ocl_ga_server
             start_ocl_ga_server(get_taiwan_travel_info, {"message" : callback_from_client})
             break
-        # elif user_input == "2":
-        #     start_ocl_ga_local(get_taiwan_travel_info)
-        #     break
+        elif user_input == "2":
+            start_ocl_ga_local(get_taiwan_travel_info)
+            break

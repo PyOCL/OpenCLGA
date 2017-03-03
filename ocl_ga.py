@@ -11,9 +11,8 @@ import pyopencl as cl
 class OpenCLGA():
     def __init__(self, options):
         self.__init_members(options)
-        extra_path = options["extra_include_path"] if "extra_include_path" in options else []
-        cl_context = options["cl_context"] if "cl_context" in options else None
-        self.__saved_filename = options.get("saved_filename", "")
+        extra_path = options.get("extra_include_path", [])
+        cl_context = options.get("cl_context", None)
         self.__init_cl(cl_context, extra_path)
         self.__create_program()
 
@@ -67,12 +66,15 @@ class OpenCLGA():
         self.__sample_chromosome = options["sample_chromosome"]
         self.__termination = options["termination"]
         self.__population = options["population"]
-        self.__opt_for_max = options["opt_for_max"] if "opt_for_max" in options else "max"
+        self.__opt_for_max = options.get("opt_for_max", "max")
         self.__np_chromosomes = None
         self.__fitness_function = options["fitness_func"]
         self.__fitness_kernel_str = options["fitness_kernel_str"]
-        self.__fitness_args = options["fitness_args"] if "fitness_args" in options else None
+        self.__fitness_args = options.get("fitness_args", None)
 
+        self.__saved_filename = options.get("saved_filename", None)
+        self.__prob_mutation = options.get("prob_mutation", 0)
+        self.__prob_crossover = options.get("prob_crossover", 0)
         # { gen : {"best":  best_fitness,
         #          "worst": worst_fitness,
         #          "avg":   avg_fitness},
@@ -312,9 +314,17 @@ class OpenCLGA():
         data["fitnesses"] = self.__fitnesses
         data["chromosomes"] = self.__np_chromosomes
 
+        # save algorithm information
+        data["prob_mutation"] = self.__prob_mutation
+        data["prob_crossover"] = self.__prob_crossover
+
         self.__sample_chromosome.save(data, self.__ctx, self.__queue, self.__population)
 
     def __restore_state(self, data):
+        # restore algorithm information
+        self.__prob_mutation = data["prob_mutation"]
+        self.__prob_crossover = data["prob_crossover"]
+
         self.__generation_index = data["generation_idx"]
         self.__dictStatistics = data["statistics"]
         self.__generation_time_diff = data["generation_time_diff"]
@@ -340,10 +350,13 @@ class OpenCLGA():
     def prepare(self):
         self.__preexecute_kernels()
 
-    def run(self, prob_mutate, prob_crossover):
+    def run(self, arg_prob_mutate = 0, arg_prob_crossover = 0):
         # This function is not supposed to be overriden
-        assert 0 <= prob_mutate <= 1
-        assert 0 <= prob_crossover <= 1
+        prob_mutate = arg_prob_mutate if arg_prob_mutate else self.__prob_mutation
+        prob_crossover = arg_prob_crossover if arg_prob_crossover else self.__prob_crossover
+        assert 0 < prob_mutate < 1, "Make sure you've set it in options or passed when calling run."
+        assert 0 < prob_crossover < 1, "Make sure you've set it in options or passed when calling run."
+
         self.__forceStop = False
         start_time = time.time()
         # We only need to populate first generation at first time, not paused and not restored

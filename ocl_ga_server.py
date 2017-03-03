@@ -101,9 +101,9 @@ class OpenCLGAServer():
         self.server.send(repr(data))
         pass
 
-    def run(self, prob_mutate, prob_crossover):
+    def run(self, prob_mutate = 0, prob_crossover = 0):
         assert self.server != None
-        data = {"command" : "run", "data" : None}
+        data = {"command" : "run", "data" : (prob_mutate, prob_crossover)}
         self.server.send(repr(data))
         pass
 
@@ -188,7 +188,7 @@ def start_ocl_ga_server(info_getter, callbacks = {}):
         print("Press run        + <Enter> to run");
         print("Press restore    + <Enter> to restore");
         print("Press pause      + <Enter> to pause")
-        print("Press save       + <Enter> to save (filename:saved.pickle)")
+        print("Press save       + <Enter> to save (filename:test%d%d.pickle)")
         print("Press stop       + <Enter> to stop")
         print("Press plot_st    + <Enter> to plot statistics")
         print("Press plot_best  + <Enter> to plot best")
@@ -202,8 +202,7 @@ def start_ocl_ga_server(info_getter, callbacks = {}):
             elif "pause" == user_input:
                 oclGAServer.pause()
             elif "run" == user_input:
-                # TODO : deliver cross/mutate probability correctly
-                oclGAServer.run(0.1, 0.3)
+                oclGAServer.run(0.1, 0.7)
             elif "stop" == user_input:
                 oclGAServer.stop()
             elif "save" == user_input:

@@ -78,7 +78,8 @@ class OpenCLGAWorker(Process):
                    "index": index,
                    "result": data})
 
-    def run_ocl_ga(self, prob_mutate=0.1, prob_cross=0.8):
+    def run_ocl_ga(self, probs):
+        prob_mutate, prob_cross = probs
         self.logger.info("Worker [{}]: oclGA run with {}/{}".format(self.device.name,
                                                                     prob_mutate, prob_cross))
         self.ocl_ga.run(prob_mutate, prob_cross)
@@ -130,7 +131,7 @@ class OpenCLGAWorker(Process):
             self.send({"type": "statistics",
                        "result": self.ocl_ga.get_statistics()})
         elif cmd == "run":
-            self.ocl_ga_thread = threading.Thread(target=self.run_ocl_ga)
+            self.ocl_ga_thread = threading.Thread(target=self.run_ocl_ga, args=(payload,))
             self.ocl_ga_thread.start()
         elif cmd == "exit":
             self.client.shutdown()
