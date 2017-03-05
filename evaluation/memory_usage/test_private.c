@@ -7,7 +7,7 @@ int calcutate(int index)
   return a;
 }
 
-__kernel void private_add(int size, global int* in, global int* out)
+__kernel void test(int size, global int* in, global int* out)
 {
   int idx = get_global_id(0);
   // out of bound kernel task for padding

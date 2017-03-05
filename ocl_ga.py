@@ -140,18 +140,14 @@ class OpenCLGA():
     def __dump_kernel_info(self, prog, ctx, chromosome_wrapper, device = None):
         sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
         import utils
-        utils.calculate_estimated_kernel_usage(prog,
-                                               ctx,
-                                               chromosome_wrapper.get_populate_kernel_names())
-        utils.calculate_estimated_kernel_usage(prog,
-                                               ctx,
-                                               ["ocl_ga_calculate_fitness"])
-        utils.calculate_estimated_kernel_usage(prog,
-                                               ctx,
-                                               chromosome_wrapper.get_crossover_kernel_names())
-        utils.calculate_estimated_kernel_usage(prog,
-                                               ctx,
-                                               chromosome_wrapper.get_mutation_kernel_names())
+        kernel_names = chromosome_wrapper.get_populate_kernel_names() +\
+                        ["ocl_ga_calculate_fitness"] +\
+                        chromosome_wrapper.get_crossover_kernel_names() +\
+                        chromosome_wrapper.get_mutation_kernel_names();
+        for name in kernel_names:
+            utils.calculate_estimated_kernel_usage(prog,
+                                                   ctx,
+                                                   name)
 
     def __prepare_fitness_args(self):
         mf = cl.mem_flags
