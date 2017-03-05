@@ -17,7 +17,10 @@ __kernel void private_add(int size, global int* in, global int* out)
   }
 
   // if the private variable is referenced by global. It's created.
-  int ga[114] = {1};
+  int ga[8192] = {1};
+  __local int bb[1];
+  bb[idx%1] = idx;
+  barrier(CLK_LOCAL_MEM_FENCE);
 
   int a1 = idx - 1;
   int a2 = idx + 2;
@@ -139,5 +142,5 @@ __kernel void private_add(int size, global int* in, global int* out)
              a61 + a62 - a63 + a64 + a65 * a66 + a67 + a68 + a69 + a70 +\
              a71 - a72 + a73 + a74 / a75 + a76 / a77 * a78 + a79 + a80 +\
              a81 - a82 + a83 + a84 + a85 + a86 + a87 + a88 + a89 + a90 +\
-             a91 - a92 + a93 + a94 + a95 + a96 + a97 + a98 + a99 + a100 + ga[idx%10];
+             a91 - a92 + a93 + a94 + a95 + a96 + a97 + a98 + a99 + a100 + ga[idx%bb[idx]];
 }

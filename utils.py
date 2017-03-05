@@ -90,19 +90,20 @@ def calculate_estimated_kernel_usage(prog, ctx, kernel_names):
         device = devices[0]
         for name in kernel_names:
             kernel = cl.Kernel(prog, name)
+            # gws = kernel.get_work_group_info(kwgi.GLOBAL_WORK_SIZE, device)
             lm = kernel.get_work_group_info(kwgi.LOCAL_MEM_SIZE, device)
             pm = kernel.get_work_group_info(kwgi.PRIVATE_MEM_SIZE, device)
             cwgs = kernel.get_work_group_info(kwgi.COMPILE_WORK_GROUP_SIZE, device)
             pwgsm = kernel.get_work_group_info(kwgi.PREFERRED_WORK_GROUP_SIZE_MULTIPLE, device)
-            # print("[%s]\tEstimated usage : Local mem (%d)/ Private mem (%d)"\
-            #       "/ Compile WG size (%s)/ Preffered WG size multiple (%d)"\
-            #       %(name, lm, pm, str(cwgs), pwgsm))
 
             print('For kernel "{}" running on device {}:'.format(kernel.function_name, device.name))
+            # print('\t Max work size: {}'.format(gws))
             print('\t Max work-group size: {}'.format(cwgs))
             print('\t Recommended work-group multiple: {}'.format(pwgsm))
             print('\t Local mem used: {} of {}'.format(lm, device.local_mem_size))
             print('\t Private mem used: {}'.format(pm))
+            return cwgs, pwgsm, lm, pm
     except:
         import traceback
         traceback.print_exc()
+        return None, None, None, None
