@@ -84,9 +84,12 @@ def evaluate(ctx, prog, queue, total_work_items):
         recommended_wi_per_group = 8
         iterations = int(math.log(recommended_wi_per_group, 2))
         for factor in range(iterations+1):
+            l_f_x = int(math.pow(2, factor))
+            l_wi_size = (int(recommended_wi_per_group/l_f_x), l_f_x, )
+            if l_wi_size[1] > g_wi_size[1] or l_wi_size[0] > g_wi_size[0]:
+                # Local id dimensions should not exceed global dimensions.
+                continue
             print("-------- ")
-            f_x = int(math.pow(2, factor))
-            l_wi_size = (int(recommended_wi_per_group/f_x), f_x, )
             print(" Local Work Group Size : {}".format(l_wi_size))
 
             divided_wg_info = [int(gwi/l_wi_size[idx]) for idx, gwi in enumerate(g_wi_size)]
@@ -105,11 +108,11 @@ def evaluate(ctx, prog, queue, total_work_items):
                     min_time = elapsed_time
                     min_time_gws = g_wi_size
                     min_time_lws = l_wi_size
-
+            cl.enqueue_read_buffer(queue, dev_out, py_out)
+    print("**************************************** ")
     print(" Best Global WI Info : {}".format(min_time_gws))
     print(" Best Local WI Info : {}".format(min_time_lws))
     print(" Best Elapsed Time : {}".format(min_time))
-    cl.enqueue_read_buffer(queue, dev_out, py_out)
     print(py_out)
 
 lines = ""
@@ -142,7 +145,7 @@ def get_input():
     return data
 
 if __name__ == "__main__":
-    total_WorkItems = 128
+    total_WorkItems = 1024
     ctx = get_context()
     prog = None
     print("Enter 1 to test local memory usage")

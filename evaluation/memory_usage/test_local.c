@@ -1,16 +1,33 @@
 
+#define LM_SIZE 8192
+
 __kernel void test(int size, global int* in, global int* out)
 {
-  int idx = get_global_id(0);
-  // out of bound kernel task for padding
-
-  if (idx >= size) {
+  int2 globalId = (int2)(get_global_id(0), get_global_id(1));
+  int2 localId = (int2)(get_local_id(0), get_local_id(1));
+  int2 groupId = (int2)(get_group_id (0), get_group_id (1));
+  int2 globalSize = (int2)(get_global_size(0), get_global_size(1));
+  int2 locallSize = (int2)(get_local_size(0), get_local_size(1));
+  if (globalId.x + globalId.y * globalSize.x >= size) {
     return;
   }
 
-  __local int bb[1];
-  bb[idx%1] = idx;
-  barrier(CLK_LOCAL_MEM_FENCE);
+  int gIdx = globalId.x + globalId.y * globalSize.x;
+  /*
+   * Device local memory size can be queired from
+   import pyopencl as cl
+   cl.Kernel.get_work_group_info(cl.kernel_work_group_info.LOCAL_MEM_SIZE, cl.Device)
+   */
 
-  out[idx] = bb[idx];
+  // The local memory usage will be 4*LM_SIZE bytes.
+  // You may adjust LM_SIZE to test if OUT OF RESOURCES while compiling.
+  __local int lv[LM_SIZE];
+  int lIdx = gIdx % LM_SIZE;
+  lv[lIdx] = globalId.y + globalId.x * globalSize.y;
+
+  /*
+   * On Intel CPU, 128 bytes private memory is used for the barrier below.
+   */
+  // barrier(CLK_LOCAL_MEM_FENCE);
+  out[gIdx] = lv[lIdx] - gIdx;
 }
