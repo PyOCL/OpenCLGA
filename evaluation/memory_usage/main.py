@@ -50,6 +50,9 @@ def create_bytearray(ctx, size):
                           hostbuf=py_buffer)
     return py_buffer, cl_buffer
 
+def create_local_bytearray(size):
+    return cl.LocalMemory(size)
+
 def get_work_item_dimension(ctx):
     from pyopencl import context_info as ci
     from pyopencl import device_info as di
@@ -63,7 +66,22 @@ def get_work_item_dimension(ctx):
     print("Max WI Size : {}".format(WISize))
     return WGSize, WISize
 
-def evaluate(ctx, prog, queue, total_work_items):
+def get_args(ctx, kernal_func_name, total_work_items):
+    args = None
+    py_in, dev_in = create_bytearray(ctx, total_work_items)
+    py_out, dev_out = create_bytearray(ctx, total_work_items)
+    if kernal_func_name == "test_input":
+        local_array_size = 8192
+        args = (numpy.int32(total_work_items),
+                dev_in, dev_out,
+                create_local_bytearray(4 * local_array_size),
+                numpy.int32(local_array_size),)
+    elif kernal_func_name == "test":
+        args = (numpy.int32(total_work_items),
+                dev_in, dev_out,)
+    return args, (py_out, dev_out)
+
+def evaluate(ctx, prog, queue, kernal_func_name, total_work_items, work_items_per_group, args, outs = None):
 
     min_time = None
     min_time_gws = None
@@ -71,8 +89,6 @@ def evaluate(ctx, prog, queue, total_work_items):
 
     max_wgsize, wisize = get_work_item_dimension(ctx)
     assert total_work_items <= wisize[0] * wisize[1] * wisize[2]
-    py_in, dev_in = create_bytearray(ctx, total_work_items)
-    py_out, dev_out = create_bytearray(ctx, total_work_items)
 
     iter_global_WIs= int(math.log(total_work_items, 2))
     for g_factor in range(iter_global_WIs+1):
@@ -80,12 +96,10 @@ def evaluate(ctx, prog, queue, total_work_items):
         g_f_x = int(math.pow(2, g_factor))
         g_wi_size = (int(total_work_items/g_f_x), g_f_x, )
         print(" Global Work Group Size : {}".format(g_wi_size))
-        # https://software.intel.com/sites/landingpage/opencl/optimization-guide/Work-Group_Size_Considerations.htm
-        recommended_wi_per_group = 8
-        iterations = int(math.log(recommended_wi_per_group, 2))
+        iterations = int(math.log(work_items_per_group, 2))
         for factor in range(iterations+1):
             l_f_x = int(math.pow(2, factor))
-            l_wi_size = (int(recommended_wi_per_group/l_f_x), l_f_x, )
+            l_wi_size = (int(work_items_per_group/l_f_x), l_f_x, )
             if l_wi_size[1] > g_wi_size[1] or l_wi_size[0] > g_wi_size[0]:
                 # Local id dimensions should not exceed global dimensions.
                 continue
@@ -95,8 +109,9 @@ def evaluate(ctx, prog, queue, total_work_items):
             divided_wg_info = [int(gwi/l_wi_size[idx]) for idx, gwi in enumerate(g_wi_size)]
             print(" Divided Work Groups Info : {}".format(divided_wg_info))
             start_time = time.perf_counter()
-            prog.test(queue, g_wi_size, l_wi_size, numpy.int32(total_work_items),
-                      dev_in, dev_out).wait()
+
+            caller = eval("prog.{}".format(kernal_func_name))
+            caller(queue, g_wi_size, l_wi_size, *args).wait()
 
             elapsed_time = time.perf_counter() - start_time
             if not min_time:
@@ -108,12 +123,14 @@ def evaluate(ctx, prog, queue, total_work_items):
                     min_time = elapsed_time
                     min_time_gws = g_wi_size
                     min_time_lws = l_wi_size
-            cl.enqueue_read_buffer(queue, dev_out, py_out)
+
+            if outs:
+                cl.enqueue_read_buffer(queue, outs[1], outs[0])
     print("**************************************** ")
+    print(outs[0])
     print(" Best Global WI Info : {}".format(min_time_gws))
     print(" Best Local WI Info : {}".format(min_time_lws))
     print(" Best Elapsed Time : {}".format(min_time))
-    print(py_out)
 
 lines = ""
 def get_input():
@@ -145,7 +162,6 @@ def get_input():
     return data
 
 if __name__ == "__main__":
-    total_WorkItems = 1024
     ctx = get_context()
     prog = None
     print("Enter 1 to test local memory usage")
@@ -161,13 +177,17 @@ if __name__ == "__main__":
         else:
             pass
 
+    total_WorkItems = 1024
+    # https://software.intel.com/sites/landingpage/opencl/optimization-guide/Work-Group_Size_Considerations.htm
+    recommended_wi_per_group = 8
+    kernal_func_name = "test_input"
+    args, outs = get_args(ctx, kernal_func_name, total_WorkItems)
 
     cwg, pwgs, lm, pm = None, None, None, None
     if ctx and prog:
-        cwg, pwgs, lm, pm = utils.calculate_estimated_kernel_usage(prog, ctx, "test")
+        cwg, pwgs, lm, pm = utils.calculate_estimated_kernel_usage(prog, ctx, kernal_func_name)
     else:
         print("Nothing is calculated !")
 
     queue = create_queue(ctx)
-
-    evaluate(ctx, prog, queue, total_WorkItems)
+    evaluate(ctx, prog, queue, kernal_func_name, total_WorkItems, recommended_wi_per_group, args, outs = outs)
