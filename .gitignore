@@ -91,3 +91,7 @@ ENV/
 
 # oclGA tmp files
 final.cl
+
+# mac ds store
+.DS_Store
+
