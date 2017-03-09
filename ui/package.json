@@ -3,12 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "react": "^15.4.2",
-    "react-dom": "^15.4.2"
+    "react": "15.4.2",
+    "react-dom": "15.4.2"
   },
   "devDependencies": {
-    "react-bootstrap": "^0.30.8",
-    "react-scripts": "0.9.4"
+    "react-bootstrap": "0.30.8",
+    "react-redux": "5.0.3",
+    "react-scripts": "0.9.4",
+    "redux": "3.6.0",
+    "redux-thunk": "2.2.0"
   },
   "scripts": {
     "start": "react-scripts start",
