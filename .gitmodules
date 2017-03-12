@@ -1,6 +1,3 @@
 [submodule "utilities/generaltaskthread"]
 	path = utilities/generaltaskthread
 	url = https://github.com/kilikkuo/py_generaltaskthread.git
-[submodule "utilities/websocketserver"]
-	path = utilities/websocketserver
-	url = https://github.com/PyOCL/simple-websocket-server.git
