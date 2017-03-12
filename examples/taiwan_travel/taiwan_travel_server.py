@@ -164,7 +164,6 @@ def start_ocl_ga_local(info_getter):
 if __name__ == '__main__':
     print("Press 1 + <Enter> to run as a OCL GA Server for remote clients.")
     print("Press 2 + <Enter> to run Taiwan Travel OCL GA independently.")
-
     def callback_from_client(info):
         # TODO : Need to plot information in Mainthread.
         if "best" in info:
@@ -181,4 +180,6 @@ if __name__ == '__main__':
             break
         elif user_input == "2":
             start_ocl_ga_local(get_taiwan_travel_info)
+            break
+        elif user_input == "exit":
             break
