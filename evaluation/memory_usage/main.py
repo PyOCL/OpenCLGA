@@ -62,6 +62,9 @@ def get_work_item_dimension(ctx):
     # print("Max WI Dimensions : {}".format(dev.get_info(di.MAX_WORK_ITEM_DIMENSIONS)))
     WGSize = dev.get_info(di.MAX_WORK_GROUP_SIZE)
     WISize = dev.get_info(di.MAX_WORK_ITEM_SIZES)
+
+    LM = dev.get_info(di.LOCAL_MEM_SIZE)
+    print("LM Size : {}".format(LM))
     print("Max WG Size : {}".format(WGSize))
     print("Max WI Size : {}".format(WISize))
     return WGSize, WISize
