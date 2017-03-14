@@ -48,10 +48,10 @@ class OpenCLGAServer(object):
         all commands are passed to client and wait for client's feedback.
         '''
         try:
-            self.socket_server = Server(ip = self.server_ip, port = self.socket_server_port)
-            self.socket_server.setup_callbacks_info({ 0 : { "pre" : OP_MSG_BEGIN,
-                                                            "post": OP_MSG_END,
-                                                            "callback"  : self.__process_data}})
+            self.socket_server = Server(self.server_ip, self.socket_server_port,
+                                        {0 : {"pre" : OP_MSG_BEGIN,
+                                              "post": OP_MSG_END,
+                                              "callback"  : self.__process_data}})
             self.socket_server.run_server()
         except:
             traceback.print_exc()
@@ -170,8 +170,12 @@ class OpenCLGAServer(object):
         assert self.socket_server != None
         data = {"command" : "exit", "data" : None}
         self.socket_server.send(repr(data))
-        while self.socket_server.get_connected_lists() != []:
-            time.sleep(0.2)
+
+        # TODO : check if there's no existing clients
+        count = 0
+        while count < 10:
+            time.sleep(0.1)
+            count += 1
         self.socket_server.shutdown()
         self.socket_server = None
 

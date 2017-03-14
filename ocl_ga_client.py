@@ -15,12 +15,12 @@ from server_client import Client, OP_MSG_BEGIN, OP_MSG_END
 oclClient = None
 
 class OpenCLGAWorker(Process):
-    def __init__(self, platform_index, device_index, server, port):
+    def __init__(self, platform_index, device_index, ip, port):
         super().__init__()
         self.alive = True
         self.platform_index = platform_index
         self.device_index = device_index
-        self.server = server
+        self.ip = ip
         self.port = port
         self.client = None
         self.notifier = None
@@ -42,15 +42,14 @@ class OpenCLGAWorker(Process):
             self.create_context()
             self.logger.info("Worker created for context {}".format(self.device.name))
             self.logger.info("Worker [{0}] connect to server {1}:{2}".format(
-                                self.device.name, self.server, self.port))
+                                self.device.name, self.ip, self.port))
         except:
             self.logger.error("Create OpenCL context failed !")
             return
         try:
-            self.client = Client(self.server, self.port)
-            self.client.setup_callbacks_info({0 : { "pre" : OP_MSG_BEGIN,
-                                                    "post": OP_MSG_END,
-                                                    "callback" : self.process_data}})
+            self.client = Client(self.ip, self.port, {0 : { "pre" : OP_MSG_BEGIN,
+                                                            "post": OP_MSG_END,
+                                                            "callback" : self.process_data}})
             self.send({"type": "device_info",
                        "device_name": self.device.name})
         except ConnectionRefusedError:
@@ -146,20 +145,20 @@ class OpenCLGAWorker(Process):
             self.client.send(repr(data))
 
 class OpenCLGAClient():
-    def __init__(self, server, port=12345):
+    def __init__(self, ip, port=12345):
         self.__workerProcesses = []
-        self.create_workers_for_devices(server, port)
+        self.create_workers_for_devices(ip, port)
         self.start_workers()
 
-    def create_workers_for_devices(self, server, ip):
+    def create_workers_for_devices(self, ip, port):
         platforms = cl.get_platforms()
         for pidx in range(len(platforms)):
             devices = platforms[pidx].get_devices()
             for didx in range(len(devices)):
-                self.__fork_process(pidx, didx, server, ip)
+                self.__fork_process(pidx, didx, ip, port)
 
-    def __fork_process(self, platform_index, device_index, server, ip):
-        process = OpenCLGAWorker(platform_index, device_index, server, ip)
+    def __fork_process(self, platform_index, device_index, ip, port):
+        process = OpenCLGAWorker(platform_index, device_index, ip, port)
         self.__workerProcesses.append(process)
 
     def start_workers(self):
