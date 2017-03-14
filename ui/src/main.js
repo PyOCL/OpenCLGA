@@ -1,9 +1,8 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { ButtonToolbar } from 'react-bootstrap';
 import { setRepopulateConfigType } from './actions/config';
-import RepopulateTypeDropdown from './components/repopulate_type_dropdown';
+import ConfigPanel from './components/config_panel';
 
 import './styles/main.css';
 
@@ -20,10 +19,7 @@ class Main extends Component {
           <h2>oclGA UI</h2>
         </div>
         <div className='app-main'>
-          <ButtonToolbar>
-            <RepopulateTypeDropdown value={config.repopulateConfig.type}
-                                    onSelect={actions.setRepopulateConfigType} />
-          </ButtonToolbar>
+          <ConfigPanel config={config} actions={actions}/>
         </div>
       </div>
     );

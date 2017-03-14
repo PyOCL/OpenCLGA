@@ -1,0 +1,19 @@
+.row {
+  text-align: left;
+}
+
+.row .control-label {
+  margin-top: 5px;
+}
+
+.row .radio,
+.row .react-numeric-input {
+  display: inline-block;
+  margin-top: 5px;
+  margin-bottom: 10px;
+  margin-right: 10px;
+}
+
+.row .radio label {
+  min-width: 90px;
+}
