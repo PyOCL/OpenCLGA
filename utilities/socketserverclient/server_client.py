@@ -10,7 +10,6 @@ OP_MSG_END         = bytearray("OPMsgE", "ASCII")
 
 class ReceiveDataHandler(object):
     def __init__(self):
-        # self.temp_data = {}
         self.temp_data = b""
         self.callbacks_info = {}
 

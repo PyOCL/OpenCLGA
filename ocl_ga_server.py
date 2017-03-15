@@ -6,7 +6,7 @@ import socket
 import select
 import threading
 import traceback
-from server_client import Server, OP_MSG_BEGIN, OP_MSG_END
+from utilities.socketserverclient import Server, OP_MSG_BEGIN, OP_MSG_END
 
 class OpenCLGAServer(object):
     def __init__(self, options, port=12345):

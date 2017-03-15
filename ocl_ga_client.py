@@ -7,10 +7,10 @@ import tempfile
 import threading
 import time
 
-from utilities.generaltaskthread import Logger
 from multiprocessing import Process
 from ocl_ga import OpenCLGA
-from server_client import Client, OP_MSG_BEGIN, OP_MSG_END
+from utilities.generaltaskthread import Logger
+from utilities.socketserverclient import Client, OP_MSG_BEGIN, OP_MSG_END
 
 oclClient = None
 
