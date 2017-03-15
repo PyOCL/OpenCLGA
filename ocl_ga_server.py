@@ -37,7 +37,7 @@ class OpenCLGAServer(object):
         print("Cleint : {}, Message : {}".format(client_addr, message))
 
     def _start_http_websocket_server(self):
-        from oclGAWSServer import OclGAWSServer
+        from ocl_ga_wsserver import OclGAWSServer
         self.httpws_server = OclGAWSServer(self.server_ip, self.httpws_server_port, handler = self._handleWSMessage)
         self.httpws_server.run_server()
         pass
