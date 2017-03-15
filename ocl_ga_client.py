@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import traceback
 import argparse
 import pickle
 import pyopencl as cl
@@ -24,6 +25,7 @@ class OpenCLGAWorker(Process):
         self.port = port
         self.client = None
         self.notifier = None
+        self.ocl_ga = None
 
     def terminate(self):
         if self.client:
@@ -60,9 +62,7 @@ class OpenCLGAWorker(Process):
         self.logger.info("Worker [{0}] wait for commands".format(self.device.name))
         self.notifier = threading.Condition()
         with self.notifier:
-        # self.notifier.acquire()
             self.notifier.wait()
-        # self.notifier.release()
 
     def create_context(self):
         platform = cl.get_platforms()[self.platform_index]
@@ -103,42 +103,49 @@ class OpenCLGAWorker(Process):
         cmd = dict_msg["command"]
         payload = dict_msg["data"]
         self.logger.verbose("Worker [{}]: cmd received = {}".format(self.device.name, cmd))
-        if cmd == "prepare":
-            self.create_ocl_ga(pickle.loads(payload))
-        elif cmd == "pause":
-            self.ocl_ga.pause()
-        elif cmd == "stop":
-            self.ocl_ga.stop()
-        elif cmd == "restore":
-            self.ocl_ga.restore(payload)
-        elif cmd == "save":
-            # NOTE : Need to think about this ... too large !
-            # state_file = tempfile.NamedTemporaryFile(delete=False)
-            self.ocl_ga.save(payload)
-            # saved_filename  = state_file.name
-            # with open(state_file.name, 'rb') as fd:
-            self.send({"type": "save",
-                       "result": None})
-            # state_file.close()
-        elif cmd == "best":
-            # TODO : A workaround to get best chromesome back for TSP
-            #       May need to pickle this tuple as it contains specific data structure.
-            best_chromosome, best_fitness, chromesome_kernel = self.ocl_ga.get_the_best()
-            self.send({"type": "best",
-                       "result": repr(best_chromosome)})
-        elif cmd == "statistics":
-            self.send({"type": "statistics",
-                       "result": self.ocl_ga.get_statistics()})
-        elif cmd == "run":
-            self.ocl_ga_thread = threading.Thread(target=self.run_ocl_ga, args=(payload,))
-            self.ocl_ga_thread.start()
-        elif cmd == "exit":
-            self.client.shutdown()
-            with self.notifier:
-                self.notifier.notifyAll()
-            self.alive = False
-        else:
-            self.logger.error("unknown command {}".format(cmd))
+
+        if cmd in ["pause", "stop", "restore", "best", "save", "statistics"] and not self.ocl_ga:
+            self.logger.error("Cmd '{}' will only be processed after prepared ".format(cmd))
+            return
+        try:
+            if cmd == "prepare":
+                self.create_ocl_ga(pickle.loads(payload))
+            elif cmd == "pause":
+                self.ocl_ga.pause()
+            elif cmd == "stop":
+                self.ocl_ga.stop()
+            elif cmd == "restore":
+                self.ocl_ga.restore(payload)
+            elif cmd == "save":
+                # NOTE : Need to think about this ... too large !
+                # state_file = tempfile.NamedTemporaryFile(delete=False)
+                self.ocl_ga.save(payload)
+                # saved_filename  = state_file.name
+                # with open(state_file.name, 'rb') as fd:
+                self.send({"type": "save",
+                           "result": None})
+                # state_file.close()
+            elif cmd == "best":
+                # TODO : A workaround to get best chromesome back for TSP
+                #       May need to pickle this tuple as it contains specific data structure.
+                best_chromosome, best_fitness, chromesome_kernel = self.ocl_ga.get_the_best()
+                self.send({"type": "best",
+                           "result": repr(best_chromosome)})
+            elif cmd == "statistics":
+                self.send({"type": "statistics",
+                           "result": self.ocl_ga.get_statistics()})
+            elif cmd == "run":
+                self.ocl_ga_thread = threading.Thread(target=self.run_ocl_ga, args=(payload,))
+                self.ocl_ga_thread.start()
+            elif cmd == "exit":
+                self.client.shutdown()
+                with self.notifier:
+                    self.notifier.notifyAll()
+                self.alive = False
+            else:
+                self.logger.error("unknown command {}".format(cmd))
+        except:
+            traceback.print_exc()
 
     def send(self, data):
         if self.client:
