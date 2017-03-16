@@ -1,7 +1,7 @@
 import React, { PropTypes } from 'react';
 import { DropdownButton, MenuItem } from 'react-bootstrap';
 
-import { REPOPULATE_CONFIG_TYPE } from '../shared/config';
+import { REPOPULATE_CONFIG_TYPE } from '../../shared/config';
 
 export const getDropdownText = (type) => {
   switch(type) {
@@ -18,7 +18,8 @@ export const getDropdownText = (type) => {
 
 const RepopulateTypeDropdown = (props) => {
   return (
-    <DropdownButton bsStyle='default' title={getDropdownText(props.value)} id='repopulate-type'
+    <DropdownButton bsStyle='default' title={getDropdownText(props.value)}
+                    className={props.className} id='repopulate-type'
                     onSelect={props.onSelect}>
       <MenuItem eventKey={REPOPULATE_CONFIG_TYPE.DEFAULT}>
         {getDropdownText(REPOPULATE_CONFIG_TYPE.DEFAULT)}
