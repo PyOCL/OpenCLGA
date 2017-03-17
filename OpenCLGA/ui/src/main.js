@@ -3,6 +3,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { setRepopulateConfigType } from './actions/config';
 import ConfigPanel from './components/config_panel';
+import ControlPanel from './components/control_panel';
 
 import './styles/main.css';
 
@@ -19,7 +20,8 @@ class Main extends Component {
           <h2>OpenCLGA UI</h2>
         </div>
         <div className='app-main'>
-          <ConfigPanel config={config} actions={actions}/>
+          <ConfigPanel config={config} actions={actions} />
+          <ControlPanel config={config} actions={actions} />
         </div>
       </div>
     );
