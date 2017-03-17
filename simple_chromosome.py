@@ -1,7 +1,8 @@
+#!/usr/bin/python3
 import numpy
 import pyopencl as cl
 
-from simple_gene import SimpleGene
+from .simple_gene import SimpleGene
 
 class SimpleChromosome:
     # SimpleChromosome - a chromosome contains a list of Genes.

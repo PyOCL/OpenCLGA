@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import random
 HUMAN_DNA_ELEMENTS = ["A","C","G","T"]
 

@@ -1,17 +1,25 @@
 import os
 import sys
-# We need to put ancenstor directory in sys.path to let us import utils and algorithm
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+if __name__ == "__main__":
+    # We need to put ancenstor directory in sys.path to let us import utils and algorithm
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    from simple_gene import SimpleGene
+    from shuffler_chromosome import ShufflerChromosome
+    from ocl_ga_server import start_ocl_ga_server
+    import utils
+else:
+    from ...simple_gene import SimpleGene
+    from ...shuffler_chromosome import ShufflerChromosome
+    from ...ocl_ga_server import start_ocl_ga_server
+    from ... import utils
 
 import time
 import json
-import utils
 import random
 import pickle
 import traceback
 from pathlib import Path
-from shuffler_chromosome import ShufflerChromosome
-from simple_gene import SimpleGene
 
 def read_all_cities(file_name):
     file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), file_name)
@@ -161,7 +169,7 @@ def start_ocl_ga_local(info_getter):
     except KeyboardInterrupt:
         traceback.print_exc()
 
-if __name__ == '__main__':
+def start_tt_server():
     print("Press 1 + <Enter> to run as a OCL GA Server for remote clients.")
     print("Press 2 + <Enter> to run Taiwan Travel OCL GA independently.")
     def callback_from_client(info):
@@ -175,7 +183,6 @@ if __name__ == '__main__':
     while True:
         user_input = get_input()
         if user_input == "1":
-            from ocl_ga_server import start_ocl_ga_server
             start_ocl_ga_server(get_taiwan_travel_info, {"message" : callback_from_client})
             break
         elif user_input == "2":
@@ -183,3 +190,7 @@ if __name__ == '__main__':
             break
         elif user_input == "exit":
             break
+
+
+if __name__ == '__main__':
+    start_tt_server()

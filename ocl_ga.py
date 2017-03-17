@@ -1,5 +1,4 @@
-#! /usr/bin/python3
-
+#!/usr/bin/python3
 import os
 import sys
 import time
@@ -7,6 +6,11 @@ import random
 import numpy
 import pickle
 import pyopencl as cl
+
+if __name__ == "ocl_ga":
+    import utils
+else:
+    from . import utils
 
 class OpenCLGA():
     def __init__(self, options):
@@ -138,8 +142,6 @@ class OpenCLGA():
             raise "unsupported python type"
 
     def __dump_kernel_info(self, prog, ctx, chromosome_wrapper, device = None):
-        sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-        import utils
         kernel_names = chromosome_wrapper.get_populate_kernel_names() +\
                         ["ocl_ga_calculate_fitness"] +\
                         chromosome_wrapper.get_crossover_kernel_names() +\

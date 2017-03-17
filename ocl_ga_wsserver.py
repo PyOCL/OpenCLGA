@@ -1,10 +1,9 @@
+#!/usr/bin/python3
 import os
 import sys
 import threading
 import ssl
 from base64 import b64encode
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 VER = sys.version_info[0]
 if VER >= 3:
@@ -16,8 +15,13 @@ else:
     from BaseHTTPServer import HTTPServer
     from StringIO import StringIO
 
-from utilities.generaltaskthread import TaskThread, Task
-from utilities.httpwebsocketserver import HTTPWebSocketsHandler
+print(__name__)
+if __name__ == "ocl_ga_wsserver":
+    from utilities.generaltaskthread import TaskThread, Task
+    from utilities.httpwebsocketserver import HTTPWebSocketsHandler
+else:
+    from .utilities.generaltaskthread import TaskThread, Task
+    from .utilities.httpwebsocketserver import HTTPWebSocketsHandler
 
 if len(sys.argv) > 1:
     port = int(sys.argv[1])

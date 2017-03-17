@@ -1,12 +1,18 @@
 #!/usr/bin/python3
 import sys
 import time
-import utils
 import socket
 import select
 import threading
 import traceback
-from utilities.socketserverclient import Server, OP_MSG_BEGIN, OP_MSG_END
+
+print(__name__)
+if __name__ == "ocl_ga_server":
+    from utilities.socketserverclient import Server, OP_MSG_BEGIN, OP_MSG_END
+    from ocl_ga_wsserver import OclGAWSServer
+else:
+    from .utilities.socketserverclient import Server, OP_MSG_BEGIN, OP_MSG_END
+    from .ocl_ga_wsserver import OclGAWSServer
 
 class OpenCLGAServer(object):
     def __init__(self, options, port=12345):
@@ -37,7 +43,6 @@ class OpenCLGAServer(object):
         print("Cleint : {}, Message : {}".format(client_addr, message))
 
     def _start_http_websocket_server(self):
-        from ocl_ga_wsserver import OclGAWSServer
         self.httpws_server = OclGAWSServer(self.server_ip, self.httpws_server_port, handler = self._handleWSMessage)
         self.httpws_server.run_server()
         pass

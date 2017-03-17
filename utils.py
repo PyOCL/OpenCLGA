@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import random
 from math import pi, sqrt, asin, cos, sin, pow
 

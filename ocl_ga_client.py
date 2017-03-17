@@ -9,9 +9,15 @@ import threading
 import time
 
 from multiprocessing import Process
-from ocl_ga import OpenCLGA
-from utilities.generaltaskthread import Logger
-from utilities.socketserverclient import Client, OP_MSG_BEGIN, OP_MSG_END
+print(__name__)
+if __name__ == "ocl_ga_client":
+    from ocl_ga import OpenCLGA
+    from utilities.generaltaskthread import Logger
+    from utilities.socketserverclient import Client, OP_MSG_BEGIN, OP_MSG_END
+else:
+    from .ocl_ga import OpenCLGA
+    from .utilities.generaltaskthread import Logger
+    from .utilities.socketserverclient import Client, OP_MSG_BEGIN, OP_MSG_END
 
 oclClient = None
 
@@ -204,6 +210,9 @@ def start_ocl_ga_client(server="127.0.0.1", port=12345):
     oclClient = None
 
 if __name__ == '__main__':
+    from ocl_ga import OpenCLGA
+    from utilities.generaltaskthread import Logger
+    from utilities.socketserverclient import Client, OP_MSG_BEGIN, OP_MSG_END
     parser = argparse.ArgumentParser(description='oclGA client help')
     parser.add_argument('server', metavar='ip', type=str,
                         help='the server ip or address')

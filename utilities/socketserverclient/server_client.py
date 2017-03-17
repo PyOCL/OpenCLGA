@@ -3,7 +3,8 @@ import select
 import socket
 import threading
 import traceback
-from utilities.generaltaskthread import TaskThread, Task
+
+from ..generaltaskthread import TaskThread, Task
 
 OP_MSG_BEGIN       = bytearray("OPMsgB", "ASCII")
 OP_MSG_END         = bytearray("OPMsgE", "ASCII")
