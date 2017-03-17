@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import {
-  ButtonToolbar,
   Col,
   Panel,
   Row
@@ -9,7 +8,8 @@ import GenerationsRow from './config/generations_row';
 import PopulationsRow from './config/populations_row';
 import CrossoverRow from './config/crossover_row';
 import MutationRow from './config/mutation_row';
-import RepopulateTypeDropdown from './repopulate_type_dropdown';
+import RepopulationRow from './config/repopulation_row';
+import ShareResultRow from './config/share_result_row';
 
 class ConfigPanel extends Component {
 
@@ -23,21 +23,24 @@ class ConfigPanel extends Component {
     return (
       <Panel header='Configuration Panel' bsStyle='success'>
         <Row>
-          <Col xs={12} sm={12} md={7}>
+          <Col xs={12} sm={12} md={6}>
             <GenerationsRow />
             <PopulationsRow />
           </Col>
-          <Col xs={12} sm={12} md={5}>
+          <Col xs={12} sm={12} md={6}>
             <CrossoverRow />
             <MutationRow />
           </Col>
         </Row>
+        <hr/>
         <Row>
-          <hr/>
-          <ButtonToolbar>
-            <RepopulateTypeDropdown value={repopulateConfig.type}
-                                    onSelect={actions.setRepopulateConfigType} />
-          </ButtonToolbar>
+          <Col xs={12} sm={12} md={12}>
+            <RepopulationRow type={repopulateConfig.type}
+                             onSelect={actions.setRepopulateConfigType} />
+          </Col>
+          <Col xs={12} sm={12} md={12}>
+            <ShareResultRow/>
+          </Col>
         </Row>
       </Panel>
     );

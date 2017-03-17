@@ -8,6 +8,7 @@ import Main from './main';
 import rootReducer from './reducers/index';
 import './styles/defaults.css';
 import './styles/index.css';
+import './styles/config_panel.css';
 
 (function init() {
   let store;

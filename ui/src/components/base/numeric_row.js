@@ -13,7 +13,7 @@ const NumericRow = (props) => {
       <Col xs={12} sm={8} md={8}>
           <NumericInput className={`${props.baseClassName}-number`}
                         min={props.min} max={props.max} value={props.value} step={props.step} />
-          {props.trailing}
+          <label>{props.trailing}</label>
       </Col>
     </Row>
   );

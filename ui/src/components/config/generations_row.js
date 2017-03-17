@@ -14,14 +14,14 @@ class GenerationsRow extends Component {
         <Col xs={12} sm={4} md={4}><ControlLabel>Generations:</ControlLabel></Col>
         <Col xs={12} sm={8} md={8}>
           <div>
-            <Radio name='generationType'>By count:</Radio>
+            <Radio defaultChecked name='generationType'>By count:</Radio>
             <NumericInput className='generations-count-number'
                           min={1} value={1000} step={1000}/>
           </div>
           <div>
-            <Radio name='generationType'>By time:</Radio>
+            <Radio name='generationType'>By time (mins):</Radio>
             <NumericInput className='generations-time-number'
-                          min={1} value={10}/>mins
+                          min={1} value={10}/>
           </div>
         </Col>
       </Row>

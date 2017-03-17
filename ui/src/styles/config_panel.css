@@ -1,0 +1,36 @@
+.generations-row .generations-count-number,
+.generations-row .generations-time-number,
+.crossover-row .crossover-number,
+.mutation-row .mutation-number,
+.repopulation-row .repopulation-number,
+.share-result-row .share-result-number {
+  text-align: right;
+}
+
+.repopulation-row .dropdown,
+.repopulation-row .react-numeric-input,
+.share-result-row .react-numeric-input {
+  margin-left: 20px;
+  margin-right: 20px;
+}
+
+.repopulation-row div,
+.share-result-row div,
+.repopulation-row .react-numeric-input,
+.share-result-row .react-numeric-input {
+  display: inline-block;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.share-result-row {
+  margin-top: 20px;
+}
+
+@-moz-document url-prefix() {
+  .repopulation-row .react-numeric-input,
+  .share-result-row .react-numeric-input {
+    top: 5px;
+  }
+}
+
