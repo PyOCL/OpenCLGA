@@ -90,7 +90,7 @@ ENV/
 # Rope project settings
 .ropeproject
 
-# oclGA tmp files
+# OpenCLGA tmp files
 final.cl
 
 # mac ds store

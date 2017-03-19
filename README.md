@@ -1,9 +1,9 @@
-# oclGA
-oclGA is a python library for running genetic algorithm among Open CL devices, like GPU, CPU, DSP, etc. In the best case, you can run your GA parallelly at all of your Open CL devices which give you the maximum computing power of your machine. In the worse case, which you only have CPU, you still can run the code at parallel CPU mode.
+# OpenCLGA
+OpenCLGA is a python library for running genetic algorithm among Open CL devices, like GPU, CPU, DSP, etc. In the best case, you can run your GA parallelly at all of your Open CL devices which give you the maximum computing power of your machine. In the worse case, which you only have CPU, you still can run the code at parallel CPU mode.
 
-We had implemented OpenCLGA at oclGA.py which encapsulate GA follow (population, crossover, mutation, fitness calculation). User could solve their problem by providing the fitness calculation function and run the code.
+We had implemented OpenCLGA at ocl_ga.py which encapsulate GA follow (population, crossover, mutation, fitness calculation). User could solve their problem by providing the fitness calculation function and run the code.
 
-Please note that oclGA is implemented at Python 3.5 or above. It should work at Python 2.x but it is not guaranteed.
+Please note that OpenCLGA is implemented at Python 3.5 or above. It should work at Python 2.x but it is not guaranteed.
 
 # Prerequisite: install PYOPENCL
 
@@ -85,7 +85,7 @@ Option B. Install by ourself
         > cl.create_some_context()
     ```    
 
-# Run oclGA examples
+# Run OpenCLGA examples
 
 1. Enter virtual env (optional):
 
@@ -100,17 +100,17 @@ Option B. Install by ourself
         $> source ./NameOfEnv/bin/activate
     ```
 
-3. Download the code from Github: https://github.com/PyOCL/oclGA/archive/master.zip or clone the git repo with the following command:
+3. Download the code from Github: https://github.com/PyOCL/OpenCLGA/archive/master.zip or clone the git repo with the following command:
 
    ```shellscript
-       <NameOfEnv>$> git clone https://github.com/PyOCL/oclGA.git
+       <NameOfEnv>$> git clone https://github.com/PyOCL/OpenCLGA.git
    ```
 
 4. Execute the code
 
     ```shellscript
-        <NameOfEnv>$> unzip oclGA-master.zip
-        <NameOfEnv>$> cd oclGA-master
+        <NameOfEnv>$> unzip OpenCLGA-master.zip
+        <NameOfEnv>$> cd OpenCLGA-master
         <NameOfEnv>$> python3 examples/tsp/simple_tsp.py
     ```
     * NOTE : In external process mode, if "no device" exception happen during create_some_context(), Please set PYOPENCL_CTX=N (N is the device number you want by default) at first.

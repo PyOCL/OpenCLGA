@@ -17,7 +17,7 @@ package_files('OpenCLGA/kernel')
 setup(name='OpenCLGA',
       version='0.1',
       description='Run a general purpose genetic algorithm on top of pyopencl.',
-      url='https://github.com/PyOCL/oclGA.git',
+      url='https://github.com/PyOCL/OpenCLGA.git',
       author='John Hu(胡訓誠), Kilik Kuo(郭彥廷)',
       author_email='im@john.hu, kilik.kuo@gmail.com',
       license='MIT',

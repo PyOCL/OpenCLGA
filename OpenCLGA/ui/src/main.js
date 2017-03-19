@@ -16,7 +16,7 @@ class Main extends Component {
     return (
       <div className='app'>
         <div className='app-header'>
-          <h2>oclGA UI</h2>
+          <h2>OpenCLGA UI</h2>
         </div>
         <div className='app-main'>
           <ConfigPanel config={config} actions={actions}/>
