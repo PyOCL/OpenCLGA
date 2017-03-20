@@ -9,6 +9,7 @@ import rootReducer from './reducers/index';
 import './styles/defaults.css';
 import './styles/index.css';
 import './styles/config_panel.css';
+import './styles/control_panel.css';
 
 (function init() {
   let store;
