@@ -1,24 +1,13 @@
+#!/usr/bin/python3
 import os
 import sys
-
-if __name__ == "__main__":
-    # We need to put ancenstor directory in sys.path to let us import utils and algorithm
-    sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-    from simple_gene import SimpleGene
-    from shuffler_chromosome import ShufflerChromosome
-    from ocl_ga_server import start_ocl_ga_server
-    import utils
-else:
-    from ...simple_gene import SimpleGene
-    from ...shuffler_chromosome import ShufflerChromosome
-    from ...ocl_ga_server import start_ocl_ga_server
-    from ... import utils
-
 import time
 import json
 import random
 import pickle
+import threading
 import traceback
+from OpenCLGA import SimpleGene, ShufflerChromosome, start_ocl_ga_server, utils, OpenCLGA
 from pathlib import Path
 
 def read_all_cities(file_name):
@@ -132,8 +121,6 @@ def start_ocl_ga_local(info_getter):
     prob_mutation = info['prob_mutation']
     prob_crossover = info['prob_crossover']
 
-    import threading
-    from ocl_ga import OpenCLGA
     ga_target = OpenCLGA(info)
     ga_target.prepare()
     try:
@@ -172,6 +159,7 @@ def start_ocl_ga_local(info_getter):
 def start_tt_server():
     print("Press 1 + <Enter> to run as a OCL GA Server for remote clients.")
     print("Press 2 + <Enter> to run Taiwan Travel OCL GA independently.")
+
     def callback_from_client(info):
         # TODO : Need to plot information in Mainthread.
         if "best" in info:
@@ -179,6 +167,7 @@ def start_tt_server():
             utils.plot_tsp_result(city_info, info["best"])
         if "statistics" in info:
             utils.plot_ga_result(info["statistics"])
+            pass
 
     while True:
         user_input = get_input()
@@ -190,7 +179,6 @@ def start_tt_server():
             break
         elif user_input == "exit":
             break
-
 
 if __name__ == '__main__':
     start_tt_server()

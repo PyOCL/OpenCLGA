@@ -2,7 +2,11 @@
 import numpy
 import pyopencl as cl
 
-from .simple_gene import SimpleGene
+print(__name__)
+if __name__ == "simple_chromosome":
+    from simple_gene import SimpleGene
+else:
+    from .simple_gene import SimpleGene
 
 class SimpleChromosome:
     # SimpleChromosome - a chromosome contains a list of Genes.
@@ -212,7 +216,7 @@ class SimpleChromosome:
 
 
     def execute_mutation(self, prg, queue, population, generation_idx, prob_mutate,
-                         dev_chromosomes, dev_fitnesses, dev_rnum):
+                         dev_chromosomes, dev_fitnesses, dev_rnum, extra_list):
         prg.simple_chromosome_mutate_all(queue,
                                          (population,),
                                          (1,),

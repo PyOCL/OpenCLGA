@@ -1,14 +1,7 @@
-# We need to put ancenstor directory in sys.path to import utils and algorithm
+#!/usr/bin/python3
 import os
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
-# start to import what we want.
 import random
-import utils
-from ocl_ga import OpenCLGA
-from simple_chromosome import SimpleChromosome
-from simple_gene import SimpleGene
+from OpenCLGA import OpenCLGA, SimpleChromosome, SimpleGene, utils
 
 def show_generation_info(index, data_dict):
     print("{0}\t\t==> {1}".format(index, data_dict["best"]))
@@ -53,10 +46,8 @@ def run(num_chromosomes, generations):
     f.close()
 
     ga_cl = OpenCLGA({"sample_chromosome": sample,
-                      "termination": {
-                        "type": "count",
-                        "count": generations
-                      },
+                      "termination": { "type": "count",
+                                       "count": generations },
                       "population": num_chromosomes,
                       "fitness_kernel_str": fstr,
                       "fitness_func": "expansion_fitness",

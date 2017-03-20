@@ -1,15 +1,7 @@
-# We need to put ancenstor directory in sys.path to let us import utils and algorithm
+#!/usr/bin/python3
 import os
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
-# start to import what we want.
 import random
-import utils
-from pyopencl import array as clarray
-from ocl_ga import OpenCLGA
-from shuffler_chromosome import ShufflerChromosome
-from simple_gene import SimpleGene
+from OpenCLGA import SimpleGene, ShufflerChromosome, utils, OpenCLGA
 
 def show_generation_info(index, data_dict):
     print("{0}\t\t==> {1}".format(index, data_dict["best"]))

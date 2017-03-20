@@ -25,12 +25,12 @@ setup(name='OpenCLGA',
       packages=find_packages(),
       package_data={
         'OpenCLGA': package_files_paths,
-        'OpenCLGA.examples.taiwan_travel': ['kernel/*.c', '*.json'],
       },
       install_requires=[
           'pycparser',
           'cffi',
           'numpy',
           'wheel',
+          #'pyopencl'
       ],
       zip_safe=False)

@@ -1,6 +1,7 @@
 float expansion_calc_difference(global __SimpleChromosome* chromosome,
                                 int x,
-                                int y) {
+                                int y)
+{
   float xy = 0.0 + x + y;
   float expected = pown(xy, 10);
   float calculated = 0.0;
@@ -12,9 +13,9 @@ float expansion_calc_difference(global __SimpleChromosome* chromosome,
 }
 
 void expansion_fitness(global __SimpleChromosome* chromosome,
-                        global float* fitnesses,
-                        int chromosome_size,
-                        int chromosome_count)
+                       global float* fitnesses,
+                       int chromosome_size,
+                       int chromosome_count)
 {
   float diff = 0.0;
   for (int x = 1; x < 10; x++) {
