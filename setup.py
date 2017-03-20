@@ -27,10 +27,7 @@ setup(name='OpenCLGA',
         'OpenCLGA': package_files_paths,
       },
       install_requires=[
-          'pycparser',
-          'cffi',
           'numpy',
-          'wheel',
-          #'pyopencl'
+          'pyopencl'
       ],
       zip_safe=False)
