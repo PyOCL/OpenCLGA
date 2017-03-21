@@ -13,20 +13,20 @@ export default (state = initialState, payload) => {
     case 'setRepopulateConfig':
       return {
         ...state,
-        repopulateConfig: payload.item
+        repopulateConfig: payload.data
       };
     case 'setRepopulateConfigType':
       return {
         ...state,
         repopulateConfig: {
           ...state.repopulateConfig,
-          type: payload.item
+          type: payload.data
         }
       }
     case 'setShareBestCount':
       return {
         ...state,
-        shareBestCount: payload.item
+        shareBestCount: payload.data
       };
     default:
       return state;

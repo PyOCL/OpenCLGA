@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { setRepopulateConfigType } from './actions/config';
+import * as controlActions from './actions/control';
 import ConfigPanel from './components/config_panel';
 import ControlPanel from './components/control_panel';
 
@@ -11,6 +12,7 @@ class Main extends Component {
   render() {
     const {
       config,
+      control,
       actions
     } = this.props;
 
@@ -21,7 +23,7 @@ class Main extends Component {
         </div>
         <div className='app-main'>
           <ConfigPanel config={config} actions={actions} />
-          <ControlPanel config={config} actions={actions} />
+          <ControlPanel control={control} actions={actions.controlActions} />
         </div>
       </div>
     );
@@ -30,14 +32,16 @@ class Main extends Component {
 
 const mapStateToProps = (state) => {
   return {
-    config: state.config
+    config: state.config,
+    control: state.control
   };
 };
 
 const mapDispatchToProps = (dispatch) => {
   return {
     actions: {
-      setRepopulateConfigType: bindActionCreators(setRepopulateConfigType, dispatch)
+      setRepopulateConfigType: bindActionCreators(setRepopulateConfigType, dispatch),
+      controlActions: bindActionCreators(controlActions, dispatch)
     }
   }
 };
