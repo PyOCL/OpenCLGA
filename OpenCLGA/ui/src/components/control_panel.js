@@ -11,29 +11,25 @@ class ConfigPanel extends Component {
 
   render() {
     const {
-      controlActions,
+      actions,
       control
     } = this.props;
-
+    debugger;
     return (
       <Panel header='Control Panel' bsStyle='success'>
         <Row>
-          <StatusLabel status={control.currentState}/>
+          <StatusLabel className={control.currentState} status={control.currentState}/>
           <div className='control-buttons'>
-            <Button disabled={!control.buttons.prepare}
-                    onClick={controlActions.prepare}>
+            <Button disabled={!control.buttons.prepare} onClick={actions.prepare}>
               Prepare
             </Button>
-            <Button disabled={!control.buttons.run}
-                    onClick={controlActions.run}>
+            <Button disabled={!control.buttons.run} onClick={actions.run}>
               Run
             </Button>
-            <Button disabled={!control.buttons.pause}
-                    onClick={controlActions.pause}>
+            <Button disabled={!control.buttons.pause} onClick={actions.pause}>
               Pause
             </Button>
-            <Button disabled={!control.buttons.stop}
-                    onClick={controlActions.stop}>
+            <Button disabled={!control.buttons.stop} onClick={actions.stop}>
               Stop
             </Button>
           </div>

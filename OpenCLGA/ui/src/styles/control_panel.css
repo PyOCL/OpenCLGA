@@ -19,6 +19,29 @@
   margin-left: 10px;
   margin-right: 10px;
   font-size: x-large;
+  text-transform: capitalize;
+}
+
+.status-label-row.waiting .status-row,
+.status-label-row.preparing .status-row,
+.status-label-row.restoring .status-row,
+.status-label-row.prepared .status-row {
+  color: blue;
+}
+
+.status-label-row.running .status-row {
+  color: green;
+}
+
+.status-label-row.pausing .status-row,
+.status-label-row.paused .status-row,
+.status-label-row.saving .status-row {
+  color: #556B2F;
+}
+
+.status-label-row.stopping .status-row,
+.status-label-row.stopped .status-row {
+  color: #8B0000;
 }
 
 .control-buttons {
