@@ -1,0 +1,5 @@
+include LICENSE README.rst
+recursive-include OpenCLGA/kernel *
+recursive-include OpenCLGA/ui *
+recursive-exclude * __pycache__
+recursive-exclude * .gitignore
