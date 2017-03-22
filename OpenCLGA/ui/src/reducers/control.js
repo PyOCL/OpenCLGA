@@ -14,7 +14,7 @@ const STATE_BUTTON_MAPPING = {
   [OPENCLGA_STATES.PREPARED]: createButtonStates(false, true, false, false),
   [OPENCLGA_STATES.RUNNING]: createButtonStates(false, false, true, true),
   [OPENCLGA_STATES.PAUSING]: createButtonStates(false, false, false, false),
-  [OPENCLGA_STATES.PAUSED]: createButtonStates(false, true, false, false),
+  [OPENCLGA_STATES.PAUSED]: createButtonStates(false, true, false, true),
   [OPENCLGA_STATES.SAVING]: createButtonStates(false, false, false, false),
   [OPENCLGA_STATES.STOPPING]: createButtonStates(false, false, false, false),
   [OPENCLGA_STATES.STOPPED]: createButtonStates(false, false, false, false)
