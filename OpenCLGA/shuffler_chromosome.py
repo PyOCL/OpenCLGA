@@ -12,6 +12,7 @@ class ShufflerChromosome:
     # ShufflerChromosome - a chromosome contains a list of Genes.
     # __genes - an ordered list of Genes
     # __name - name of the chromosome
+    # __improving_func - function name in kernel to gurantee a better mutation result.
     # dna - an listed of Gene's dna
     # dna_total_length - sum of the lenght of all genes's dna
     def __init__(self, genes, name = ""):

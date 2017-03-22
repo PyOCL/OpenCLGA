@@ -60,6 +60,8 @@ __kernel void simple_chromosome_mutate(global int* cs,
   simple_chromosome_do_mutate((global __SimpleChromosome*) cs, ra);
 }
 
+// Chromosomes are picked by chance.
+// The picked chromosome must mutate.
 __kernel void simple_chromosome_mutate_all(global int* cs,
                                            float prob_mutate,
                                            global uint* input_rand)
@@ -84,6 +86,7 @@ __kernel void simple_chromosome_mutate_all(global int* cs,
 }
 
 /* ============== crossover functions ============== */
+// See comment for utils_calc_ratio()
 __kernel void simple_chromosome_calc_ratio(global float* fitness,
                                            global float* ratio,
                                            global float* best,
@@ -98,6 +101,9 @@ __kernel void simple_chromosome_calc_ratio(global float* fitness,
   utils_calc_ratio(fitness, ratio, best, worst, avg, idx, POPULATION_SIZE);
 }
 
+// Preparing another chromosomes array according to their fitness ratios.
+// Then crossover by picking parent_1 from original chromosomes array and
+// parent_2 from the newly-prepared chromosomes array.
 __kernel void simple_chromosome_pick_chromosomes(global int* cs,
                                                  global float* fitness,
                                                  global int* p_other,
@@ -114,6 +120,7 @@ __kernel void simple_chromosome_pick_chromosomes(global int* cs,
   global __SimpleChromosome* chromosomes = (global __SimpleChromosome*) cs;
   global __SimpleChromosome* parent_other = (global __SimpleChromosome*) p_other;
   int i;
+  // Pick another chromosome as parent_2.
   int cross_idx = random_choose_by_ratio(ratio, ra, POPULATION_SIZE);
   // copy the chromosome to local memory for cross over
   for (i = 0; i < SIMPLE_CHROMOSOME_GENE_SIZE; i++) {
@@ -122,6 +129,12 @@ __kernel void simple_chromosome_pick_chromosomes(global int* cs,
   input_rand[idx] = ra[0];
 }
 
+// Pick 2 random cross-point index (start, end), then Parent 1(cs) and
+// Parent 2(p_other) start crossover.
+// CS1 |----------------------------------|
+//           |start                |end
+//           |=> to be exchanged <=|
+// CS2 |----------------------------------|
 __kernel void simple_chromosome_do_crossover(global int* cs,
                                              global float* fitness,
                                              global int* p_other,
@@ -138,7 +151,8 @@ __kernel void simple_chromosome_do_crossover(global int* cs,
   uint ra[1];
   init_rand(input_rand[idx], ra);
 
-  // keep the shortest path, we have to return here to prevent async barrier if someone is returned.
+  // keep the shortest path, we have to return here to prevent async barrier
+  // if someone is returned.
   if (fabs(fitness[idx] - *best_local) < 0.000001) {
     input_rand[idx] = ra[0];
     return;

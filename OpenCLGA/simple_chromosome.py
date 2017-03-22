@@ -1,17 +1,13 @@
 #!/usr/bin/python3
 import numpy
 import pyopencl as cl
-
-print(__name__)
-if __name__ == "simple_chromosome":
-    from simple_gene import SimpleGene
-else:
-    from .simple_gene import SimpleGene
+from .simple_gene import SimpleGene
 
 class SimpleChromosome:
     # SimpleChromosome - a chromosome contains a list of Genes.
     # __genes - a list of Genes
     # __name - name of the chromosome
+    # __improving_func - a function name in kernel to gurantee a better mutation result.
     # dna - an listed of Gene's dna
     # dna_total_length - sum of the lenght of all genes's dna
     def __init__(self, genes, name = ""):
@@ -26,6 +22,7 @@ class SimpleChromosome:
 
     @property
     def num_of_genes(self):
+        # The number of genes inside this SimpleChromosome.
         return len(self.__genes)
 
     @property
@@ -34,17 +31,18 @@ class SimpleChromosome:
 
     @property
     def dna_total_length(self):
-        return self.num_of_genes
+        # Sum of the dna lenght of each gene.
+        return sum([gene.length for gene in self.__genes])
 
     @property
     def dna(self):
         return [gene.dna for gene in self.__genes]
 
     @dna.setter
-    def dna(self, dna):
-        assert self.num_of_genes == len(dna)
+    def dna(self, dna_sequence):
+        assert self.num_of_genes == len(dna_sequence)
         for i, gene in enumerate(self.__genes):
-            gene.dna = dna[i]
+            gene.dna = dna_sequence[i]
 
     @property
     def genes(self):
@@ -72,14 +70,26 @@ class SimpleChromosome:
 
     @property
     def early_terminated(self):
+        # If the difference between the best and the worst is negligible,
+        # terminate the program to save time.
         return abs(self.__worst[0] - self.__best[0]) < 0.0001
 
     def from_kernel_value(self, data):
+        # Construct a SimpleChromosome object on system memory according to
+        # the calculated 'data' on opencl(device) memory.
         assert len(data) == self.num_of_genes
         genes = [self.__genes[idx].from_kernel_value(v) for idx, v in enumerate(data)]
         return SimpleChromosome(genes, self.__name)
 
+    def use_improving_only_mutation(self, helper_func_name):
+        # Set a helper function to make sure a better mutation result.
+        self.__improving_func = helper_func_name
+
     def kernelize(self):
+        # - Build a str which contains c99-like codes. This str will be written
+        #   into a final kernel document called 'final.cl' for execution.
+        # - Gene elements, size, mutation function is pre-defined as MACRO for
+        #   easier usage.
         elements_size_list = [str(gene.elements_length) for gene in self.__genes]
         candidates = "#define SIMPLE_CHROMOSOME_GENE_ELEMENTS_SIZE {" +\
                             ", ".join(elements_size_list) + "}\n"
@@ -132,7 +142,7 @@ class SimpleChromosome:
         cl.enqueue_copy(queue, self.__dev_other_chromosomes, other_chromosomes)
 
     def preexecute_kernels(self, ctx, queue, population):
-        ## initialize global variables for kernel execution
+        # initialize global variables for kernel execution
         total_dna_size = population * self.dna_total_length
 
         other_chromosomes = numpy.zeros(total_dna_size, dtype=numpy.int32)
@@ -140,6 +150,7 @@ class SimpleChromosome:
 
         mf = cl.mem_flags
 
+        # prepare device memory for usage.
         self.__dev_ratios = cl.Buffer(ctx, mf.WRITE_ONLY, ratios.nbytes)
         self.__dev_best = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
                                     hostbuf=self.__best)

@@ -40,6 +40,10 @@ void calc_min_max_fitness(global float* fitnesses, int num_of_chromosomes, float
 
 // holder - A lenght 1 array which stores the last rand value.
 // Returns a random uint value.
+// NOTE : Since we cannot create a real random number in kernel,
+//        By passing in a random value from python, and storing the last
+//        random value generated from table, we could simulate a pesudo random
+//        number in kernel.
 uint rand(uint* holder)
 {
   uint b = ParallelRNG(holder[0]);
@@ -102,6 +106,8 @@ int random_choose_by_ratio(global float* ratio, uint* ra, int population)
   return population - 1;
 }
 
+// Find min / max fitnesses among all chromosomes.
+// Calculate a ratio table to identify share of each chromosome among all chromosomes.
 void utils_calc_ratio(global float* fitness,
                       global float* ratio,
                       global float* best,
