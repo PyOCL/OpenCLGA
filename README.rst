@@ -100,6 +100,9 @@ Run OpenCLGA examples
 
       <NameOfEnv>$> unzip OpenCLGA-master.zip
       <NameOfEnv>$> cd OpenCLGA-master
+      <NameOfEnv>$> pip3 install .
       <NameOfEnv>$> python3 examples/tsp/simple_tsp.py
 
   *NOTE : In external process mode, if "no device" exception happen during create_some_context(), Please set PYOPENCL_CTX=N (N is the device number you want by default) at first.*
+  
+  *NOTE : Since we didn't publish this project to pipa. We need to install this project with source, `pip3 install .`.*
