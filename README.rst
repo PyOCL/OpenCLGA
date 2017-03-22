@@ -24,9 +24,17 @@ Option B. Install by ourself
 
 - Ubuntu 16.04
 
-  * Step 1. Install platform opencl graphic driver, e.g. Intel CPU or Intel HD Graphics (https://software.intel.com/en-us/intel-opencl/download)
+  * Step 1. Install platform OpenCL graphic driver, i.e.
 
-  * Step 2. Install Intel OpenCL 2.1 Driver & ICD, if you use Intel devices : ::
+     1. Intel CPU or Intel HD Graphics.
+
+        a. `OpenCL™ 2.0 GPU/CPU driver package for Linux* (64-bit) <https://software.intel.com/en-us/articles/opencl-drivers>`_
+
+        b. `Installation instructions. <https://software.intel.com/sites/default/files/managed/48/96/SRB4_intel-opencl-installation-external.pdf>`_
+
+
+
+  * Step 2. Download `Intel SDK for Application & ICDs <https://software.intel.com/en-us/intel-opencl/download>`_ and install, if you have Intel devices : ::
 
       $> sudo apt-get install libnuma1 alien
       $> tar -xvf ./intel_sdk_for_opencl_2016_ubuntu_6.3.0.1904_x64.tgz
@@ -34,17 +42,19 @@ Option B. Install by ourself
       $> sudo alien opencl-2.1-intel-cpu-exp-6.3.0.1904-1.x86_64.rpm
       $> sudo dpkg -i opencl-2.1-intel-cpu-exp_6.3.0.1904-2_amd64.deb
       $> sudo apt-get install clinfo
-      $> clinfo  # To verify platform information from OpenCL
+      // To verify platform information from OpenCL
+      $> clinfo
 
     You can verify the installed OpenCL driver is located in /opt/intel/ and the ICD loader is located in /etc/OpenCL/vendors.
 
   * Step 3. Create a virtual environment for pyopencl. ::
 
+      // Make sure dependencies for building wheel is available on system.
+      $> sudo apt-get install build-essential libssl-dev libffi-dev python-dev
       $> sudo apt-get install python3-pip python3-venv ocl-icd-*
       $> python3 -m venv [NameOfEnv]
       $> source ./NameOfEnv/bin/activate
       <NameOfEnv>$> pip3 install --upgrade pip
-      <NameOfEnv>$> pip3 install pycparser cffi numpy wheel
       <NameOfEnv>$> pip3 install pyopencl
 
   * Step 4. Verification ::
@@ -98,11 +108,11 @@ Run OpenCLGA examples
 
 3. Execute the code. ::
 
+      <NameOfEnv>$> pip3 install git+git://github.com/PyOCL/OpenCLGA.git
       <NameOfEnv>$> unzip OpenCLGA-master.zip
       <NameOfEnv>$> cd OpenCLGA-master
-      <NameOfEnv>$> pip3 install .
       <NameOfEnv>$> python3 examples/tsp/simple_tsp.py
 
   *NOTE : In external process mode, if "no device" exception happen during create_some_context(), Please set PYOPENCL_CTX=N (N is the device number you want by default) at first.*
-  
+
   *NOTE : Since we didn't publish this project to pipa. We need to install this project with source, `pip3 install .`.*
