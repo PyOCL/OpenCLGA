@@ -1,9 +1,10 @@
 #!/usr/bin/python3
-import sys
-import time
-import socket
+import json
 import select
+import socket
+import sys
 import threading
+import time
 import traceback
 
 print(__name__)
@@ -36,16 +37,38 @@ class OpenCLGAServer(object):
         self.httpws_server_port = 8000
         self._start_http_websocket_server()
 
+    def _executeWSMessage(self, msg):
+        if 'command' not in msg:
+            return
+
+        print('process command {}'.format(msg['command']))
+        if msg['command'] == 'prepare':
+            self.prepare(msg['payload'])
+        elif msg['command'] == 'run':
+            if 'payload' in msg:
+                self.run(msg['payload']['prob_mutation'], msg['payload']['prob_crossover'])
+            else:
+                self.run()
+        elif msg['command'] == 'pause':
+            self.pause()
+        elif msg['command'] == 'stop':
+            self.stop()
+        elif msg['command'] == 'exit':
+            self.exit()
+
     def _handleWSMessage(self, client_addr, wshandler, message):
         # Handle messages from WebSocket.
         if client_addr not in self.websockets:
             self.websockets[client_addr] = wshandler
-        print("Cleint : {}, Message : {}".format(client_addr, message))
+
+        try:
+            self._executeWSMessage(json.loads(message))
+        except Exception as e:
+            print("Client: {} sends message format: {}".format(client_addr, message))
 
     def _start_http_websocket_server(self):
         self.httpws_server = OclGAWSServer(self.server_ip, self.httpws_server_port, handler = self._handleWSMessage)
         self.httpws_server.run_server()
-        pass
 
     def _start_socket_server(self):
         '''
@@ -61,7 +84,6 @@ class OpenCLGAServer(object):
         except:
             traceback.print_exc()
             self.socket_server = None
-        pass
 
     def __send(self, command, data):
         '''
@@ -129,13 +151,10 @@ class OpenCLGAServer(object):
         data = {"command" : "prepare", "data" : info}
         self.socket_server.send(repr(data))
 
-        pass
-
     def run(self, prob_mutate = 0, prob_crossover = 0):
         assert self.socket_server != None
         data = {"command" : "run", "data" : (prob_mutate, prob_crossover)}
         self.socket_server.send(repr(data))
-        pass
 
     def stop(self):
         assert self.socket_server != None
@@ -163,13 +182,11 @@ class OpenCLGAServer(object):
         assert self.socket_server != None
         data = {"command" : "statistics", "data" : None}
         self.socket_server.send(repr(data))
-        pass
 
     def get_the_best(self):
         assert self.socket_server != None
         data = {"command" : "best", "data" : None}
         self.socket_server.send(repr(data))
-        pass
 
     def shutdown(self):
         assert self.socket_server != None
