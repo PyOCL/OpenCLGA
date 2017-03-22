@@ -53,8 +53,6 @@ class OpenCLGAServer(object):
             self.pause()
         elif msg['command'] == 'stop':
             self.stop()
-        elif msg['command'] == 'exit':
-            self.exit()
 
     def _handleWSMessage(self, client_addr, wshandler, message):
         # Handle messages from WebSocket.
