@@ -8,8 +8,8 @@ import tempfile
 import threading
 import time
 
-from multiprocessing import Process
-print(__name__)
+from multiprocessing import Process, Pipe
+
 if __name__ == "ocl_ga_client":
     from ocl_ga import OpenCLGA
     from utilities.generaltaskthread import Logger
@@ -20,6 +20,18 @@ else:
     from .utilities.socketserverclient import Client, OP_MSG_BEGIN, OP_MSG_END
 
 oclClient = None
+
+def query_devices(c_p):
+    import pyopencl as cl
+    platforms = cl.get_platforms()
+    devices = platforms[0].get_devices()
+
+    data = []
+    for pidx in range(len(platforms)):
+            devices = platforms[pidx].get_devices()
+            for didx in range(len(devices)):
+                data.append((pidx, didx))
+    c_p.send(data)
 
 class OpenCLGAWorker(Process):
     def __init__(self, platform_index, device_index, ip, port):
@@ -102,7 +114,6 @@ class OpenCLGAWorker(Process):
         '''
         Called when data is received from server.
         '''
-        global logger
         # Conver bytearray "data" to string-like object
         msg = str(data, 'ASCII')
         dict_msg = eval(msg)
@@ -164,11 +175,18 @@ class OpenCLGAClient():
         self.start_workers()
 
     def create_workers_for_devices(self, ip, port):
-        platforms = cl.get_platforms()
-        for pidx in range(len(platforms)):
-            devices = platforms[pidx].get_devices()
-            for didx in range(len(devices)):
-                self.__fork_process(pidx, didx, ip, port)
+        # This is a workaround for Mac Intel Drivers. We will get an error:
+        # pyopencl.cffi_cl.LogicError: clGetContextInfo failed: INVALID_CONTEXT
+        # if we try to use get_devices() in this process. So, we create an extra
+        # process to read all platforms and devices. After that, we can create
+        # device and command queue without this error.
+        p_p, c_p = Pipe()
+        p = Process(target=query_devices, args=(c_p,))
+        p.start()
+        device_list = p_p.recv()
+        p.join()
+        for dev in device_list:
+            self.__fork_process(dev[0], dev[1], ip, port)
 
     def __fork_process(self, platform_index, device_index, ip, port):
         process = OpenCLGAWorker(platform_index, device_index, ip, port)
