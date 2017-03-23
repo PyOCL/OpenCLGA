@@ -1,5 +1,11 @@
+# -*- coding: utf-8 -*-
 import os
+import sys
 from setuptools import setup, find_packages
+
+# We intend to support Python 3.5+, let's get rid of 2.x !
+if (sys.version_info[0], sys.version_info[1]) <= (3, 4):
+    sys.exit('Sorry, only Python 3.5+ is supported')
 
 package_files_paths = []
 def package_files(directory):

@@ -20,15 +20,9 @@ import traceback
 from base64 import b64encode
 from hashlib import sha1
 
-VER = sys.version_info[0]
-if VER >= 3:
-    from http.server import SimpleHTTPRequestHandler
-    from io import StringIO
-    from email.message import Message
-else:
-    from StringIO import StringIO
-    from mimetools import Message
-    from SimpleHTTPServer import SimpleHTTPRequestHandler
+from http.server import SimpleHTTPRequestHandler
+from io import StringIO
+from email.message import Message
 
 class WebSocketError(Exception):
     pass
@@ -137,23 +131,15 @@ class HTTPWebSocketsHandler(SimpleHTTPRequestHandler):
                 length = struct.unpack(">Q", self._read_bytes(8))[0]
             masks = self._read_bytes(4)
             # print("MASKS : {}".format(masks))
-            decoded = None
-            if VER >= 3:
-                decoded = bytearray()
-            else:
-                decoded = ''
+            decoded = bytearray()
             datastream = self._read_bytes(length)
             # print("datastream : {}".format(datastream))
             for char in datastream:
-                if VER >= 3:
-                    decoded.append(char ^ masks[len(decoded) % 4])
-                else:
-                    decoded += chr(ord(char) ^ ord(masks[len(decoded) % 4]))
+                decoded.append(char ^ masks[len(decoded) % 4])
 
-            if VER >= 3:
-                decoded = bytes(decoded)
-                # print("length of decdoecd = {}".format(len(decoded)))
-                # print("length of decdoecd.decode() = {}".format(len(decoded.decode())))
+            decoded = bytes(decoded)
+            # print("length of decdoecd = {}".format(len(decoded)))
+            # print("length of decdoecd.decode() = {}".format(len(decoded.decode())))
             self._on_message(decoded)
         except (struct.error, TypeError) as e:
             traceback.print_exc()
@@ -166,22 +152,15 @@ class HTTPWebSocketsHandler(SimpleHTTPRequestHandler):
                 pass
 
     def _send_impl(self, msg):
-        # print("_send_impl .... {}".format(type(msg)))
-        global VER
-        if VER >= 3:
-            data = bytearray()
-            if type(msg) == int:
-                data = bytes([msg])
-            elif type(msg) == bytes:
-                data = msg
-            elif type(msg) == str:
-                data = msg.encode()
-            self.request.send(data)
-        else:
+        # print("_send_impl .... {}".format(type(msg
+        data = bytearray()
+        if type(msg) == int:
+            data = bytes([msg])
+        elif type(msg) == bytes:
             data = msg
-            if type(msg) == int:
-                data = chr(msg)
-            self.request.send(data)
+        elif type(msg) == str:
+            data = msg.encode()
+        self.request.send(data)
 
     def _send_message(self, opcode, message):
         try:
