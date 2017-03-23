@@ -124,14 +124,14 @@ def start_ocl_ga_local(info_getter):
     ga_target = OpenCLGA(info)
     ga_target.prepare()
     try:
-        print("Press run     + <Enter> to run")
-        print("Press pause   + <Enter> to pause")
-        print("Press restore + <Enter> to restore")
-        print("Press save    + <Enter> to save")
-        print("Press stop    + <Enter> to stop")
-        print("Press plot_st    + <Enter> to plot statistics information")
-        print("Press plot_best  + <Enter> to plot best information")
-        print("Press ctrl    + c       to exit")
+        print("Press run       + <Enter> to run")
+        print("Press pause     + <Enter> to pause")
+        print("Press restore   + <Enter> to restore")
+        print("Press save      + <Enter> to save")
+        print("Press stop      + <Enter> to stop")
+        print("Press get_st    + <Enter> to get statistics information")
+        print("Press get_best  + <Enter> to get best information")
+        print("Press ctrl      + c       to exit")
         while True:
             user_input = get_input()
             if user_input == "pause":
@@ -141,12 +141,13 @@ def start_ocl_ga_local(info_getter):
                 ocl_ga_thread.start()
             elif user_input == "stop":
                 ga_target.stop()
-            elif user_input == "plot_st":
+            elif user_input == "get_st":
                 st = ga_target.get_statistics()
                 utils.plot_ga_result(st)
-            elif user_input == "plot_best":
-                best_chromosome = ga_target.get_the_best()
-                utils.plot_tsp_result(ga_target.get_city_info(), best_chromosome)
+            elif user_input == "get_best":
+                best_chromosome, best_fitness, best_info = ga_target.get_the_best()
+                cities, city_info, city_infoX, city_infoY = read_all_cities("TW319_368Addresses-no-far-islands.json")
+                utils.plot_tsp_result(city_info, best_chromosome)
             elif user_input == "exit":
                 break
             elif user_input == "save":
@@ -158,15 +159,18 @@ def start_ocl_ga_local(info_getter):
 
 def start_tt_server():
     print("Press 1 + <Enter> to run as a OCL GA Server for remote clients.")
-    print("Press 2 + <Enter> to run Taiwan Travel OCL GA independently.")
+    print("Press 2 + <Enter> to run Taiwan Travel OCL GA locally.")
 
+    best = None
+    city_info = None
+    statistics = None
     def callback_from_client(info):
-        # TODO : Need to plot information in Mainthread.
+        nonlocal statistics, best, city_info
         if "best" in info:
             cities, city_info, city_infoX, city_infoY = read_all_cities("TW319_368Addresses-no-far-islands.json")
-            utils.plot_tsp_result(city_info, info["best"])
+            best = info['best']
         if "statistics" in info:
-            utils.plot_ga_result(info["statistics"])
+            statistics = info["statistics"]
             pass
 
     while True:
@@ -179,6 +183,11 @@ def start_tt_server():
             break
         elif user_input == "exit":
             break
+
+    if best and city_info:
+        utils.plot_tsp_result(city_info, best)
+    if statistics:
+        utils.plot_ga_result(statistics)
 
 if __name__ == '__main__':
     start_tt_server()

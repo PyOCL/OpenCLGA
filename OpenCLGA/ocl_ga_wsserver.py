@@ -15,13 +15,8 @@ else:
     from BaseHTTPServer import HTTPServer
     from StringIO import StringIO
 
-print(__name__)
-if __name__ == "ocl_ga_wsserver":
-    from utilities.generaltaskthread import TaskThread, Task
-    from utilities.httpwebsocketserver import HTTPWebSocketsHandler
-else:
-    from .utilities.generaltaskthread import TaskThread, Task
-    from .utilities.httpwebsocketserver import HTTPWebSocketsHandler
+from .utilities.generaltaskthread import TaskThread, Task
+from .utilities.httpwebsocketserver import HTTPWebSocketsHandler
 
 if len(sys.argv) > 1:
     port = int(sys.argv[1])

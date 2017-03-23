@@ -7,10 +7,7 @@ import numpy
 import pickle
 import pyopencl as cl
 
-if __name__ == "ocl_ga":
-    import utils
-else:
-    from . import utils
+from . import utils
 
 class OpenCLGA():
     def __init__(self, options):

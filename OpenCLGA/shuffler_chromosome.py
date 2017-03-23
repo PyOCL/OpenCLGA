@@ -2,11 +2,7 @@
 import numpy
 import pyopencl as cl
 
-print(__name__)
-if __name__ == "shuffler_chromosome":
-    from simple_gene import SimpleGene
-else:
-    from .simple_gene import SimpleGene
+from .simple_gene import SimpleGene
 
 class ShufflerChromosome:
     # ShufflerChromosome - a chromosome contains a list of Genes.

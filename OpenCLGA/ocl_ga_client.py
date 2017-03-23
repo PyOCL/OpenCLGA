@@ -7,17 +7,11 @@ import random
 import tempfile
 import threading
 import time
-
 from multiprocessing import Process, Pipe
 
-if __name__ == "ocl_ga_client":
-    from ocl_ga import OpenCLGA
-    from utilities.generaltaskthread import Logger
-    from utilities.socketserverclient import Client, OP_MSG_BEGIN, OP_MSG_END
-else:
-    from .ocl_ga import OpenCLGA
-    from .utilities.generaltaskthread import Logger
-    from .utilities.socketserverclient import Client, OP_MSG_BEGIN, OP_MSG_END
+from .ocl_ga import OpenCLGA
+from .utilities.generaltaskthread import Logger
+from .utilities.socketserverclient import Client, OP_MSG_BEGIN, OP_MSG_END
 
 oclClient = None
 

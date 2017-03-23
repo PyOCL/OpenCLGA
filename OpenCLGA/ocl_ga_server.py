@@ -7,13 +7,8 @@ import threading
 import time
 import traceback
 
-print(__name__)
-if __name__ == "ocl_ga_server":
-    from utilities.socketserverclient import Server, OP_MSG_BEGIN, OP_MSG_END
-    from ocl_ga_wsserver import OclGAWSServer
-else:
-    from .utilities.socketserverclient import Server, OP_MSG_BEGIN, OP_MSG_END
-    from .ocl_ga_wsserver import OclGAWSServer
+from .utilities.socketserverclient import Server, OP_MSG_BEGIN, OP_MSG_END
+from .ocl_ga_wsserver import OclGAWSServer
 
 class OpenCLGAServer(object):
     def __init__(self, options, port=12345):
@@ -240,8 +235,8 @@ def start_ocl_ga_server(info_getter, callbacks = {}):
         print("Press pause      + <Enter> to pause")
         print("Press save       + <Enter> to save (filename:test%d%d.pickle)")
         print("Press stop       + <Enter> to stop")
-        print("Press plot_st    + <Enter> to plot statistics")
-        print("Press plot_best  + <Enter> to plot best")
+        print("Press get_st     + <Enter> to get statistics")
+        print("Press get_best   + <Enter> to get best")
         print("Press ctrl       + c       to exit")
 
         while True:
@@ -257,9 +252,9 @@ def start_ocl_ga_server(info_getter, callbacks = {}):
                 oclGAServer.stop()
             elif "save" == user_input:
                 oclGAServer.save()
-            elif "plot_st" == user_input:
+            elif "get_st" == user_input:
                 oclGAServer.get_statistics()
-            elif "plot_best" == user_input:
+            elif "get_best" == user_input:
                 oclGAServer.get_the_best()
             elif "restore" == user_input:
                 oclGAServer.restore()
