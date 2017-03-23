@@ -5,7 +5,7 @@ import { REPOPULATE_CONFIG_TYPE } from '../../shared/config';
 
 export const getDropdownText = (type) => {
   switch(type) {
-    case REPOPULATE_CONFIG_TYPE.DEFAULT:
+    case REPOPULATE_CONFIG_TYPE.DISABLED:
       return 'Disabled';
     case REPOPULATE_CONFIG_TYPE.BEST_WORST_DIFF:
       return 'Diff of Best and Worst';
@@ -21,8 +21,8 @@ const RepopulateTypeDropdown = (props) => {
     <DropdownButton bsStyle='default' title={getDropdownText(props.value)}
                     className={props.className} id='repopulate-type'
                     onSelect={props.onSelect}>
-      <MenuItem eventKey={REPOPULATE_CONFIG_TYPE.DEFAULT}>
-        {getDropdownText(REPOPULATE_CONFIG_TYPE.DEFAULT)}
+      <MenuItem eventKey={REPOPULATE_CONFIG_TYPE.DISABLED}>
+        {getDropdownText(REPOPULATE_CONFIG_TYPE.DISABLED)}
       </MenuItem>
       <MenuItem eventKey={REPOPULATE_CONFIG_TYPE.BEST_WORST_DIFF}>
         {getDropdownText(REPOPULATE_CONFIG_TYPE.BEST_WORST_DIFF)}

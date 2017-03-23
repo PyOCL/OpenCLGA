@@ -1,21 +1,33 @@
-import React, { PropTypes } from 'react';
+import React, { Component, PropTypes } from 'react';
 import NumericInput from 'react-numeric-input';
 import RepopulateTypeDropdown from './repopulate_type_dropdown';
+import { REPOPULATE_CONFIG_TYPE } from '../../shared/config';
 
-const RepopulationRow = (props) => {
-  return (
-    <div className={`${props.className}-row`}>
-      <label>Repopulate 90% when</label>
-      <RepopulateTypeDropdown value={props.type}
-                              className={`type-dropdown ${props.className}-dropdown`}
-                              onSelect={props.onSelect} />
-      <label>is greater than</label>
-      <div style={{display: 'inline-block'}}>
-        <NumericInput className={`numeric-input ${props.className}-number`}
-                      min={0.1} max={1000} value={1} step={1} />
+class RepopulationRow extends Component {
+
+  render() {
+    const {
+      className,
+      config,
+      onInputChange,
+      onTypeChange
+    } = this.props;
+    const inputDisabled = config.type === REPOPULATE_CONFIG_TYPE.DISABLED;
+    return (
+      <div className={`${className}-row`}>
+        <label>Repopulate 90% when</label>
+        <RepopulateTypeDropdown value={config.type}
+                                className={`type-dropdown ${className}-dropdown`}
+                                onSelect={onTypeChange} />
+        <label>is greater than</label>
+        <div style={{display: 'inline-block'}}>
+          <NumericInput className={`numeric-input ${className}-number`}
+                        min={0.1} max={1000} value={config.diff} step={1}
+                        onChange={onInputChange} disabled={inputDisabled} />
+        </div>
       </div>
-    </div>
-   );
+    );
+  }
 };
 
 RepopulationRow.propTypes = {

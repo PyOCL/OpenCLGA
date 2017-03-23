@@ -12,7 +12,8 @@ const NumericRow = (props) => {
       <Col xs={12} sm={4} md={4}><ControlLabel>{props.label}</ControlLabel></Col>
       <Col xs={12} sm={8} md={8}>
           <NumericInput className={`${props.baseClassName}-number`}
-                        min={props.min} max={props.max} value={props.value} step={props.step} />
+                        min={props.min} max={props.max} value={props.value} step={props.step}
+                        onChange={props.onChange} disabled={props.disabled} />
           <label>{props.trailing}</label>
       </Col>
     </Row>
@@ -21,16 +22,19 @@ const NumericRow = (props) => {
 
 NumericRow.propTypes = {
   baseClassName: PropTypes.string,
+  disabled: PropTypes.bool,
   label: PropTypes.node,
-  trailing: PropTypes.node,
-  min: PropTypes.number,
   max: PropTypes.number,
-  value: PropTypes.number,
-  step: PropTypes.number
+  min: PropTypes.number,
+  onChange: PropTypes.func,
+  step: PropTypes.number,
+  trailing: PropTypes.node,
+  value: PropTypes.number
 };
 
 NumericRow.defaultProps = {
   baseClassName: 'numeric',
+  disabled: false,
   min: 0,
   max: 100,
   value: 0,

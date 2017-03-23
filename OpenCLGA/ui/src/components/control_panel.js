@@ -7,14 +7,13 @@ import {
 
 import StatusLabel from './control/status_label';
 
-class ConfigPanel extends Component {
+class ControlPanel extends Component {
 
   render() {
     const {
       actions,
       control
     } = this.props;
-    debugger;
     return (
       <Panel header='Control Panel' bsStyle='success'>
         <Row>
@@ -39,4 +38,4 @@ class ConfigPanel extends Component {
   }
 }
 
-export default ConfigPanel;
+export default ControlPanel;

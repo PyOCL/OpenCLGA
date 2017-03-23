@@ -5,7 +5,8 @@ const CrossoverRow = (props) => {
   return (
     <NumericRow baseClassName='crossover'
                 label='Crossover ratio (%):'
-                min={1} max={100} value={80} step={1} />
+                min={1} max={100} value={props.value} step={1}
+                onChange={props.onChange} />
   );
 };
 

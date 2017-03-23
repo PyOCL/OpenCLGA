@@ -4,12 +4,21 @@ import {
 } from 'react-bootstrap';
 import NumericInput from 'react-numeric-input';
 
+// TODO: make this as a stateful component because create a function inside render is an
+// anti-pattern.
 const ShareResultRow = (props) => {
+  const handleCheckboxChanged = (evt) => {
+    const value = props.value || 1;
+    props.onChange(evt.target.checked ? value : 0);
+  };
   return (
     <div className={`${props.className}-row`}>
-      <Checkbox>Share best results after</Checkbox>
+      <Checkbox checked={props.value > 0} onChange={handleCheckboxChanged}>
+        Share best results after
+      </Checkbox>
       <NumericInput className={`numeric-input ${props.className}-number`}
-                    min={1} max={100000} value={100} step={1} />
+                    min={0} max={100000} value={props.value} step={1}
+                    onChange={props.onChange}/>
       <label>generations.</label>
     </div>
    );
@@ -18,7 +27,8 @@ const ShareResultRow = (props) => {
 ShareResultRow.propTypes = {
   className: PropTypes.string,
   type: PropTypes.string,
-  onSelect: PropTypes.func
+  onSelect: PropTypes.func,
+  onChange: PropTypes.func
 };
 
 ShareResultRow.defaultProps = {

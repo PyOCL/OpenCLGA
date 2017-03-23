@@ -15,31 +15,35 @@ class ConfigPanel extends Component {
 
   render() {
     const {
-      repopulateConfig
-    } = this.props.config;
-
-    const actions = this.props.actions;
-
+      actions,
+      config
+    } = this.props;
     return (
       <Panel header='Configuration Panel' bsStyle='success'>
         <Row>
           <Col xs={12} sm={12} md={6}>
-            <GenerationsRow />
-            <PopulationsRow />
+            <GenerationsRow config={config.termination}
+                            onChange={actions.setTermination} />
+            <PopulationsRow value={config.population}
+                            onChange={actions.setPopulation} />
           </Col>
           <Col xs={12} sm={12} md={6}>
-            <CrossoverRow />
-            <MutationRow />
+            <CrossoverRow value={config.crossoverRatio}
+                         onChange={actions.setCrossoverRatio} />
+            <MutationRow value={config.mutationRatio}
+                          onChange={actions.setMutationRatio} />
           </Col>
         </Row>
         <hr/>
         <Row>
           <Col xs={12} sm={12} md={12}>
-            <RepopulationRow type={repopulateConfig.type}
-                             onSelect={actions.setRepopulateConfigType} />
+            <RepopulationRow config={config.repopulateConfig}
+                             onTypeChange={actions.setRepopulateConfigType}
+                             onInputChange={actions.setRepopulateConfigDiff} />
           </Col>
           <Col xs={12} sm={12} md={12}>
-            <ShareResultRow/>
+            <ShareResultRow value={config.shareBestCount}
+                            onChange={actions.setShareBestCount} />
           </Col>
         </Row>
       </Panel>

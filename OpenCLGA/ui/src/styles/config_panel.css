@@ -3,7 +3,8 @@
 .crossover-row .crossover-number,
 .mutation-row .mutation-number,
 .repopulation-row .repopulation-number,
-.share-result-row .share-result-number {
+.share-result-row .share-result-number,
+.populations-row .populations-number {
   text-align: right;
 }
 

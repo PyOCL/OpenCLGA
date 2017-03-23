@@ -5,7 +5,8 @@ const PopulationsRow = (props) => {
   return (
     <NumericRow baseClassName='populations'
                 label='Populations per Device:'
-                min={100} value={1000} step={1000} />
+                min={100} value={props.value} max={1000000000} step={100}
+                onChange={props.onChange}/>
   );
 };
 

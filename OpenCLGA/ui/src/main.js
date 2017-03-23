@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { setRepopulateConfigType } from './actions/config';
+import * as configActions from './actions/config';
 import * as controlActions from './actions/control';
 import ConfigPanel from './components/config_panel';
 import ControlPanel from './components/control_panel';
@@ -22,7 +22,7 @@ class Main extends Component {
           <h2>OpenCLGA UI</h2>
         </div>
         <div className='app-main'>
-          <ConfigPanel config={config} actions={actions} />
+          <ConfigPanel config={config} actions={actions.configActions} />
           <ControlPanel control={control} actions={actions.controlActions} />
         </div>
       </div>
@@ -40,7 +40,7 @@ const mapStateToProps = (state) => {
 const mapDispatchToProps = (dispatch) => {
   return {
     actions: {
-      setRepopulateConfigType: bindActionCreators(setRepopulateConfigType, dispatch),
+      configActions: bindActionCreators(configActions, dispatch),
       controlActions: bindActionCreators(controlActions, dispatch)
     }
   }
