@@ -6,6 +6,7 @@ import thunk from 'redux-thunk';
 
 import Main from './main';
 import rootReducer from './reducers/index';
+import socket from './actions/socket';
 import './styles/defaults.css';
 import './styles/index.css';
 import './styles/config_panel.css';
@@ -37,6 +38,8 @@ import './styles/control_panel.css';
   };
 
   initStore().then((store) => {
+    socket.init(store);
+    socket.connect('ws://localhost:8000');
     initUI(store);
   });
 })();

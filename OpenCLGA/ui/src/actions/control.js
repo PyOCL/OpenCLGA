@@ -1,6 +1,7 @@
 import { OPENCLGA_STATES } from '../shared/constants';
 import { createSimpleAction } from '../shared/utils';
 import { ACTION_KEYS } from '../shared/control';
+import socket from './socket';
 
 const setState = createSimpleAction(ACTION_KEYS.setState);
 
@@ -12,18 +13,30 @@ export const prepare = () => (dispatch, getState) => {
 };
 
 export const run = () => (dispatch, getState) => {
-    dispatch(setState(OPENCLGA_STATES.RUNNING));
+    socket.sendCommand('run', {
+        'prob_mutation': 0.1,
+        'prob_crossover': 0.8
+    });
+    // The following line should be removed. The state changing should be made by
+    // socket... We use this line to easy testing.
+    setTimeout(() => {
+        dispatch(setState(OPENCLGA_STATES.RUNNING));
+    }, 2000);
 };
 
 export const pause = () => (dispatch, getState) => {
-    dispatch(setState(OPENCLGA_STATES.PAUSING));
+    socket.sendCommand('pause');
+    // The following line should be removed. The state changing should be made by
+    // socket... We use this line to easy testing.
     setTimeout(() => {
         dispatch(setState(OPENCLGA_STATES.PAUSED));
     }, 2000);
 };
 
 export const stop = () => (dispatch, getState) => {
-    dispatch(setState(OPENCLGA_STATES.STOPPING));
+    socket.sendCommand('stop');
+    // The following line should be removed. The state changing should be made by
+    // socket... We use this line to easy testing.
     setTimeout(() => {
         dispatch(setState(OPENCLGA_STATES.STOPPED));
     }, 2000);
