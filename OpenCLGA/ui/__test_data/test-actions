@@ -1,0 +1,24 @@
+{
+  type: 'socket.clientConnected',
+  data: {
+    'client': '123',
+    'device': 'i7 CPU',
+    'ip': '127.0.0.1',
+    'platform': 'INTEL',
+    'type': 'cpu',
+  }
+}
+
+{
+  type: 'socket.generationResult',
+  data: {
+    'client': '123',
+    'result': {
+      "best_fitness": 1023,
+      "avg_fitness": 2230,
+      "worst_fitness": 2340,
+      "best_result": [{}, {}, {}]
+    }
+  }
+}
+

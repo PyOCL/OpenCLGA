@@ -5,6 +5,7 @@ import * as configActions from './actions/config';
 import * as controlActions from './actions/control';
 import ConfigPanel from './components/config_panel';
 import ControlPanel from './components/control_panel';
+import WidgetsPanel from './components/widgets_panel';
 
 import './styles/main.css';
 
@@ -13,7 +14,8 @@ class Main extends Component {
     const {
       config,
       control,
-      actions
+      actions,
+      clients
     } = this.props;
 
     return (
@@ -24,6 +26,7 @@ class Main extends Component {
         <div className='app-main'>
           <ConfigPanel config={config} actions={actions.configActions} />
           <ControlPanel control={control} actions={actions.controlActions} />
+          <WidgetsPanel clients={clients} />
         </div>
       </div>
     );
@@ -33,7 +36,8 @@ class Main extends Component {
 const mapStateToProps = (state) => {
   return {
     config: state.config,
-    control: state.control
+    control: state.control,
+    clients: state.socket.clients
   };
 };
 

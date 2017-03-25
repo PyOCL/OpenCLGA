@@ -8,6 +8,7 @@
   },
   "devDependencies": {
     "lodash": "4.17.4",
+    "numeral": "^2.0.4",
     "react-bootstrap": "0.30.8",
     "react-numeric-input": "2.0.7",
     "react-redux": "5.0.3",

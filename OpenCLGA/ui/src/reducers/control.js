@@ -27,7 +27,7 @@ const initialState = {
 
 export default (state = initialState, payload) => {
   switch (payload.type) {
-    case ACTION_KEYS.setState:
+    case ACTION_KEYS.SET_STATE:
       return {
         ...state,
         currentState: payload.data,

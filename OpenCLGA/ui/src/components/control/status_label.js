@@ -1,13 +1,11 @@
 import React from 'react';
-import { Row } from 'react-bootstrap';
+import LabeledInfo from '../base/labeled_info';
 
 const StatusLabel = (props) => {
-  return (
-    <Row className={'status-label-row ' + (props.className ? props.className : '')}>
-      <Row className='label-row'>Status:</Row>
-      <Row className='status-row'>{props.status}</Row>
-    </Row>
-  );
-}
+  return (<LabeledInfo baseClassName='status'
+                       className={props.className}
+                       info={props.status}
+                       label='Status:' />);
+};
 
 export default StatusLabel;

@@ -48,12 +48,17 @@ const handleGenerationResult = (clients, data) => {
     return;
   }
   client.statistics.push(data.result);
+  if (client.best) {
+    // TODO: we should read opt_for_max from server.
+    client.best = Math.min(client.best, data.result.best_fitness);
+  } else {
+    client.best = data.result.best_fitness;
+  }
 };
 
 export default (state = initialState, payload) => {
   const data = payload.data;
-  const clients = [ ...state.clients ];
-
+  const clients = { ...state.clients };
   switch (payload.type) {
     case ACTION_KEYS.CLIENT_CONNECTED:
       handleClientConnected(clients, data);

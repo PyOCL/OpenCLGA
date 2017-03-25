@@ -11,6 +11,7 @@ import './styles/defaults.css';
 import './styles/index.css';
 import './styles/config_panel.css';
 import './styles/control_panel.css';
+import './styles/widgets/widgets.css';
 
 (function init() {
   let store;

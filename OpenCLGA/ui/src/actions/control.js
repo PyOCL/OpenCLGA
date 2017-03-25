@@ -3,7 +3,7 @@ import { createSimpleAction } from '../shared/utils';
 import { ACTION_KEYS } from '../shared/control';
 import socket from './socket';
 
-const setState = createSimpleAction(ACTION_KEYS.setState);
+const setState = createSimpleAction(ACTION_KEYS.SET_STATE);
 
 export const prepare = () => (dispatch, getState) => {
   dispatch(setState(OPENCLGA_STATES.PREPARING));

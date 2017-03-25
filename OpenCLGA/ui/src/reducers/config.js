@@ -1,4 +1,4 @@
-import { REPOPULATE_CONFIG_TYPE } from '../shared/config';
+import { ACTION_KEYS, REPOPULATE_CONFIG_TYPE } from '../shared/config';
 
 const initialState = {
   termination: {
@@ -15,20 +15,11 @@ const initialState = {
   shareBestCount: 0
 };
 
-const AUTO_FILL_NAME = [
-  'termination',
-  'population',
-  'mutationRatio',
-  'crossoverRatio',
-  'repopulateConfig',
-  'shareBestCount'
-];
-
 export default (state = initialState, payload) => {
-  if (AUTO_FILL_NAME.indexOf(payload.type) > -1) {
+  if (ACTION_KEYS.SET_CONFIG === payload.type) {
     return {
       ...state,
-      [payload.type]: payload.data
+      [payload.data.field]: payload.data.data
     };
   } else {
     return state;

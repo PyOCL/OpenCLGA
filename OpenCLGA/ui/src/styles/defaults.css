@@ -30,3 +30,21 @@
   min-width: 90px;
   font-weight: 700;
 }
+
+.labeled-info-row {
+  margin-left: 20px;
+  margin-right: 20px;
+  padding: 5px 10px;
+}
+
+.labeled-info-row .row {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.labeled-info-row .info-row {
+  margin-left: 10px;
+  margin-right: 10px;
+  font-size: x-large;
+  text-transform: capitalize;
+}

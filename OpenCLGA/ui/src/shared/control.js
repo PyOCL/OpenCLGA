@@ -1,3 +1,3 @@
 export const ACTION_KEYS = {
-  setState: 'control.setState'
+  SET_STATE: 'control.setState'
 };

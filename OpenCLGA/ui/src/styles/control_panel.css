@@ -1,46 +1,30 @@
-
-.status-label-row {
+.status-label-row.labeled-info-row {
   float: left;
   width: 200px;
-  margin-left: 20px;
-  margin-right: 20px;
   border: 2px solid green;
   border-radius: 4px;
   box-shadow: 2px 2px 4px #050;
-  padding: 5px 10px;
 }
 
-.status-label-row .row {
-  margin-left: 0;
-  margin-right: 0;
-}
-
-.status-label-row .status-row {
-  margin-left: 10px;
-  margin-right: 10px;
-  font-size: x-large;
-  text-transform: capitalize;
-}
-
-.status-label-row.waiting .status-row,
-.status-label-row.preparing .status-row,
-.status-label-row.restoring .status-row,
-.status-label-row.prepared .status-row {
+.status-label-row.waiting .info-row,
+.status-label-row.preparing .info-row,
+.status-label-row.restoring .info-row,
+.status-label-row.prepared .info-row {
   color: blue;
 }
 
-.status-label-row.running .status-row {
+.status-label-row.running .info-row {
   color: green;
 }
 
-.status-label-row.pausing .status-row,
-.status-label-row.paused .status-row,
-.status-label-row.saving .status-row {
+.status-label-row.pausing .info-row,
+.status-label-row.paused .info-row,
+.status-label-row.saving .info-row {
   color: #556B2F;
 }
 
-.status-label-row.stopping .status-row,
-.status-label-row.stopped .status-row {
+.status-label-row.stopping .info-row,
+.status-label-row.stopped .info-row {
   color: #8B0000;
 }
 
