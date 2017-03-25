@@ -11,3 +11,9 @@ export const OPENCLGA_STATES = {
   STOPPING: 'stopping',
   STOPPED: 'stopped'
 };
+
+export const DEVICE_TYPE = {
+  GPU: 'gpu',
+  CPU: 'cpu',
+  DSP: 'dsp'
+};

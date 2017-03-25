@@ -31,7 +31,6 @@ export default (state = initialState, payload) => {
       [payload.type]: payload.data
     };
   } else {
-    console.error('unexpected payload type', payload.type);
     return state;
   }
 };

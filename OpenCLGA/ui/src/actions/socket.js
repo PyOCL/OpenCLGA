@@ -1,3 +1,4 @@
+import { ACTION_KEYS, WEBSOCKET_MESSAGE_TYPE } from '../shared/socket';
 
 class Socket {
 
@@ -31,26 +32,58 @@ class Socket {
 
     handleOpen(evt) {
         this.connected = true;
-        this.dispatch('open', this);
+        this.dispatchEvent('open', this);
     }
 
     handleClose(evt) {
         this.connected = false;
-        this.dispatch('close', {
+        this.dispatchEvent('close', {
             code: evt.code,
             reason: evt.reason
         });
     }
 
     handleMessage(evt) {
-        console.log('ws message', evt.data);
+        // TODO: to prevent information leakage, we should remove this line.
+        console.log('ws msg', evt.data);
+        if (!evt.data) {
+            console.error('Wrong ws message got!!', evt);
+            return;
+        }
+        const data = JSON.parse(evt.data);
+        let actionType;
+        switch (data.type) {
+            case WEBSOCKET_MESSAGE_TYPE.CLIENT_CONNECTED:
+                actionType = ACTION_KEYS.CLIENT_CONNECTED;
+                break;
+            case WEBSOCKET_MESSAGE_TYPE.CLIENT_LOST:
+                actionType = ACTION_KEYS.CLIENT_LOST;
+                break;
+            case WEBSOCKET_MESSAGE_TYPE.STATE_CHANGED:
+                actionType = ACTION_KEYS.STATE_CHANGED;
+                break;
+            case WEBSOCKET_MESSAGE_TYPE.GENERATION_RESULT:
+                actionType = ACTION_KEYS.GENERATION_RESULT;
+                break;
+            default:
+                console.log('Unknown ws message!!', data.type);
+        }
+        if (!actionType) {
+            // no action type found!!
+            return;
+        }
+
+        this.store.dispatch({
+            type: actionType,
+            payload: data.payload
+        });
     }
 
     handleError(err) {
         console.error('websocket error', err);
     }
 
-    dispatch(type, data) {
+    dispatchEvent(type, data) {
         const listeners = this.listeners[type];
         if (!listeners || !listeners.length) {
             return;
