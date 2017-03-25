@@ -49,13 +49,14 @@ class OpenCLGAServer(object):
         elif msg['command'] == 'stop':
             self.stop()
 
-    def _handleWSMessage(self, client_addr, wshandler, message):
+    def _handleWSMessage(self, client_addr, wshandler, byte_message):
         # Handle messages from WebSocket.
         if client_addr not in self.websockets:
             self.websockets[client_addr] = wshandler
 
         try:
-            self._executeWSMessage(json.loads(message))
+            str_msg = str(byte_message, "utf-8")
+            self._executeWSMessage(json.loads(str_msg))
         except Exception as e:
             print("Client: {} sends message format: {}".format(client_addr, message))
 

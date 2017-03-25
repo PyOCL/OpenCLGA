@@ -7,6 +7,7 @@ import random
 import tempfile
 import threading
 import time
+import uuid
 from multiprocessing import Process, Pipe
 
 from .ocl_ga import OpenCLGA
@@ -64,8 +65,10 @@ class OpenCLGAWorker(Process):
             self.client = Client(self.ip, self.port, {0 : { "pre" : OP_MSG_BEGIN,
                                                             "post": OP_MSG_END,
                                                             "callback" : self.process_data}})
-            self.send({"type": "device_info",
-                       "device_name": self.device.name})
+            c_uuid = uuid.uuid1()
+            self.send({"type"         : "device_info",
+                       "device_name"  : self.device.name,
+                       "client_id"    : (c_uuid.hex, self.ip)})
         except ConnectionRefusedError:
             self.logger.error("Connection refused! Please check Server status.")
             self.client = None
