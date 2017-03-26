@@ -1,4 +1,4 @@
-import { OPENCLGA_STATES, STATE_HANDLERS } from '../shared/constants';
+import { OPENCLGA_STATES } from '../shared/constants';
 import { createSimpleAction } from '../shared/utils';
 import { ACTION_KEYS } from '../shared/control';
 import socket from './socket';
@@ -41,10 +41,3 @@ export const stop = () => (dispatch, getState) => {
     dispatch(setState(OPENCLGA_STATES.STOPPED));
   }, 2000);
 };
-
-// This is not a traditional action creator. It calculates the state and generates the
-// action if needed. If no needs, it returns null.
-export const calcStateChange = (currentState, clientsStates) => {
-  const nextState = STATE_HANDLERS[currentState](clientsStates);
-  return (nextState !== currentState) ? setState(nextState) : null;
-}
