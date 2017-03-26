@@ -24,8 +24,8 @@ class ConfigPanel extends Component {
           <Col xs={12} sm={12} md={6}>
             <GenerationsRow config={config.termination}
                             onChange={actions.setTermination} />
-            <PopulationsRow value={config.population}
-                            onChange={actions.setPopulation} />
+            <PopulationsRow value={config.populations}
+                            onChange={actions.setPopulations} />
           </Col>
           <Col xs={12} sm={12} md={6}>
             <CrossoverRow value={config.crossoverRatio}

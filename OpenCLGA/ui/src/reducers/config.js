@@ -5,7 +5,7 @@ const initialState = {
     type: 'count',
     count: 1000
   },
-  population: 100,
+  populations: 100,
   mutationRatio: 10,
   crossoverRatio: 80,
   repopulateConfig: {

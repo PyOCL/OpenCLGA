@@ -9,7 +9,7 @@ const setConfig = (field, data) => {
 
 export const setCrossoverRatio = (value) => (setConfig('crossoverRatio', value));
 export const setMutationRatio = (value) => (setConfig('mutationRatio', value));
-export const setPopulation = (value) => (setConfig('population', value));
+export const setPopulations = (value) => (setConfig('populations', value));
 export const setShareBestCount = (value) => (setConfig('shareBestCount', value));
 
 export const setRepopulateConfig = (type, diff) => (dispatch, getState) => {
