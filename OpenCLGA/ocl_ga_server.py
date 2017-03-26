@@ -35,7 +35,6 @@ class OpenCLGAServer(object):
 
     def _handle_keyboard_message(self):
         data = None
-        # try:
         if sys.platform in ["linux", "darwin"]:
             import select
             if select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], []):
@@ -54,8 +53,6 @@ class OpenCLGAServer(object):
                     data = None
         else:
             pass
-        # except KeyboardInterrupt:
-        #     data = "exit"
         return data
 
     def __get_ws_input(self):
@@ -63,7 +60,6 @@ class OpenCLGAServer(object):
         try:
             inputs = self.__q_ws.get_nowait()
         except queue.Empty:
-            print("WS NONE")
             pass
         return inputs
 

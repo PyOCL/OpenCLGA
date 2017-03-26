@@ -158,7 +158,7 @@ def start_ocl_ga_local(serialized_info):
 
 def start_tt_server():
     print("Press 1 + <Enter> to run as a OCL GA Server for remote clients.")
-    print("Press 2 + <Enter> to run Taiwan Travel OCL GA locally.")
+    print("Press 2 + <Enter> to run Taiwan Travel OCL GA L-O-C-A-L-L-Y.")
 
     best = None
     city_info = None
