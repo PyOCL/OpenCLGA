@@ -1,19 +1,13 @@
 #!/usr/bin/python3
 import os
 import sys
-import threading
 import ssl
+import threading
 from base64 import b64encode
 
-VER = sys.version_info[0]
-if VER >= 3:
-    from socketserver import ThreadingMixIn
-    from http.server import HTTPServer
-    from io import StringIO
-else:
-    from SocketServer import ThreadingMixIn
-    from BaseHTTPServer import HTTPServer
-    from StringIO import StringIO
+from socketserver import ThreadingMixIn
+from http.server import HTTPServer
+from io import StringIO
 
 from .utilities.generaltaskthread import TaskThread, Task
 from .utilities.httpwebsocketserver import HTTPWebSocketsHandler
@@ -32,19 +26,25 @@ else:
     credentials = ""
 
 class HttpWSMessageHandler(HTTPWebSocketsHandler):
-    oclGAHandler = None
+    cn_hdlr = None
+    msg_hdlr = None
+    dcn_hdlr = None
     def on_ws_message(self, message):
         if message is None:
             message = ''
 
         self.log_message('websocket received "%s"',str(message))
-        if self.oclGAHandler:
-            self.oclGAHandler(self.address_string(), self, message)
+        if self.msg_hdlr:
+            self.msg_hdlr(self.client_address, message)
 
     def on_ws_connected(self):
         self.log_message('%s','websocket connected')
+        if self.cn_hdlr:
+            self.cn_hdlr(self.client_address, self)
 
     def on_ws_closed(self):
+        if self.dcn_hdlr:
+            self.dcn_hdlr(self.client_address)
         self.log_message('%s','websocket closed')
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
@@ -67,9 +67,12 @@ class HttpWSTask(Task):
         self.server.serve_forever()
 
 class OclGAWSServer(object):
-    def __init__(self, ip, port, credentials = "", handler = None):
+    def __init__(self, ip, port, credentials = "", connect_handler = None,
+                 message_handler = None, disconnect_handler = None):
         # Create threaded http server
-        HttpWSMessageHandler.oclGAHandler = handler
+        HttpWSMessageHandler.cn_hdlr = connect_handler
+        HttpWSMessageHandler.msg_hdlr = message_handler
+        HttpWSMessageHandler.dcn_hdlr = disconnect_handler
         self.httpwsserver = ThreadedHTTPServer((ip, port), HttpWSMessageHandler)
         self.httpwsserver_thread = TaskThread(name="httpwsserver")
         self.httpwsserver_thread.daemon = True

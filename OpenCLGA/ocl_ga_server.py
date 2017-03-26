@@ -32,7 +32,7 @@ class OpenCLGAServer(object):
         self.socket_server_port = port
         self._start_socket_server()
 
-        self.websockets = {}
+        self.websockets = {'controller' : {}, 'viewers' : []}
         self.httpws_server = None
         self.httpws_server_port = 8000
         self._start_http_websocket_server()
@@ -133,10 +133,28 @@ class OpenCLGAServer(object):
             return False
         return True
 
-    def _queue_ws_inputs(self, client_addr, wshandler, byte_message):
+    def _ws_connected(self, client_addr, wshandler):
+        viewers_addr = [addr for addr, handler in self.websockets['viewers']]
+        if not self.websockets['controller']:
+            self.websockets['controller'] = (client_addr, wshandler)
+            print("WS Controller {} is on !! ".format(client_addr))
+        elif client_addr not in viewers_addr:
+            self.websockets['viewers'].append((client_addr, wshandler))
+
+    def _ws_disconnected(self, client_addr):
+        viewers_addr = [addr for addr, handler in self.websockets['viewers']]
+        if client_addr in viewers_addr:
+            self.websockets['viewers'] = [ws for ws in self.websockets["viewers"] if ws[0] != client_addr]
+        if self.websockets['controller'] and client_addr == self.websockets['controller'][0]:
+            print("WS Controller is off, clean up all websockets !! ")
+            self.websockets['controller'] = None
+            self.websockets['viewers'] = []
+
+    def _ws_queue_inputs(self, client_addr, byte_message):
         # Handle messages from WebSocket.
-        if client_addr not in self.websockets:
-            self.websockets[client_addr] = wshandler
+        if self.websockets['controller'] and client_addr != self.websockets['controller'][0]:
+            print("WS client: {} message is ignored (Not controller !!)".format(client_addr))
+            return
 
         try:
             str_msg = str(byte_message, "utf-8")
@@ -145,7 +163,10 @@ class OpenCLGAServer(object):
             print("[Exception] WS client: {} sends message format: {}".format(client_addr, byte_message))
 
     def _start_http_websocket_server(self):
-        self.httpws_server = OclGAWSServer(self.server_ip, self.httpws_server_port, handler = self._queue_ws_inputs)
+        self.httpws_server = OclGAWSServer(self.server_ip, self.httpws_server_port,
+                                           connect_handler = self._ws_connected,
+                                           message_handler = self._ws_queue_inputs,
+                                           disconnect_handler = self._ws_disconnected)
         self.httpws_server.run_server()
 
     def _start_socket_server(self):
@@ -191,11 +212,18 @@ class OpenCLGAServer(object):
             elif dict_msg["type"] == "save":
                 saved_filename = dict_msg["result"]
 
-            # TODO : A temporary place to send message back to web page via websockets
-            for wsClient in list(self.websockets.values()):
-                wsClient.send_message(repr(result_type))
+            self.__send_message_to_WSs(dict_msg)
         except:
             traceback.print_exc()
+
+    def __send_message_to_WSs(self, msg):
+        # TODO : A temporary place to send message back to web page via websockets
+        contoller = self.websockets.get('contoller', None)
+        if contoller:
+            contoller[1].send_message(repr(msg))
+        viewers = self.websockets.get('viewers', [])
+        for viewer in viewers:
+            viewer[1].send_message(repr(msg))
 
     def __notify(self, name, data):
         if name not in self.__callbacks:
