@@ -38,7 +38,7 @@ class OpenCLGAServer(object):
 
         print('process command {}'.format(msg['command']))
         if msg['command'] == 'prepare':
-            self.prepare(msg['payload'])
+            print('prepare with args: {}'.format(json.dumps(msg)))
         elif msg['command'] == 'run':
             if 'payload' in msg:
                 self.run(msg['payload']['prob_mutation'], msg['payload']['prob_crossover'])

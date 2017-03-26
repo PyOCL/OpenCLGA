@@ -6,16 +6,26 @@ import socket from './socket';
 const setState = createSimpleAction(ACTION_KEYS.SET_STATE);
 
 export const prepare = () => (dispatch, getState) => {
-  dispatch(setState(OPENCLGA_STATES.PREPARING));
+  const config = getState().config;
+  socket.sendCommand('prepare', {
+    'termination_type': config.termination,
+    'populations': config.population,
+    'prob_mutation': config.mutationRatio / 100,
+    'prob_crossover': config.crossoverRatio / 100,
+    'repopulating_type': { [config.repopulateConfig.type] : config.repopulateConfig.diff },
+    'sharing_best_after': config.shareBestCount
+  });
+
   setTimeout(() => {
     dispatch(setState(OPENCLGA_STATES.PREPARED));
   }, 2000);
 };
 
 export const run = () => (dispatch, getState) => {
+  const config = getState().config;
   socket.sendCommand('run', {
-    'prob_mutation': 0.1,
-    'prob_crossover': 0.8
+    'prob_mutation': config.mutationRatio / 100,
+    'prob_crossover': config.crossoverRatio / 100
   });
   // The following line should be removed. The state changing should be made by
   // socket... We use this line to easy testing.
