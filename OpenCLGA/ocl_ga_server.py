@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import json
+import pickle
 import queue
 import socket
 import sys
@@ -11,7 +12,7 @@ from .utilities.socketserverclient import Server, OP_MSG_BEGIN, OP_MSG_END
 from .ocl_ga_wsserver import OclGAWSServer
 
 class OpenCLGAServer(object):
-    def __init__(self, options=None, port=12345):
+    def __init__(self, options, port=12345):
         self.__paused = False
         self.__forceStop = False
         self.__callbacks = {
@@ -19,7 +20,10 @@ class OpenCLGAServer(object):
             "disconnected": [], # for notifying users that a client is disconnected
             "message": [] # for notifying users that a message is received from client
         }
-        self.__serialized_options = options
+        # __options_info
+        #   - Include the information, i.e. Gene, Chromosome, generation,
+        #     fitness function, ...etc, for specific problem.
+        self.__options_info = options
         self.__q_kb = ""
         self.__q_ws = queue.Queue()
         self.server_ip = "0.0.0.0"
@@ -80,6 +84,20 @@ class OpenCLGAServer(object):
             return {'command' : 'exit'}
         return {}
 
+    def __update_options(self, payload):
+        termination_type = payload["termination_type"]
+        populations = payload["populations"]
+        prob_mutation = payload["prob_mutation"]
+        prob_crossover = payload["prob_crossover"]
+        # TODO : Need to add this into ocl_ga
+        repopulating_type = payload["repopulating_type"]
+        sharing_best_after = payload["sharing_best_after"]
+
+        self.__options_info['termination'] = termination_type
+        self.__options_info['population'] = populations
+        self.__options_info['prob_mutation'] = prob_mutation
+        self.__options_info['prob_crossover'] = prob_crossover
+
     def handle_message(self, msg):
         assert type(msg) == dict
 
@@ -89,11 +107,10 @@ class OpenCLGAServer(object):
         print('process command {}'.format(cmd))
 
         if cmd == 'prepare':
-            # TODO : A workaround to make UI can run TaiwanTravel example by
-            #        provide inforamtion from self.__serialized_options.
-            payload = self.__serialized_options if self.__serialized_options else msg.get('payload', {})
-            print('prepare with args: {}'.format(payload))
-            self.prepare(payload)
+            self.__update_options(msg.get('payload', {}))
+            print('prepare with args: {}'.format(self.__options_info))
+            packed = pickle.dumps(self.__options_info)
+            self.prepare(packed)
         elif cmd == "pause":
             self.pause()
         elif cmd == "run":
@@ -262,9 +279,9 @@ class OpenCLGAServer(object):
         self.socket_server.shutdown()
         self.socket_server = None
 
-def start_ocl_ga_server(serialized_info, callbacks = {}):
+def start_ocl_ga_server(info, callbacks = {}):
     try:
-        oclGAServer = OpenCLGAServer(options=serialized_info)
+        oclGAServer = OpenCLGAServer(options=info)
         for name, callback in list(callbacks.items()):
             oclGAServer.on(name, callback)
         time.sleep(0.5)

@@ -73,22 +73,20 @@ def get_taiwan_travel_info():
                  "saved_filename" : "test%d%d.pickle",
                  "prob_mutation" : 0.1,
                  "prob_crossover" : 0.8,}
-    serialized_info = pickle.dumps(dict_info)
-    return serialized_info
+    return dict_info
 
 lines_input = ""
 def get_input():
     data = None
     try:
+        time.sleep(0.01)
         if sys.platform in ["linux", "darwin"]:
             import select
-            time.sleep(0.01)
             if select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], []):
                 data = sys.stdin.readline().rstrip()
         elif sys.platform == "win32":
             global lines_input
             import msvcrt
-            time.sleep(0.01)
             if msvcrt.kbhit():
                 data = msvcrt.getch().decode("utf-8")
                 if data == "\r":
@@ -113,8 +111,7 @@ def run_ocl_ga(ga, prob_mutation, prob_crossover):
     ga.run(prob_mutation, prob_crossover)
     print("[Local] OpenCLGA run end !")
 
-def start_ocl_ga_local(serialized_info):
-    info = pickle.loads(serialized_info)
+def start_ocl_ga_local(info):
     info['saved_filename'] = info['saved_filename']%(0, 0)
     info["generation_callback"] = show_generation_info
     prob_mutation = info['prob_mutation']
@@ -172,14 +169,14 @@ def start_tt_server():
             statistics = info["statistics"]
             pass
 
-    serialized_tt_info = get_taiwan_travel_info()
+    tt_info = get_taiwan_travel_info()
     while True:
         user_input = get_input()
         if user_input == "1":
-            start_ocl_ga_server(serialized_tt_info, {"message" : callback_from_client})
+            start_ocl_ga_server(tt_info, {"message" : callback_from_client})
             break
         elif user_input == "2":
-            start_ocl_ga_local(serialized_tt_info)
+            start_ocl_ga_local(tt_info)
             break
         elif user_input == "exit":
             break
