@@ -14,7 +14,7 @@ Option B. Install by ourself
 
 - Windows 10 (just to install all required stuff in a quick way)
 
-  * Step 1. Install platform opencl graphic driver, e.g. Intel CPU or Intel HD Grahics (https://software.intel.com/en-us/intel-opencl)
+  * Step 1. Install platform opencl graphic driver, e.g. Intel CPU or Intel HD Grahics (https://software.intel.com/en-us/intel-opencl), NVIDIA GPU Driver (https://developer.nvidia.com/opencl)
 
   * Step 2. Install the following `*.whl` for python from
 
