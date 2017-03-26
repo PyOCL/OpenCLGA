@@ -1,3 +1,4 @@
+import _ from 'lodash';
 import { DEVICE_TYPE, OPENCLGA_STATES } from '../shared/constants';
 import { ACTION_KEYS } from '../shared/socket';
 
@@ -19,7 +20,7 @@ const handleWorkerConnected = (workers, data) => {
   if (workers[data.worker]) {
     console.warn('duplicated worker found!! data will be overridden.', data.worker);
   }
-  const worker = { ...WORKER_TEMPLATE };
+  const worker = _.cloneDeep(WORKER_TEMPLATE);
   worker.device = data.device;
   worker.id = data.worker;
   worker.ip = data.ip;
@@ -58,7 +59,7 @@ const handleGenerationResult = (workers, data) => {
 
 export default (state = initialState, payload) => {
   const data = payload.data;
-  const workers = { ...state.workers };
+  const workers = _.cloneDeep(state.workers);
   switch (payload.type) {
     case ACTION_KEYS.WORKER_CONNECTED:
       handleWorkerConnected(workers, data);
