@@ -1,10 +1,10 @@
 import React, { PropTypes } from 'react';
 import { Well } from 'react-bootstrap';
-import numeral from 'numeral';
 import LabeledInfo from '../base/labeled_info';
+import { formatFitness } from '../../shared/utils';
 
 const BestFitness = (props) => {
-  const content = numeral(props.value).format('0,0.0000');
+  const content = formatFitness(props.value);
   return (
     <Well>
       <LabeledInfo baseClassName='best-fitness'

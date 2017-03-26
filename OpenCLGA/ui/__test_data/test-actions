@@ -1,3 +1,4 @@
+===== clients =====
 {
   type: 'socket.clientConnected',
   data: {
@@ -10,13 +11,39 @@
 }
 
 {
+  type: 'socket.clientConnected',
+  data: {
+    'client': '234',
+    'device': 'HD GPU',
+    'ip': '127.0.0.1',
+    'platform': 'INTEL',
+    'type': 'gpu',
+  }
+}
+
+===== result =====
+
+{
   type: 'socket.generationResult',
   data: {
     'client': '123',
     'result': {
-      "best_fitness": 1023,
+      "best_fitness": 1023.25,
       "avg_fitness": 2230,
       "worst_fitness": 2340,
+      "best_result": [{}, {}, {}]
+    }
+  }
+}
+
+{
+  type: 'socket.generationResult',
+  data: {
+    'client': '234',
+    'result': {
+      "best_fitness": 21304,
+      "avg_fitness": 223023,
+      "worst_fitness": 234042,
       "best_result": [{}, {}, {}]
     }
   }

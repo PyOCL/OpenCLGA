@@ -1,5 +1,7 @@
-html, body {
-  margin: 0;
-  padding: 0;
-  font-family: sans-serif;
-}
+/* include 3-rd parties' css files */
+@import url('../../node_modules/react-bootstrap-table/dist/react-bootstrap-table-all.min.css');
+/* include OpenCLGA UI all css files*/
+@import url('./defaults.css');
+@import url('./config_panel.css');
+@import url('./control_panel.css');
+@import url('./widgets/widgets.css');
