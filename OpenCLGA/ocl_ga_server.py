@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 import json
-import select
+import queue
 import socket
 import sys
 import threading
@@ -11,16 +11,17 @@ from .utilities.socketserverclient import Server, OP_MSG_BEGIN, OP_MSG_END
 from .ocl_ga_wsserver import OclGAWSServer
 
 class OpenCLGAServer(object):
-    def __init__(self, options, port=12345):
+    def __init__(self, options=None, port=12345):
         self.__paused = False
         self.__forceStop = False
-        self.__options = options
         self.__callbacks = {
             "connected": [], # for notifying users that a client is connected
             "disconnected": [], # for notifying users that a client is disconnected
             "message": [] # for notifying users that a message is received from client
         }
-
+        self.__serialized_options = options
+        self.__q_kb = ""
+        self.__q_ws = queue.Queue()
         self.server_ip = "0.0.0.0"
 
         self.socket_server = None
@@ -32,36 +33,106 @@ class OpenCLGAServer(object):
         self.httpws_server_port = 8000
         self._start_http_websocket_server()
 
-    def _executeWSMessage(self, msg):
-        if 'command' not in msg:
-            return
+    def _handle_keyboard_message(self):
+        data = None
+        # try:
+        if sys.platform in ["linux", "darwin"]:
+            import select
+            if select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], []):
+                data = sys.stdin.readline().rstrip()
+        elif sys.platform == "win32":
+            import msvcrt
+            if msvcrt.kbhit():
+                data = msvcrt.getch().decode("utf-8")
+                if data == "\r":
+                    # Enter is pressed
+                    data = self.__q_kb
+                    self.__q_kb = ""
+                else:
+                    self.__q_kb += data
+                    print(data)
+                    data = None
+        else:
+            pass
+        # except KeyboardInterrupt:
+        #     data = "exit"
+        return data
 
-        print('process command {}'.format(msg['command']))
-        if msg['command'] == 'prepare':
-            print('prepare with args: {}'.format(json.dumps(msg)))
-        elif msg['command'] == 'run':
+    def __get_ws_input(self):
+        inputs = None
+        try:
+            inputs = self.__q_ws.get_nowait()
+        except queue.Empty:
+            print("WS NONE")
+            pass
+        return inputs
+
+    def __adjust_kb_inputs(self, inputs):
+        dict_inputs = {"command" : inputs} if inputs else {}
+        return dict_inputs
+
+    def get_input(self):
+        try:
+            time.sleep(0.01)
+            kb_msg = self.__adjust_kb_inputs(self._handle_keyboard_message())
+            if kb_msg:
+                return kb_msg
+            ws_msg = self.__get_ws_input()
+            if ws_msg:
+                return ws_msg
+        except KeyboardInterrupt:
+            return {'command' : 'exit'}
+        return {}
+
+    def handle_message(self, msg):
+        assert type(msg) == dict
+
+        if 'command' not in msg:
+            return True
+        cmd = msg['command']
+        print('process command {}'.format(cmd))
+
+        if cmd == 'prepare':
+            # TODO : A workaround to make UI can run TaiwanTravel example by
+            #        provide inforamtion from self.__serialized_options.
+            payload = self.__serialized_options if self.__serialized_options else msg.get('payload', {})
+            print('prepare with args: {}'.format(payload))
+            self.prepare(payload)
+        elif cmd == "pause":
+            self.pause()
+        elif cmd == "run":
             if 'payload' in msg:
                 self.run(msg['payload']['prob_mutation'], msg['payload']['prob_crossover'])
             else:
                 self.run()
-        elif msg['command'] == 'pause':
-            self.pause()
-        elif msg['command'] == 'stop':
+        elif cmd == "stop":
             self.stop()
+        elif cmd == "save":
+            self.save()
+        elif cmd == "get_st":
+            self.get_statistics()
+        elif cmd == "get_best":
+            self.get_the_best()
+        elif cmd == "restore":
+            self.restore()
+        elif cmd == "exit":
+            self.shutdown()
+            return False
+        return True
 
-    def _handleWSMessage(self, client_addr, wshandler, byte_message):
+    def _queue_ws_inputs(self, client_addr, wshandler, byte_message):
         # Handle messages from WebSocket.
         if client_addr not in self.websockets:
             self.websockets[client_addr] = wshandler
 
         try:
             str_msg = str(byte_message, "utf-8")
-            self._executeWSMessage(json.loads(str_msg))
+            self.__q_ws.put(json.loads(str_msg))
         except Exception as e:
-            print("Client: {} sends message format: {}".format(client_addr, message))
+            print("[Exception] WS client: {} sends message format: {}".format(client_addr, byte_message))
 
     def _start_http_websocket_server(self):
-        self.httpws_server = OclGAWSServer(self.server_ip, self.httpws_server_port, handler = self._handleWSMessage)
+        self.httpws_server = OclGAWSServer(self.server_ip, self.httpws_server_port, handler = self._queue_ws_inputs)
         self.httpws_server.run_server()
 
     def _start_socket_server(self):
@@ -141,8 +212,8 @@ class OpenCLGAServer(object):
         if (name in self.__callbacks):
             self.__callbacks[name].remove(func)
 
-    def prepare(self, info):
-        data = {"command" : "prepare", "data" : info}
+    def prepare(self, s_info):
+        data = {"command" : "prepare", "data" : s_info}
         self.socket_server.send(repr(data))
 
     def run(self, prob_mutate = 0, prob_crossover = 0):
@@ -195,38 +266,9 @@ class OpenCLGAServer(object):
         self.socket_server.shutdown()
         self.socket_server = None
 
-def start_ocl_ga_server(info_getter, callbacks = {}):
-    lines = ""
-    def get_input():
-        nonlocal lines
-        data = None
-        try:
-            if sys.platform in ["linux", "darwin"]:
-                import select
-                time.sleep(0.01)
-                if select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], []):
-                    data = sys.stdin.readline().rstrip()
-            elif sys.platform == "win32":
-                import msvcrt
-                time.sleep(0.01)
-                if msvcrt.kbhit():
-                    data = msvcrt.getch().decode("utf-8")
-                    if data == "\r":
-                        # Enter is pressed
-                        data = lines
-                        lines = ""
-                    else:
-                        lines += data
-                        print(data)
-                        data = None
-            else:
-                pass
-        except KeyboardInterrupt:
-            data = "exit"
-        return data
-
+def start_ocl_ga_server(serialized_info, callbacks = {}):
     try:
-        oclGAServer = OpenCLGAServer("")
+        oclGAServer = OpenCLGAServer(options=serialized_info)
         for name, callback in list(callbacks.items()):
             oclGAServer.on(name, callback)
         time.sleep(0.5)
@@ -241,26 +283,8 @@ def start_ocl_ga_server(info_getter, callbacks = {}):
         print("Press ctrl       + c       to exit")
 
         while True:
-            user_input = get_input()
-            if "prepare" == user_input:
-                info = info_getter()
-                oclGAServer.prepare(info)
-            elif "pause" == user_input:
-                oclGAServer.pause()
-            elif "run" == user_input:
-                oclGAServer.run(0.1, 0.7)
-            elif "stop" == user_input:
-                oclGAServer.stop()
-            elif "save" == user_input:
-                oclGAServer.save()
-            elif "get_st" == user_input:
-                oclGAServer.get_statistics()
-            elif "get_best" == user_input:
-                oclGAServer.get_the_best()
-            elif "restore" == user_input:
-                oclGAServer.restore()
-            elif "exit" == user_input:
-                oclGAServer.shutdown()
+            user_input = oclGAServer.get_input()
+            if not oclGAServer.handle_message(user_input):
                 print("[OpenCLGAServer] Bye Bye !!")
                 break
     except:

@@ -113,8 +113,7 @@ def run_ocl_ga(ga, prob_mutation, prob_crossover):
     ga.run(prob_mutation, prob_crossover)
     print("[Local] OpenCLGA run end !")
 
-def start_ocl_ga_local(info_getter):
-    serialized_info = info_getter()
+def start_ocl_ga_local(serialized_info):
     info = pickle.loads(serialized_info)
     info['saved_filename'] = info['saved_filename']%(0, 0)
     info["generation_callback"] = show_generation_info
@@ -173,13 +172,14 @@ def start_tt_server():
             statistics = info["statistics"]
             pass
 
+    serialized_tt_info = get_taiwan_travel_info()
     while True:
         user_input = get_input()
         if user_input == "1":
-            start_ocl_ga_server(get_taiwan_travel_info, {"message" : callback_from_client})
+            start_ocl_ga_server(serialized_tt_info, {"message" : callback_from_client})
             break
         elif user_input == "2":
-            start_ocl_ga_local(get_taiwan_travel_info)
+            start_ocl_ga_local(serialized_tt_info)
             break
         elif user_input == "exit":
             break
