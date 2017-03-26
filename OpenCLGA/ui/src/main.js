@@ -15,7 +15,7 @@ class Main extends Component {
       config,
       control,
       actions,
-      clients
+      workers
     } = this.props;
 
     return (
@@ -26,7 +26,7 @@ class Main extends Component {
         <div className='app-main'>
           <ConfigPanel config={config} actions={actions.configActions} />
           <ControlPanel control={control} actions={actions.controlActions} />
-          <WidgetsPanel clients={clients} />
+          <WidgetsPanel workers={workers} />
         </div>
       </div>
     );
@@ -37,7 +37,7 @@ const mapStateToProps = (state) => {
   return {
     config: state.config,
     control: state.control,
-    clients: state.socket.clients
+    workers: state.socket.workers
   };
 };
 

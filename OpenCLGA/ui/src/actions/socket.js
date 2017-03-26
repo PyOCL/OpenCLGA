@@ -50,8 +50,8 @@ class Socket {
 
   // This is not a traditional action creator. It calculates the state and generates the
 // action if needed. If no needs, it returns null.
-  calcStateChange(currentState, clientsStates) {
-    const nextState = STATE_HANDLERS[currentState](clientsStates);
+  calcStateChange(currentState, workersStates) {
+    const nextState = STATE_HANDLERS[currentState](workersStates);
     return (nextState !== currentState)
            ? { type: CONTROL_ACTION_KEYS.SET_STATE, data: nextState } : null;
   }
@@ -64,12 +64,12 @@ class Socket {
     }
 
     const currentState = states.control.currentState;
-    const clientsStates = _.map(states.socket.clients, (client) => {
-      return client.state;
+    const workersStates = _.map(states.socket.workers, (worker) => {
+      return worker.state;
     });
     // We use control's calcStateChange function to check
     // if we need to dispatch a state change event.
-    const action = this.calcStateChange(currentState, clientsStates);
+    const action = this.calcStateChange(currentState, workersStates);
     action && this.store.dispatch(action);
   }
 
@@ -83,11 +83,11 @@ class Socket {
     const data = JSON.parse(evt.data);
     let actionType;
     switch (data.type) {
-      case WEBSOCKET_MESSAGE_TYPE.CLIENT_CONNECTED:
-        actionType = ACTION_KEYS.CLIENT_CONNECTED;
+      case WEBSOCKET_MESSAGE_TYPE.WORKER_CONNECTED:
+        actionType = ACTION_KEYS.WORKER_CONNECTED;
         break;
-      case WEBSOCKET_MESSAGE_TYPE.CLIENT_LOST:
-        actionType = ACTION_KEYS.CLIENT_LOST;
+      case WEBSOCKET_MESSAGE_TYPE.WORKER_LOST:
+        actionType = ACTION_KEYS.WORKER_LOST;
         break;
       case WEBSOCKET_MESSAGE_TYPE.STATE_CHANGED:
         actionType = ACTION_KEYS.STATE_CHANGED;

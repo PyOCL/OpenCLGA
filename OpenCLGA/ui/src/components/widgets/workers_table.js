@@ -48,21 +48,21 @@ const renderColumns = (props) => {
   ));
 }
 
-const ClientsTable = (props) => {
+const WorkersTable = (props) => {
 
   return (
     <Well>
       <BootstrapTable className={props.className}
-                      data={props.clients}>
+                      data={props.workers}>
         {renderColumns(props)}
       </BootstrapTable>
     </Well>
   );
 };
 
-ClientsTable.propTypes = {
+WorkersTable.propTypes = {
   className: PropTypes.string,
-  clients: PropTypes.array.isRequired
+  workers: PropTypes.array.isRequired
 };
 
-export default ClientsTable;
+export default WorkersTable;

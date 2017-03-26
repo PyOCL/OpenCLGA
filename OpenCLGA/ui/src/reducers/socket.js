@@ -2,10 +2,10 @@ import { DEVICE_TYPE, OPENCLGA_STATES } from '../shared/constants';
 import { ACTION_KEYS } from '../shared/socket';
 
 const initialState = {
-  clients: {}
+  workers: {}
 };
 
-const CLIENT_TEMPLATE = {
+const WORKER_TEMPLATE = {
   'best': null,
   'device': '',
   'ip': '',
@@ -15,63 +15,63 @@ const CLIENT_TEMPLATE = {
   'type': DEVICE_TYPE.CPU,
 };
 
-const handleClientConnected = (clients, data) => {
-  if (clients[data.client]) {
-    console.warn('duplicated client found!! data will be overridden.', data.client);
+const handleWorkerConnected = (workers, data) => {
+  if (workers[data.worker]) {
+    console.warn('duplicated worker found!! data will be overridden.', data.worker);
   }
-  const client = { ...CLIENT_TEMPLATE };
-  client.device = data.device;
-  client.id = data.client;
-  client.ip = data.ip;
-  client.platform = data.platform;
-  client.type = data.type;
-  clients[data.client] = client;
+  const worker = { ...WORKER_TEMPLATE };
+  worker.device = data.device;
+  worker.id = data.worker;
+  worker.ip = data.ip;
+  worker.platform = data.platform;
+  worker.type = data.type;
+  workers[data.worker] = worker;
 };
 
-const handleClientLost = (clients, data) => {
-  delete clients[data.client];
+const handleWorkerLost = (workers, data) => {
+  delete workers[data.worker];
 };
 
-const handleStateChanged = (clients, data) => {
-  const client = clients[data.client];
-  if (!client) {
-    console.error('unknown client id found', data.client);
+const handleStateChanged = (workers, data) => {
+  const worker = workers[data.worker];
+  if (!worker) {
+    console.error('unknown worker id found', data.worker);
     return;
   }
-  client.state = data.state;
+  worker.state = data.state;
 };
 
-const handleGenerationResult = (clients, data) => {
-  const client = clients[data.client];
-  if (!client) {
-    console.error('unknown client id found', data.client);
+const handleGenerationResult = (workers, data) => {
+  const worker = workers[data.worker];
+  if (!worker) {
+    console.error('unknown worker id found', data.worker);
     return;
   }
-  client.statistics.push(data.result);
-  if (client.best) {
+  worker.statistics.push(data.result);
+  if (worker.best) {
     // TODO: we should read opt_for_max from server.
-    client.best = Math.min(client.best, data.result.best_fitness);
+    worker.best = Math.min(worker.best, data.result.best_fitness);
   } else {
-    client.best = data.result.best_fitness;
+    worker.best = data.result.best_fitness;
   }
 };
 
 export default (state = initialState, payload) => {
   const data = payload.data;
-  const clients = { ...state.clients };
+  const workers = { ...state.workers };
   switch (payload.type) {
-    case ACTION_KEYS.CLIENT_CONNECTED:
-      handleClientConnected(clients, data);
-      return { clients };
-    case ACTION_KEYS.CLIENT_LOST:
-      handleClientLost(clients, data);
-      return { clients };
+    case ACTION_KEYS.WORKER_CONNECTED:
+      handleWorkerConnected(workers, data);
+      return { workers };
+    case ACTION_KEYS.WORKER_LOST:
+      handleWorkerLost(workers, data);
+      return { workers };
     case ACTION_KEYS.STATE_CHANGED:
-      handleStateChanged(clients, data);
-      return { clients };
+      handleStateChanged(workers, data);
+      return { workers };
     case ACTION_KEYS.GENERATION_RESULT:
-      handleGenerationResult(clients, data);
-      return { clients };
+      handleGenerationResult(workers, data);
+      return { workers };
     default:
       return state;
   }

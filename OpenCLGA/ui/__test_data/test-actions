@@ -1,8 +1,8 @@
-===== clients =====
+===== workers =====
 {
-  type: 'socket.clientConnected',
+  type: 'socket.workerConnected',
   data: {
-    'client': '123',
+    'worker': '123',
     'device': 'i7 CPU',
     'ip': '127.0.0.1',
     'platform': 'INTEL',
@@ -11,9 +11,9 @@
 }
 
 {
-  type: 'socket.clientConnected',
+  type: 'socket.workerConnected',
   data: {
-    'client': '234',
+    'worker': '234',
     'device': 'HD GPU',
     'ip': '127.0.0.1',
     'platform': 'INTEL',
@@ -26,7 +26,7 @@
 {
   type: 'socket.generationResult',
   data: {
-    'client': '123',
+    'worker': '123',
     'result': {
       "best_fitness": 1023.25,
       "avg_fitness": 2230,
@@ -39,7 +39,7 @@
 {
   type: 'socket.generationResult',
   data: {
-    'client': '234',
+    'worker': '234',
     'result': {
       "best_fitness": 21304,
       "avg_fitness": 223023,

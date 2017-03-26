@@ -2,10 +2,10 @@ import React, { PropTypes } from 'react';
 import { Well } from 'react-bootstrap';
 import LabeledInfo from '../base/labeled_info';
 
-const ConnectedClients = (props) => {
+const ConnectedWorkers = (props) => {
   return (
     <Well>
-      <LabeledInfo baseClassName='connected-clients'
+      <LabeledInfo baseClassName='connected-workers'
                    className={props.className}
                    info={props.count}
                    label='Connected Devices:'/>
@@ -13,9 +13,9 @@ const ConnectedClients = (props) => {
   );
 };
 
-ConnectedClients.propTypes = {
+ConnectedWorkers.propTypes = {
   className: PropTypes.string,
   count: PropTypes.number.isRequired
 };
 
-export default ConnectedClients;
+export default ConnectedWorkers;
