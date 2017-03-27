@@ -1,3 +1,5 @@
+import _ from 'lodash';
+
 export const OPENCLGA_STATES = {
   DEFAULT: 'waiting',
   WAITING: 'waiting',
@@ -19,20 +21,13 @@ export const DEVICE_TYPE = {
 };
 
 const waitingState = (others) => {
-  const allPreparing = others.every((state) => {
-    return state === OPENCLGA_STATES.PREPARING || state === OPENCLGA_STATES.PREPARED;
-  });
-  const allRestoring = others.every((state) => {
-    return state === OPENCLGA_STATES.RESTORING || state === OPENCLGA_STATES.PREPARED;
-  });
+  const anyPreparing = _.some(others, (state) => (state === OPENCLGA_STATES.PREPARING));
+  const anyRestoring = _.some(others, (state) => (state === OPENCLGA_STATES.RESTORING));
+  const allPrepared = others.every((state) => (state === OPENCLGA_STATES.PREPARED));
 
-  const allPrepared = others.every((state) => {
-    return state === OPENCLGA_STATES.PREPARED;
-  });
-
-  if (allPreparing) {
+  if (anyPreparing) {
     return OPENCLGA_STATES.PREPARING;
-  } else if (allRestoring) {
+  } else if (anyRestoring) {
     return OPENCLGA_STATES.RESTORING;
   } else if (allPrepared) {
     return OPENCLGA_STATES.PREPARED;
@@ -50,27 +45,19 @@ const restoringState = (others) => {
 };
 
 const preparedState = (others) => {
-  return others.every((state) => (state === OPENCLGA_STATES.RUNNING))
+  return _.some(others, (state) => (state === OPENCLGA_STATES.RUNNING))
               ? OPENCLGA_STATES.RUNNING : OPENCLGA_STATES.PREPARED;
 };
 
 const runningState = (others) => {
-  const allPausing = others.every((state) => {
-    return state === OPENCLGA_STATES.PAUSING || state === OPENCLGA_STATES.PAUSED;
-  });
-  const allStopping = others.every((state) => {
-    return state === OPENCLGA_STATES.STOPPING || state === OPENCLGA_STATES.STOPPED;
-  });
-  const allPaused = others.every((state) => {
-    return state === OPENCLGA_STATES.PAUSED;
-  });
-  const allStopped = others.every((state) => {
-    return state === OPENCLGA_STATES.STOPPED;
-  });
+  const anyPausing = _.some(others, (state) => (state === OPENCLGA_STATES.PAUSING));
+  const anyStopping = _.some(others, (state) => (state === OPENCLGA_STATES.STOPPING));
+  const allPaused = others.every((state) => (state === OPENCLGA_STATES.PAUSED));
+  const allStopped = others.every((state) => (state === OPENCLGA_STATES.PAUSED));
 
-  if (allPausing) {
+  if (anyPausing) {
     return OPENCLGA_STATES.PAUSING;
-  } else if (allStopping) {
+  } else if (anyStopping) {
     return OPENCLGA_STATES.STOPPING;
   } else if (allPaused) {
     return OPENCLGA_STATES.PAUSED;
@@ -92,10 +79,18 @@ const stoppingState = (others) => {
 };
 
 const pausedState = (others) => {
-  const allRunning = others.every((state) => (state === OPENCLGA_STATES.RUNNING));
-  const allSaving = others.every((state) => (state === OPENCLGA_STATES.SAVING));
-  return allRunning ? OPENCLGA_STATES.RUNNING
-                    : (allSaving ? OPENCLGA_STATES.SAVING : OPENCLGA_STATES.PAUSED);
+  const anyRunning = _.some(others, (state) => (state === OPENCLGA_STATES.RUNNING));
+  const anySaving = _.some(others, (state) => (state === OPENCLGA_STATES.SAVING));
+  const anyStopping = _.some(others, (state) => (state === OPENCLGA_STATES.STOPPIG));
+  if (anyRunning) {
+    return OPENCLGA_STATES.RUNNING;
+  } else if (anySaving) {
+    return OPENCLGA_STATES.SAVING;
+  } else if (anyStopping) {
+    return OPENCLGA_STATES.STOPPING;
+  } else {
+    return OPENCLGA_STATES.PAUSED;
+  }
 }
 
 const savingState = (others) => {
