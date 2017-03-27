@@ -1,15 +1,15 @@
-import { ACTION_KEYS, REPOPULATE_CONFIG_TYPE } from '../shared/config';
+import { ACTION_KEYS, REPOPULATING_CONFIG_TYPE } from '../shared/config';
 
 const initialState = {
   termination: {
     type: 'count',
     count: 1000
   },
-  populations: 100,
+  population: 100,
   mutationRatio: 10,
   crossoverRatio: 80,
-  repopulateConfig: {
-    type: REPOPULATE_CONFIG_TYPE.DEFAULT,
+  repopulatingConfig: {
+    type: REPOPULATING_CONFIG_TYPE.DEFAULT,
     diff: 1
   },
   shareBestCount: 0

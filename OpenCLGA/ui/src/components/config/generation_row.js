@@ -12,7 +12,7 @@ const DEFAULTS = {
   time: 10
 }
 
-class GenerationsRow extends Component {
+class GenerationRow extends Component {
 
   constructor(props) {
     super(props);
@@ -74,4 +74,4 @@ class GenerationsRow extends Component {
   }
 }
 
-export default GenerationsRow;
+export default GenerationRow;

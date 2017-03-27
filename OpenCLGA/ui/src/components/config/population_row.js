@@ -1,13 +1,13 @@
 import React from 'react';
 import NumericRow from '../base/numeric_row';
 
-const PopulationsRow = (props) => {
+const PopulationRow = (props) => {
   return (
-    <NumericRow baseClassName='populations'
-                label='Populations per Device:'
+    <NumericRow baseClassName='population'
+                label='Population per Device:'
                 min={100} value={props.value} max={1000000000} step={100}
                 onChange={props.onChange}/>
   );
 };
 
-export default PopulationsRow;
+export default PopulationRow;

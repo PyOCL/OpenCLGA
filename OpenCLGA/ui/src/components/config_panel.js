@@ -4,11 +4,11 @@ import {
   Panel,
   Row
 } from 'react-bootstrap';
-import GenerationsRow from './config/generations_row';
-import PopulationsRow from './config/populations_row';
+import GenerationRow from './config/generation_row';
+import PopulationRow from './config/population_row';
 import CrossoverRow from './config/crossover_row';
 import MutationRow from './config/mutation_row';
-import RepopulationRow from './config/repopulation_row';
+import RepopulatingRow from './config/repopulating_row';
 import ShareResultRow from './config/share_result_row';
 
 class ConfigPanel extends Component {
@@ -22,10 +22,10 @@ class ConfigPanel extends Component {
       <Panel header='Configuration Panel' bsStyle='success'>
         <Row>
           <Col xs={12} sm={12} md={6}>
-            <GenerationsRow config={config.termination}
+            <GenerationRow config={config.termination}
                             onChange={actions.setTermination} />
-            <PopulationsRow value={config.populations}
-                            onChange={actions.setPopulations} />
+            <PopulationRow value={config.population}
+                            onChange={actions.setPopulation} />
           </Col>
           <Col xs={12} sm={12} md={6}>
             <CrossoverRow value={config.crossoverRatio}
@@ -37,9 +37,9 @@ class ConfigPanel extends Component {
         <hr/>
         <Row>
           <Col xs={12} sm={12} md={12}>
-            <RepopulationRow config={config.repopulateConfig}
-                             onTypeChange={actions.setRepopulateConfigType}
-                             onInputChange={actions.setRepopulateConfigDiff} />
+            <RepopulatingRow config={config.repopulatingConfig}
+                             onTypeChange={actions.setRepopulatingConfigType}
+                             onInputChange={actions.setRepopulatingConfigDiff} />
           </Col>
           <Col xs={12} sm={12} md={12}>
             <ShareResultRow value={config.shareBestCount}

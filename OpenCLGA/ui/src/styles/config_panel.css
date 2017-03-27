@@ -2,22 +2,22 @@
 .generations-row .generations-time-number,
 .crossover-row .crossover-number,
 .mutation-row .mutation-number,
-.repopulation-row .repopulation-number,
+.repopulating-row .repopulating-number,
 .share-result-row .share-result-number,
-.populations-row .populations-number {
+.population-row .population-number {
   text-align: right;
 }
 
-.repopulation-row .dropdown,
-.repopulation-row .react-numeric-input,
+.repopulating-row .dropdown,
+.repopulating-row .react-numeric-input,
 .share-result-row .react-numeric-input {
   margin-left: 20px;
   margin-right: 20px;
 }
 
-.repopulation-row div,
+.repopulating-row div,
 .share-result-row div,
-.repopulation-row .react-numeric-input,
+.repopulating-row .react-numeric-input,
 .share-result-row .react-numeric-input {
   display: inline-block;
   margin-top: 0;
@@ -29,7 +29,7 @@
 }
 
 @-moz-document url-prefix() {
-  .repopulation-row .react-numeric-input,
+  .repopulating-row .react-numeric-input,
   .share-result-row .react-numeric-input {
     top: 5px;
   }

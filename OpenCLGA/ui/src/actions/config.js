@@ -9,24 +9,24 @@ const setConfig = (field, data) => {
 
 export const setCrossoverRatio = (value) => (setConfig('crossoverRatio', value));
 export const setMutationRatio = (value) => (setConfig('mutationRatio', value));
-export const setPopulations = (value) => (setConfig('populations', value));
+export const setPopulation = (value) => (setConfig('population', value));
 export const setShareBestCount = (value) => (setConfig('shareBestCount', value));
 
-export const setRepopulateConfig = (type, diff) => (dispatch, getState) => {
-  const { repopulateConfig } = getState().config;
-  dispatch(setConfig('repopulateConfig', {
-    type: type || repopulateConfig.type,
+export const setRepopulatingConfig = (type, diff) => (dispatch, getState) => {
+  const { repopulatingConfig } = getState().config;
+  dispatch(setConfig('repopulatingConfig', {
+    type: type || repopulatingConfig.type,
     // please note, we view 0 as an invalid value that will be reset to default.
-    diff: diff || repopulateConfig.diff
+    diff: diff || repopulatingConfig.diff
   }));
 };
 
-export const setRepopulateConfigType = (type) => {
-  return setRepopulateConfig(type);
+export const setRepopulatingConfigType = (type) => {
+  return setRepopulatingConfig(type);
 };
 
-export const setRepopulateConfigDiff = (diff) => {
-  return setRepopulateConfig(null, diff);
+export const setRepopulatingConfigDiff = (diff) => {
+  return setRepopulatingConfig(null, diff);
 };
 
 export const setTermination = (type, value) => (dispatch, getState) => {

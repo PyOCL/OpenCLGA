@@ -1,4 +1,4 @@
-export const REPOPULATE_CONFIG_TYPE = {
+export const REPOPULATING_CONFIG_TYPE = {
   DEFAULT: 'none',
   DISABLED: 'none',
   BEST_WORST_DIFF: 'best_worst',

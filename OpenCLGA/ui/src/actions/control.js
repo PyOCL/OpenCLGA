@@ -8,11 +8,14 @@ const setState = createSimpleAction(ACTION_KEYS.SET_STATE);
 export const prepare = () => (dispatch, getState) => {
   const config = getState().config;
   socket.sendCommand('prepare', {
-    'termination_type': config.termination,
-    'populations': config.populations,
+    'termination': config.termination,
+    'population': config.population,
     'prob_mutation': config.mutationRatio / 100,
     'prob_crossover': config.crossoverRatio / 100,
-    'repopulating_type': { [config.repopulateConfig.type] : config.repopulateConfig.diff },
+    'repopulating': {
+      type: config.repopulatingConfig.type,
+      diff: config.repopulatingConfig.diff
+    },
     'sharing_best_after': config.shareBestCount
   });
 

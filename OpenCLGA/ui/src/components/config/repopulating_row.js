@@ -1,9 +1,9 @@
 import React, { Component, PropTypes } from 'react';
 import NumericInput from 'react-numeric-input';
-import RepopulateTypeDropdown from './repopulate_type_dropdown';
-import { REPOPULATE_CONFIG_TYPE } from '../../shared/config';
+import RepopulatingTypeDropdown from './repopulating_type_dropdown';
+import { REPOPULATING_CONFIG_TYPE } from '../../shared/config';
 
-class RepopulationRow extends Component {
+class RepopulatingRow extends Component {
 
   render() {
     const {
@@ -12,11 +12,11 @@ class RepopulationRow extends Component {
       onInputChange,
       onTypeChange
     } = this.props;
-    const inputDisabled = config.type === REPOPULATE_CONFIG_TYPE.DISABLED;
+    const inputDisabled = config.type === REPOPULATING_CONFIG_TYPE.DISABLED;
     return (
       <div className={`${className}-row`}>
         <label>Repopulate 90% when</label>
-        <RepopulateTypeDropdown value={config.type}
+        <RepopulatingTypeDropdown value={config.type}
                                 className={`type-dropdown ${className}-dropdown`}
                                 onSelect={onTypeChange} />
         <label>is greater than</label>
@@ -30,14 +30,14 @@ class RepopulationRow extends Component {
   }
 };
 
-RepopulationRow.propTypes = {
+RepopulatingRow.propTypes = {
   className: PropTypes.string,
   type: PropTypes.string,
   onSelect: PropTypes.func
 };
 
-RepopulationRow.defaultProps = {
-  className: 'repopulation'
+RepopulatingRow.defaultProps = {
+  className: 'repopulating'
 };
 
-export default RepopulationRow;
+export default RepopulatingRow;

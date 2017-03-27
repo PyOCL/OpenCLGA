@@ -75,7 +75,6 @@ class Socket {
 
   handleMessage(evt) {
     // TODO: to prevent information leakage, we should remove this line.
-    console.log('ws msg', evt.data);
     if (!evt.data) {
       console.error('Wrong ws message got!!', evt);
       return;
@@ -96,7 +95,7 @@ class Socket {
         actionType = ACTION_KEYS.GENERATION_RESULT;
         break;
       default:
-        console.log('Unknown ws message!!', data.type);
+        console.error('Unknown ws message!!', data.type);
     }
     if (!actionType) {
       // no action type found!!
