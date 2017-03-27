@@ -2,7 +2,7 @@ import _ from 'lodash';
 import { DEVICE_TYPE, OPENCLGA_STATES } from '../shared/constants';
 import { ACTION_KEYS } from '../shared/socket';
 
-const initialState = {
+export const initialState = {
   workers: {}
 };
 
