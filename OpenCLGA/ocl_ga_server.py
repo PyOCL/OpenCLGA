@@ -210,11 +210,13 @@ class OpenCLGAServer(Logger):
 
     def __send_message_to_WSs(self, msg):
         # TODO : A temporary place to send message back to web page via websockets
-        contoller = self.websockets.get('contoller', None)
+        contoller = self.websockets.get('controller', None)
         if contoller:
+            self.info("Send to Controller : {}".format(msg))
             contoller[1].send_message(repr(msg))
         viewers = self.websockets.get('viewers', [])
         for viewer in viewers:
+            self.info("Send to Viewer : {}".format(msg))
             viewer[1].send_message(repr(msg))
 
     def __notify(self, name, data):

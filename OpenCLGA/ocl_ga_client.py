@@ -66,9 +66,12 @@ class OpenCLGAWorker(Process):
                                                             "post": OP_MSG_END,
                                                             "callback" : self.process_data}})
             c_uuid = uuid.uuid1()
-            self.send({"type"         : "device_info",
-                       "device_name"  : self.device.name,
-                       "client_id"    : (c_uuid.hex, self.ip)})
+            self.send({"event"        : "workerConnected",
+                       "type"         : "cpu",
+                       "platform"     : self.platform.name,
+                       "name"         : self.device.name,
+                       "ip"           : self.ip,
+                       "worker"       : c_uuid.hex})
         except ConnectionRefusedError:
             self.logger.error("Connection refused! Please check Server status.")
             self.client = None
@@ -80,8 +83,8 @@ class OpenCLGAWorker(Process):
             self.notifier.wait()
 
     def create_context(self):
-        platform = cl.get_platforms()[self.platform_index]
-        self.device = platform.get_devices()[self.device_index]
+        self.platform = cl.get_platforms()[self.platform_index]
+        self.device = self.platform.get_devices()[self.device_index]
         self.context = cl.Context(devices=[self.device])
         return self.context
 
@@ -162,8 +165,9 @@ class OpenCLGAWorker(Process):
         if self.client:
             self.client.send(repr(data))
 
-class OpenCLGAClient():
+class OpenCLGAClient(Logger):
     def __init__(self, ip, port=12345):
+        Logger.__init__(self)
         self.__workerProcesses = []
         self.create_workers_for_devices(ip, port)
         self.start_workers()
@@ -192,7 +196,7 @@ class OpenCLGAClient():
 
     def stop_workers(self):
         for worker in self.__workerProcesses:
-            self.logger.info('process is alive ? {}'.format(worker.is_alive()))
+            self.info('process is alive ? {}'.format(worker.is_alive()))
             worker.terminate()
         self.__workerProcesses = []
 
