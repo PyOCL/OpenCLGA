@@ -39,6 +39,7 @@ class OpenCLGAWorker(Process):
         self.client = None
         self.notifier = None
         self.ocl_ga = None
+        self.logger = Logger()
 
     def terminate(self):
         if self.client:
@@ -52,7 +53,6 @@ class OpenCLGAWorker(Process):
 
     def run(self):
         random.seed()
-        self.logger = Logger()
         try:
             self.create_context()
             self.logger.info("Worker created for context {}".format(self.device.name))
@@ -96,7 +96,6 @@ class OpenCLGAWorker(Process):
         self.send({"type": "end"})
 
     def create_ocl_ga(self, options):
-        print(options["sample_chromosome"])
         options["cl_context"] = self.context
         options["generation_callback"] = self.send_and_dump_info
         self.ocl_ga = OpenCLGA(options, action_callbacks={'run' : self.run_end})
@@ -193,7 +192,7 @@ class OpenCLGAClient():
 
     def stop_workers(self):
         for worker in self.__workerProcesses:
-            print('process is alive'.format(worker.is_alive()))
+            self.logger.info('process is alive ? {}'.format(worker.is_alive()))
             worker.terminate()
         self.__workerProcesses = []
 

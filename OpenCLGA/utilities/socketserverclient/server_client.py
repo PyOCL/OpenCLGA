@@ -115,7 +115,7 @@ def socket_send(socket, data):
                 if sent == 0:
                     raise RuntimeError("socket connection broken")
                 totalsent = totalsent + sent
-            print("%d bytes data has been sent successfully !"%(totalsent))
+            # print("%d bytes data has been sent successfully !"%(totalsent))
         except ConnectionResetError:
             print("ConnectionResetError : Connection reset by peer")
         except:

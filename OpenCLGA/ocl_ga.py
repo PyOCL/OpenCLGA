@@ -8,7 +8,7 @@ import pickle
 import pyopencl as cl
 
 from . import utils
-from .utilities.generaltaskthread import TaskThread, Task
+from .utilities.generaltaskthread import TaskThread, Task, Logger
 
 class EnterExit(object):
     def __call__(self, func):
@@ -19,7 +19,7 @@ class EnterExit(object):
             # TODO : May send state information back to UI here.
         return wrapper
 
-class StateMachine(object):
+class StateMachine(Logger):
     # (current state, action) : (next state)
     TRANSITION_TABLE = {
     ('waiting', 'prepare')  : ('preparing'),
@@ -37,6 +37,7 @@ class StateMachine(object):
     ('saving', 'done')      : ('paused'),
     }
     def __init__(self, openclga, init_state):
+        Logger.__init__(self)
         self.openclga = openclga
         self.__curr_state = init_state
 
@@ -50,7 +51,7 @@ class StateMachine(object):
             return
         last_state = self.__curr_state
         self.__curr_state = next_state
-        print("Change State : {} => {}".format(last_state, next_state))
+        self.info("Change State : {} => {}".format(last_state, next_state))
 
 class GARun(Task):
     # Iterating GA generation in a separated thread.

@@ -8,11 +8,14 @@ import threading
 import time
 import traceback
 
+from .utilities.generaltaskthread import Logger
 from .utilities.socketserverclient import Server, OP_MSG_BEGIN, OP_MSG_END
 from .ocl_ga_wsserver import OclGAWSServer
 
-class OpenCLGAServer(object):
+class OpenCLGAServer(Logger):
     def __init__(self, options, port=12345):
+        Logger.__init__(self)
+        self.logger_level = Logger.MSG_ALL ^ Logger.MSG_VERBOSE
         self.__paused = False
         self.__forceStop = False
         self.__callbacks = {
@@ -53,7 +56,6 @@ class OpenCLGAServer(object):
                     self.__q_kb = ""
                 else:
                     self.__q_kb += data
-                    print(data)
                     data = None
         else:
             pass
@@ -90,11 +92,14 @@ class OpenCLGAServer(object):
         if 'command' not in msg:
             return True
         cmd = msg['command']
-        print('process command {}'.format(cmd))
+        self.info('process command {}'.format(cmd))
 
         if cmd == 'prepare':
-            self.__options_info.update(msg.get('payload'))
-            print('prepare with args: {}'.format(self.__options_info))
+            payload = msg.get('payload', {})
+            if not payload:
+                self.warning("Getting nothing in payload from UI to prepare. Use default configuration.")
+            self.__options_info.update(payload)
+            self.verbose('prepare with args: {}'.format(self.__options_info))
             packed = pickle.dumps(self.__options_info)
             self.prepare(packed)
         elif cmd == "pause":
@@ -123,7 +128,7 @@ class OpenCLGAServer(object):
         viewers_addr = [addr for addr, handler in self.websockets['viewers']]
         if not self.websockets['controller']:
             self.websockets['controller'] = (client_addr, wshandler)
-            print("WS Controller {} is on !! ".format(client_addr))
+            self.info("WS Controller {} is on !! ".format(client_addr))
         elif client_addr not in viewers_addr:
             self.websockets['viewers'].append((client_addr, wshandler))
 
@@ -132,23 +137,24 @@ class OpenCLGAServer(object):
         if client_addr in viewers_addr:
             self.websockets['viewers'] = [ws for ws in self.websockets["viewers"] if ws[0] != client_addr]
         if self.websockets['controller'] and client_addr == self.websockets['controller'][0]:
-            print("WS Controller is off, clean up all websockets !! ")
+            self.info("WS Controller is off, clean up all websockets !! ")
             self.websockets['controller'] = None
             self.websockets['viewers'] = []
 
     def _ws_queue_inputs(self, client_addr, byte_message):
         # Handle messages from WebSocket.
         if self.websockets['controller'] and client_addr != self.websockets['controller'][0]:
-            print("WS client: {} message is ignored (Not controller !!)".format(client_addr))
+            self.verbose("WS client: {} message is ignored (Not controller !!)".format(client_addr))
             return
 
         try:
             str_msg = str(byte_message, "utf-8")
             self.__q_ws.put(json.loads(str_msg))
         except Exception as e:
-            print("[Exception] WS client: {} sends message format: {}".format(client_addr, byte_message))
+            self.error("[Exception] WS client: {} sends message format: {}".format(client_addr, byte_message))
 
     def _start_http_websocket_server(self):
+        # Provide credentials if a secure server is expected.
         self.httpws_server = OclGAWSServer(self.server_ip, self.httpws_server_port,
                                            connect_handler = self._ws_connected,
                                            message_handler = self._ws_queue_inputs,
@@ -187,7 +193,7 @@ class OpenCLGAServer(object):
             msg = str(data, 'ASCII')
             dict_msg = eval(msg)
             result_type = dict_msg["type"]
-            print("[Server] __process_data from client, type = %s "%(result_type))
+            self.verbose("[Server] __process_data from client, type = %s "%(result_type))
 
             if dict_msg["type"] == "statistics":
                 st = dict_msg["result"]
@@ -219,8 +225,8 @@ class OpenCLGAServer(object):
             try:
                 func(data)
             except Exception as e:
-                print("exception while execution %s callback"%(name))
-                print(traceback.format_exc())
+                self.error("exception while execution %s callback"%(name))
+                traceback.print_exc()
 
     # public APIs
     @property
@@ -292,6 +298,9 @@ class OpenCLGAServer(object):
             count += 1
         self.socket_server.shutdown()
         self.socket_server = None
+        if self.httpws_server:
+            self.httpws_server.shutdown()
+            self.httpws_server = None
 
 def start_ocl_ga_server(info, callbacks = {}):
     try:

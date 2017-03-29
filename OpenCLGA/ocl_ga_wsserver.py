@@ -9,21 +9,8 @@ from socketserver import ThreadingMixIn
 from http.server import HTTPServer
 from io import StringIO
 
-from .utilities.generaltaskthread import TaskThread, Task
+from .utilities.generaltaskthread import TaskThread, Task, Logger
 from .utilities.httpwebsocketserver import HTTPWebSocketsHandler
-
-if len(sys.argv) > 1:
-    port = int(sys.argv[1])
-else:
-    port = 8000
-if len(sys.argv) > 2:
-    secure = str(sys.argv[2]).lower()=="secure"
-else:
-    secure = False
-if len(sys.argv) > 3:
-    credentials = str(sys.argv[3])
-else:
-    credentials = ""
 
 class HttpWSMessageHandler(HTTPWebSocketsHandler):
     cn_hdlr = None
@@ -53,17 +40,18 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 class HttpWSTask(Task):
     def __init__(self, server, credentials = ""):
         Task.__init__(self)
+        self.logger_level = Logger.MSG_ALL ^ Logger.MSG_VERBOSE
         self.server = server
         self.server.daemon_threads = True
         self.server.auth = b64encode(credentials.encode("ascii"))
         if credentials:
             self.server.socket = ssl.wrap_socket (self.server.socket, certfile='./server.pem', server_side=True)
-            print("created secure https server @ port {}.".format(self.server.server_port))
+            self.info("Secure https server is created @ port {}.".format(self.server.server_port))
         else:
-            print("created http server @ port {}.".format(self.server.server_port))
+            self.info("Http server is created @ port {}.".format(self.server.server_port))
 
     def run(self):
-        print("start http ws server !!")
+        self.verbose("Http WS server is serving forever now !!")
         self.server.serve_forever()
 
 class OclGAWSServer(object):

@@ -112,7 +112,6 @@ class HTTPWebSocketsHandler(SimpleHTTPRequestHandler):
                 self._ws_close()
 
     def _read_bytes(self, length):
-        # print(" read_bytes(%d)"%(length))
         raw_data = self.rfile.read(length)
         return raw_data
 
@@ -122,24 +121,18 @@ class HTTPWebSocketsHandler(SimpleHTTPRequestHandler):
         try:
             byte = self._read_bytes(1)
             self.opcode = ord(byte) & 0x0F
-            # print("op : ", self.opcode)
             length = ord(self._read_bytes(1)) & 0x7F
-            # print("length : ", length)
             if length == 126:
                 length = struct.unpack(">H", self._read_bytes(2))[0]
             elif length == 127:
                 length = struct.unpack(">Q", self._read_bytes(8))[0]
             masks = self._read_bytes(4)
-            # print("MASKS : {}".format(masks))
             decoded = bytearray()
             datastream = self._read_bytes(length)
-            # print("datastream : {}".format(datastream))
             for char in datastream:
                 decoded.append(char ^ masks[len(decoded) % 4])
 
             decoded = bytes(decoded)
-            # print("length of decdoecd = {}".format(len(decoded)))
-            # print("length of decdoecd.decode() = {}".format(len(decoded.decode())))
             self._on_message(decoded)
         except (struct.error, TypeError) as e:
             traceback.print_exc()
@@ -152,7 +145,6 @@ class HTTPWebSocketsHandler(SimpleHTTPRequestHandler):
                 pass
 
     def _send_impl(self, msg):
-        # print("_send_impl .... {}".format(type(msg
         data = bytearray()
         if type(msg) == int:
             data = bytes([msg])
@@ -176,7 +168,6 @@ class HTTPWebSocketsHandler(SimpleHTTPRequestHandler):
                 self._send_impl(127)
                 self._send_impl(struct.pack(">Q", length))
             if length > 0:
-                # print("_send_message : lenght = {}".format(length))
                 self._send_impl(message)
         except socket.error as e:
             #websocket content error, time-out or disconnect.
@@ -257,5 +248,4 @@ class HTTPWebSocketsHandler(SimpleHTTPRequestHandler):
         msg = bytearray()
         msg.append(0x80 + self._opcode_close)
         msg.append(0x00)
-        # print(" >> _send_close")
         self._send_impl(msg)

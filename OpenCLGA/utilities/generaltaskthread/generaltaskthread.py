@@ -43,7 +43,7 @@ class TaskThread(Thread):
         Thread.start(self)
 
     def run(self):
-        self.log(">>>>> TT : start running ...", prefixname = True)
+        self.log(" TaskThread : running ...", prefixname = True)
         while True:
             # If there's not pending task, wait to avoid busy-looping.
             if len(self.tasks) == 0:
@@ -59,9 +59,9 @@ class TaskThread(Thread):
             self.__qlock.release()
 
             if task:
-                self.debug_log(">>>>> TT : start executing ... task (%d)"%(task.taskid), prefixname = True)
+                self.debug_log(" TaskThread : start executing ... task (%d)"%(task.taskid), prefixname = True)
                 task.run()
-        self.log(">>>>> TT : ending.", prefixname = True)
+        self.log(" TaskThread : ending.", prefixname = True)
 
     def stop(self):
         self.log("stop ...", postfixname = True)

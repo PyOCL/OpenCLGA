@@ -95,7 +95,6 @@ def get_input():
                     lines_input = ""
                 else:
                     lines_input += data
-                    print(data)
                     data = None
         else:
             pass
