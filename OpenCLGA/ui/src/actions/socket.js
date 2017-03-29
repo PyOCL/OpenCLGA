@@ -11,12 +11,17 @@ class Socket {
 
   constructor() {
     this.listeners = {};
-    this.updateGlobalState = this.updateGlobalState.bind(this);
+    this.updateGlobalState = ::this.updateGlobalState;
   }
 
   on(type, listener) {
-    const list = this.listeners[type] || [];
+    const list = this.listeners[type] = this.listeners[type] || [];
     list.push(listener);
+  }
+
+  off(type, listener) {
+    const list = this.listeners[type];
+    list && _.remove(list, (l) => (l === listener));
   }
 
   init(store) {
@@ -31,10 +36,13 @@ class Socket {
       url = protocol + hostname + ':' + DEFAULT_WEBSOCKET_PORT;
     }
     this.socket = new WebSocket(url);
-    this.socket.addEventListener('open', this.handleOpen.bind(this));
-    this.socket.addEventListener('close', this.handleClose.bind(this));
-    this.socket.addEventListener('message', this.handleMessage.bind(this));
-    this.socket.addEventListener('error', this.handleError.bind(this));
+    this.socket.addEventListener('open', ::this.handleOpen);
+    this.socket.addEventListener('close', ::this.handleClose);
+    this.socket.addEventListener('message', ::this.handleMessage);
+    this.socket.addEventListener('error', ::this.handleError);
+    this.timeoutID = setTimeout(() => {
+      this.socket.close();
+    }, 10000);
   }
 
   sendCommand(command, payload) {
@@ -47,6 +55,9 @@ class Socket {
   handleOpen(evt) {
     this.connected = true;
     this.dispatchEvent('open', this);
+    if (this.timeoutID) {
+      clearTimeout(this.timeoutID);
+    }
   }
 
   handleClose(evt) {
@@ -118,6 +129,7 @@ class Socket {
   }
 
   handleError(err) {
+    this.dispatchEvent('error', err);
     console.error('websocket error', err);
   }
 

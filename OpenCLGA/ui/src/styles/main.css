@@ -8,3 +8,28 @@
 .app-container {
   font-size: large;
 }
+
+.app.loading:before {
+  content: ' ';
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  z-index: 1000;
+  background-color: rgba(0, 0, 0, 0.34);
+}
+
+.app.loading.connecting:after {
+  content: ' ';
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  z-index: 1010;
+  background-image: url('https://openclipart.org/download/231263/cherry-blossom-spinner.svg');
+  background-size: 33%;
+  background-position: center center;
+  background-repeat: no-repeat;
+}

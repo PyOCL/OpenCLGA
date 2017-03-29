@@ -36,7 +36,6 @@ import './styles/index.css';
 
   initStore().then((store) => {
     socket.init(store);
-    socket.connect();
     initUI(store);
   });
 })();
