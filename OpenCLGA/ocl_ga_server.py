@@ -213,11 +213,11 @@ class OpenCLGAServer(Logger):
         contoller = self.websockets.get('controller', None)
         if contoller:
             self.info("Send to Controller : {}".format(msg))
-            contoller[1].send_message(repr(msg))
+            contoller[1].send_message(json.dumps(msg))
         viewers = self.websockets.get('viewers', [])
         for viewer in viewers:
             self.info("Send to Viewer : {}".format(msg))
-            viewer[1].send_message(repr(msg))
+            viewer[1].send_message(json.dumps(msg))
 
     def __notify(self, name, data):
         if name not in self.__callbacks:

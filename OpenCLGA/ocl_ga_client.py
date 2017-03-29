@@ -66,12 +66,12 @@ class OpenCLGAWorker(Process):
                                                             "post": OP_MSG_END,
                                                             "callback" : self.process_data}})
             c_uuid = uuid.uuid1()
-            self.send({"event"        : "workerConnected",
-                       "type"         : "cpu",
-                       "platform"     : self.platform.name,
-                       "name"         : self.device.name,
-                       "ip"           : self.ip,
-                       "worker"       : c_uuid.hex})
+            self.send({"type" : "workerConnected",
+                       "data" : { "type"         : "cpu",
+                                  "platform"     : self.platform.name,
+                                  "name"         : self.device.name,
+                                  "ip"           : self.ip,
+                                  "worker"       : c_uuid.hex}})
         except ConnectionRefusedError:
             self.logger.error("Connection refused! Please check Server status.")
             self.client = None
