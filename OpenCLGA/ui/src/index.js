@@ -36,7 +36,7 @@ import './styles/index.css';
 
   initStore().then((store) => {
     socket.init(store);
-    socket.connect('ws://localhost:8000');
+    socket.connect();
     initUI(store);
   });
 })();

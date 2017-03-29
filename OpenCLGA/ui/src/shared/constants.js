@@ -20,6 +20,10 @@ export const DEVICE_TYPE = {
   DSP: 'dsp'
 };
 
+// This is the default websocket connection information
+export const DEFAULT_WEBSOCKET_SERVER = null;
+export const DEFAULT_WEBSOCKET_PORT = 8000;
+
 const waitingState = (others) => {
   const anyPreparing = _.some(others, (state) => (state === OPENCLGA_STATES.PREPARING));
   const anyRestoring = _.some(others, (state) => (state === OPENCLGA_STATES.RESTORING));

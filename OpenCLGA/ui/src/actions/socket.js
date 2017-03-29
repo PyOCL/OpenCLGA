@@ -1,5 +1,9 @@
 import _ from 'lodash';
-import { STATE_HANDLERS } from '../shared/constants';
+import {
+  DEFAULT_WEBSOCKET_PORT,
+  DEFAULT_WEBSOCKET_SERVER,
+  STATE_HANDLERS
+} from '../shared/constants';
 import { ACTION_KEYS, WEBSOCKET_MESSAGE_TYPE } from '../shared/socket';
 import { ACTION_KEYS as CONTROL_ACTION_KEYS } from '../shared/control';
 
@@ -21,6 +25,11 @@ class Socket {
   }
 
   connect(url) {
+    if (!url) {
+      const protocol = location.protocol === 'https:' ? 'wss://' : 'ws://';
+      const hostname = DEFAULT_WEBSOCKET_SERVER || location.hostname;
+      url = protocol + hostname + ':' + DEFAULT_WEBSOCKET_PORT;
+    }
     this.socket = new WebSocket(url);
     this.socket.addEventListener('open', this.handleOpen.bind(this));
     this.socket.addEventListener('close', this.handleClose.bind(this));
