@@ -93,7 +93,7 @@ class OpenCLGAServer(object):
         print('process command {}'.format(cmd))
 
         if cmd == 'prepare':
-            self.__options_info.update(msg.get('payload',
+            self.__options_info.update(msg.get('payload'))
             print('prepare with args: {}'.format(self.__options_info))
             packed = pickle.dumps(self.__options_info)
             self.prepare(packed)
