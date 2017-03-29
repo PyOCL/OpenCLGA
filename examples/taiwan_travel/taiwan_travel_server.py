@@ -107,10 +107,6 @@ def show_generation_info(index, data_dict):
     msg = "{0}\t\t==> {1}".format(index, data_dict["best"])
     print(msg)
 
-def run_ocl_ga(ga, prob_mutation, prob_crossover):
-    ga.run(prob_mutation, prob_crossover)
-    print("[Local] OpenCLGA run end !")
-
 def start_ocl_ga_local(info):
     info['saved_filename'] = info['saved_filename']%(0, 0)
     info["generation_callback"] = show_generation_info
@@ -133,8 +129,7 @@ def start_ocl_ga_local(info):
             if user_input == "pause":
                 ga_target.pause()
             elif user_input == "run":
-                ocl_ga_thread = threading.Thread(target=run_ocl_ga, args=(ga_target, prob_mutation, prob_crossover))
-                ocl_ga_thread.start()
+                ga_target.run(prob_mutation, prob_crossover)
             elif user_input == "stop":
                 ga_target.stop()
             elif user_input == "get_st":

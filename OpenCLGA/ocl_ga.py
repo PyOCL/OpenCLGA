@@ -8,23 +8,94 @@ import pickle
 import pyopencl as cl
 
 from . import utils
+from .utilities.generaltaskthread import TaskThread, Task
+
+class EnterExit(object):
+    def __call__(self, func):
+        def wrapper(parent, *args, **kwargs):
+            parent.state_machine.next(func.__name__)
+            func(parent, *args, **kwargs)
+            parent.state_machine.next('done')
+            # TODO : May send state information back to UI here.
+        return wrapper
+
+class StateMachine(object):
+    # (current state, action) : (next state)
+    TRANSITION_TABLE = {
+    ('waiting', 'prepare')  : ('preparing'),
+    ('waiting', 'restore')  : ('restoring'),
+    ('preparing', 'done')   : ('prepared'),
+    ('prepared', 'run')     : ('running'),
+    ('restoring', 'done')   : ('prepared'),
+    ('running', 'pause')    : ('pausing'),
+    ('running', 'stop')     : ('stopping'),
+    ('pausing', 'done')     : ('paused'),
+    ('paused', 'run')       : ('running'),
+    ('paused', 'stop')      : ('stopping'),
+    ('paused', 'save')      : ('saving'),
+    ('stopping', 'done')    : ('stopped'),
+    ('saving', 'done')      : ('paused'),
+    }
+    def __init__(self, openclga, init_state):
+        self.openclga = openclga
+        self.__curr_state = init_state
+
+    def next(self, action):
+        next_state = None
+        for k, v in StateMachine.TRANSITION_TABLE.items():
+            if self.__curr_state == k[0] and action == k[1]:
+                assert next_state is None
+                next_state = v
+        if next_state is None:
+            return
+        last_state = self.__curr_state
+        self.__curr_state = next_state
+        print("Change State : {} => {}".format(last_state, next_state))
+
+class GARun(Task):
+    # Iterating GA generation in a separated thread.
+    def __init__(self, ga, prob_mutation, prob_crossover):
+        Task.__init__(self)
+        self.ga = ga
+        self.prob_m = prob_mutation
+        self.prob_c = prob_crossover
+        pass
+
+    def run(self):
+        start_time = time.time()
+        # We only need to populate first generation at first time, not paused and not restored
+        if not self.ga._paused:
+            self.ga._populate_first_generations(self.prob_m, self.prob_c)
+        self.ga._paused = False
+        self.ga._start_evolution(self.prob_m, self.prob_c)
+        self.ga._elapsed_time += time.time() - start_time
+        if self.ga.action_callbacks and 'run' in self.ga.action_callbacks:
+            self.ga.action_callbacks['run']()
 
 class OpenCLGA():
-    def __init__(self, options):
+    def __init__(self, options, action_callbacks = {}):
+        # action_callback
+        # - A callback function to send execution status back to ocl_ga_worker.
+        #  TODO : Could define to call specific callback according to state.
+        if action_callbacks is not None:
+            for action, cb in action_callbacks.items():
+                assert callable(cb)
+        self.state_machine = StateMachine(self, 'waiting')
         self.__init_members(options)
         extra_path = options.get("extra_include_path", [])
         cl_context = options.get("cl_context", None)
         self.__init_cl(cl_context, extra_path)
         self.__create_program()
+        self.action_callbacks = action_callbacks
 
     # public properties
     @property
     def paused(self):
-        return self.__paused
+        return self._paused
 
     @property
     def elapsed_time(self):
-        return self.__elapsed_time
+        return self._elapsed_time
 
     # private properties
     @property
@@ -64,6 +135,10 @@ class OpenCLGA():
 
     # private methods
     def __init_members(self, options):
+        self.thread = TaskThread(name="GARun")
+        self.thread.daemon = True
+        self.thread.start()
+
         self.__sample_chromosome = options["sample_chromosome"]
         self.__termination = options["termination"]
         self.__population = options["population"]
@@ -85,9 +160,9 @@ class OpenCLGA():
         # Generally in GA, it depends on the problem to treat the maximal fitness
         # value as the best or to treat the minimal fitness value as the best.
         self.__fitnesses = numpy.zeros(self.__population, dtype=numpy.float32)
-        self.__elapsed_time = 0
-        self.__paused = False
-        self.__forceStop = False
+        self._elapsed_time = 0
+        self._paused = False
+        self._forceStop = False
         self.__generation_index = 0
         self.__generation_time_diff = 0
         self.__debug_mode = "debug" in options
@@ -193,7 +268,7 @@ class OpenCLGA():
         ## dump information on kernel resources usage
         self.__dump_kernel_info(self.__prg, self.__ctx, self.__sample_chromosome)
 
-    def __populate_first_generations(self, prob_mutate, prob_crossover):
+    def _populate_first_generations(self, prob_mutate, prob_crossover):
         ## populate the first generation
         self.__sample_chromosome.execute_populate(self.__prg,
                                                   self.__queue,
@@ -243,13 +318,13 @@ class OpenCLGA():
             if self.__sample_chromosome.early_terminated:
                 break
 
-            if self.__paused:
+            if self._paused:
                 self.__generation_index = i + 1
                 self.__generation_time_diff = time.time() - start_time
                 cl.enqueue_read_buffer(self.__queue, self.__dev_fitnesses, self.__fitnesses)
                 cl.enqueue_read_buffer(self.__queue, self.__dev_chromosomes, self.__np_chromosomes).wait()
                 break
-            if self.__forceStop:
+            if self._forceStop:
                 cl.enqueue_read_buffer(self.__queue, self.__dev_fitnesses, self.__fitnesses)
                 cl.enqueue_read_buffer(self.__queue, self.__dev_chromosomes, self.__np_chromosomes).wait()
                 break
@@ -264,17 +339,17 @@ class OpenCLGA():
             if self.__sample_chromosome.early_terminated or elapsed_time > max_time:
                 break
 
-            if self.__paused:
+            if self._paused:
                 self.__generation_time_diff = time.time() - start_time
                 cl.enqueue_read_buffer(self.__queue, self.__dev_fitnesses, self.__fitnesses)
                 cl.enqueue_read_buffer(self.__queue, self.__dev_chromosomes, self.__np_chromosomes).wait()
                 break
-            if self.__forceStop:
+            if self._forceStop:
                 cl.enqueue_read_buffer(self.__queue, self.__dev_fitnesses, self.__fitnesses)
                 cl.enqueue_read_buffer(self.__queue, self.__dev_chromosomes, self.__np_chromosomes).wait()
                 break
 
-    def __start_evolution(self, prob_mutate, prob_crossover):
+    def _start_evolution(self, prob_mutate, prob_crossover):
         generation_start = time.time()
         ## start the evolution
         if self.__termination["type"] == "time":
@@ -282,7 +357,7 @@ class OpenCLGA():
         elif self.__termination["type"] == "count":
             self.__evolve_by_count(self.__termination["count"], prob_mutate, prob_crossover)
 
-        if self.__paused:
+        if self._paused:
             return;
 
         cl.enqueue_read_buffer(self.__queue, self.__dev_fitnesses, self.__fitnesses)
@@ -339,37 +414,40 @@ class OpenCLGA():
         self.__prepare_fitness_args()
 
         self.__sample_chromosome.restore(data, self.__ctx, self.__queue, self.__population)
-        self.__paused = True
+        self._paused = True
 
     # public methods
+    @EnterExit()
     def prepare(self):
         self.__preexecute_kernels()
 
+    @EnterExit()
     def run(self, arg_prob_mutate = 0, arg_prob_crossover = 0):
         # This function is not supposed to be overriden
         prob_mutate = arg_prob_mutate if arg_prob_mutate else self.__prob_mutation
         prob_crossover = arg_prob_crossover if arg_prob_crossover else self.__prob_crossover
         assert 0 < prob_mutate < 1, "Make sure you've set it in options or passed when calling run."
         assert 0 < prob_crossover < 1, "Make sure you've set it in options or passed when calling run."
+        assert self.thread != None
 
-        self.__forceStop = False
-        start_time = time.time()
-        # We only need to populate first generation at first time, not paused and not restored
-        if not self.__paused:
-            self.__populate_first_generations(prob_mutate, prob_crossover)
+        self._forceStop = False
+        task = GARun(self, prob_mutate, prob_crossover)
+        self.thread.addtask(task)
 
-        self.__paused = False
-        self.__start_evolution(prob_mutate, prob_crossover)
-        self.__elapsed_time += time.time() - start_time
-
+    @EnterExit()
     def stop(self):
-        self.__forceStop = True
+        self._forceStop = True
+        if self.thread:
+            self.thread.stop()
+        self.thread = None
 
+    @EnterExit()
     def pause(self):
-        self.__paused = True
+        self._paused = True
 
+    @EnterExit()
     def save(self, filename = None):
-        assert self.__paused, "save is only availabled while paused"
+        assert self._paused, "save is only availabled while paused"
         data = dict()
         self.__save_state(data)
         fname = self.__saved_filename if self.__saved_filename else filename
@@ -377,6 +455,7 @@ class OpenCLGA():
         pickle.dump(data, f)
         f.close()
 
+    @EnterExit()
     def restore(self, filename = None):
         fname = self.__saved_filename if self.__saved_filename else filename
         # TODO : Should check file existence ?

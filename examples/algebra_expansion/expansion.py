@@ -45,6 +45,12 @@ def run(num_chromosomes, generations):
     fstr = "".join(f.readlines())
     f.close()
 
+    import threading
+    evt = threading.Event()
+    evt.clear()
+    def run_end():
+        evt.set()
+
     ga_cl = OpenCLGA({"sample_chromosome": sample,
                       "termination": { "type": "count",
                                        "count": generations },
@@ -53,13 +59,15 @@ def run(num_chromosomes, generations):
                       "fitness_func": "expansion_fitness",
                       "extra_include_path": [ocl_kernels],
                       "opt_for_max": "min",
-                      "generation_callback": show_generation_info})
+                      "generation_callback": show_generation_info},
+                      action_callbacks = {'run' : run_end})
 
     ga_cl.prepare()
 
     prob_mutate = 0.1
     prob_cross = 0.8
     ga_cl.run(prob_mutate, prob_cross)
+    evt.wait()
 
     utils.plot_ga_result(ga_cl.get_statistics())
     print("run took", ga_cl.elapsed_time, "seconds")

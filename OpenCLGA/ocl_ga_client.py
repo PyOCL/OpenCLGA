@@ -92,18 +92,14 @@ class OpenCLGAWorker(Process):
                    "index": index,
                    "result": data})
 
-    def run_ocl_ga(self, probs):
-        prob_mutate, prob_cross = probs
-        self.logger.info("Worker [{}]: oclGA run with {}/{}".format(self.device.name,
-                                                                    prob_mutate, prob_cross))
-        self.ocl_ga.run(prob_mutate, prob_cross)
+    def run_end(self):
         self.send({"type": "end"})
 
     def create_ocl_ga(self, options):
         print(options["sample_chromosome"])
         options["cl_context"] = self.context
         options["generation_callback"] = self.send_and_dump_info
-        self.ocl_ga = OpenCLGA(options)
+        self.ocl_ga = OpenCLGA(options, action_callbacks={'run' : self.run_end})
         self.ocl_ga.prepare()
         self.logger.info("Worker [{}]: oclGA prepared".format(self.device.name))
 
@@ -149,8 +145,10 @@ class OpenCLGAWorker(Process):
                 self.send({"type": "statistics",
                            "result": self.ocl_ga.get_statistics()})
             elif cmd == "run":
-                self.ocl_ga_thread = threading.Thread(target=self.run_ocl_ga, args=(payload,))
-                self.ocl_ga_thread.start()
+                prob_mutate, prob_cross = payload
+                self.logger.info("Worker [{}]: oclGA run with {}/{}".format(self.device.name,
+                                                                            prob_mutate, prob_cross))
+                self.ocl_ga.run(prob_mutate, prob_cross)
             elif cmd == "exit":
                 self.client.shutdown()
                 with self.notifier:

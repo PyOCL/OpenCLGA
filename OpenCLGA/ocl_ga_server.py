@@ -84,20 +84,6 @@ class OpenCLGAServer(object):
             return {'command' : 'exit'}
         return {}
 
-    def __update_options(self, payload):
-        termination_type = payload["termination_type"]
-        populations = payload["populations"]
-        prob_mutation = payload["prob_mutation"]
-        prob_crossover = payload["prob_crossover"]
-        # TODO : Need to add this into ocl_ga
-        repopulating_type = payload["repopulating_type"]
-        sharing_best_after = payload["sharing_best_after"]
-
-        self.__options_info['termination'] = termination_type
-        self.__options_info['population'] = populations
-        self.__options_info['prob_mutation'] = prob_mutation
-        self.__options_info['prob_crossover'] = prob_crossover
-
     def handle_message(self, msg):
         assert type(msg) == dict
 
@@ -107,7 +93,7 @@ class OpenCLGAServer(object):
         print('process command {}'.format(cmd))
 
         if cmd == 'prepare':
-            self.__update_options(msg.get('payload', {}))
+            self.__options_info.update(msg.get('payload',
             print('prepare with args: {}'.format(self.__options_info))
             packed = pickle.dumps(self.__options_info)
             self.prepare(packed)
