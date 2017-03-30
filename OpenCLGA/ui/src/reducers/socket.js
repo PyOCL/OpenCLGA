@@ -24,6 +24,7 @@ const handleWorkerConnected = (workers, data) => {
   worker.device = data.device;
   worker.id = data.worker;
   worker.ip = data.ip;
+  worker.device = data.name;
   worker.platform = data.platform;
   worker.type = data.type;
   workers[data.worker] = worker;
