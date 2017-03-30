@@ -52,6 +52,8 @@ class StateMachine(Logger):
         last_state = self.__curr_state
         self.__curr_state = next_state
         self.info("Change State : {} => {}".format(last_state, next_state))
+        if self.openclga.action_callbacks and "state" in self.openclga.action_callbacks:
+            self.openclga.action_callbacks["state"](next_state)
 
 class GARun(Task):
     # Iterating GA generation in a separated thread.

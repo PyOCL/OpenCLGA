@@ -90,17 +90,24 @@ class OpenCLGAWorker(Process, Logger):
     def __send_and_dump_info(self, index, data):
         self.verbose("{0}\t\t==> {1} ~ {2} ~ {3}".format(index, data["best"], data["avg"],
                                                                 data["worst"]))
-        self.__send({"type": "generation_result",
-                     "index": index,
-                     "result": data})
+        self.__send({"type"     : "generation_result",
+                     "index"    : index,
+                     "result"   : data})
 
     def _run_end(self):
         self.__send({"type": "end"})
 
+    def _state_changed(self, state):
+        self.__send({"type" : "stateChanged",
+                     "data" : { "worker"    : self.uuid,
+                                "state"     : state}})
+
     def __create_ocl_ga(self, options):
         options["cl_context"] = self.context
         options["generation_callback"] = self.__send_and_dump_info
-        self.ocl_ga = OpenCLGA(options, action_callbacks={'run' : self._run_end})
+        self.ocl_ga = OpenCLGA(options,
+                               action_callbacks={"run"      : self._run_end,
+                                                 "state"    : self._state_changed})
         self.ocl_ga.prepare()
         self.info("Worker [{}]: oclGA prepared".format(self.device.name))
 
