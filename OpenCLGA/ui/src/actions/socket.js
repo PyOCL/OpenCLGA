@@ -45,11 +45,11 @@ class Socket {
     }, 10000);
   }
 
-  sendCommand(command, payload) {
+  sendCommand(command, data) {
     if (!this.connected) {
       return;
     }
-    this.socket.send(JSON.stringify({ command, payload }));
+    this.socket.send(JSON.stringify({ command, data }));
   }
 
   handleOpen(evt) {
