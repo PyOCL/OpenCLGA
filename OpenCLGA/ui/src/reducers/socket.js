@@ -58,7 +58,7 @@ const handleGenerationResult = (workers, data) => {
 };
 
 export default (state = initialState, payload) => {
-  const data = payload.data;
+  const data = payload.payload;
   const workers = _.cloneDeep(state.workers);
   switch (payload.type) {
     case ACTION_KEYS.WORKER_CONNECTED:

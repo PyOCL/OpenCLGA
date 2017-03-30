@@ -124,7 +124,7 @@ class Socket {
 
     this.store.dispatch({
       type: actionType,
-      payload: data.payload
+      payload: data.data
     });
   }
 
