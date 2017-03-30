@@ -90,9 +90,13 @@ class OpenCLGAWorker(Process, Logger):
     def __send_and_dump_info(self, index, data):
         self.verbose("{0}\t\t==> {1} ~ {2} ~ {3}".format(index, data["best"], data["avg"],
                                                                 data["worst"]))
-        self.__send({"type"     : "generation_result",
-                     "index"    : index,
-                     "result"   : data})
+        # TODO : Return best result
+        self.__send({"type" : "generationResult",
+                     "data" : { "worker" :   self.uuid,
+                                "result" : { "best_fitness" : data["best"],
+                                             "avg_fitness"  : data["avg"],
+                                             "worst_fitness": data["worst"],
+                                             "best_result": [{}, {}, {}]}}})
 
     def _run_end(self):
         self.__send({"type": "end"})
