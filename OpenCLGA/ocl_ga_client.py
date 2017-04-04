@@ -16,6 +16,7 @@ from .utilities.socketserverclient import Client, OP_MSG_BEGIN, OP_MSG_END
 
 oclClient = None
 
+## Queuy the list of platforms and the list of devices for specific platform.
 def query_devices(c_p):
     import pyopencl as cl
     platforms = cl.get_platforms()
@@ -41,12 +42,19 @@ class OpenCLGAWorker(Process, Logger):
         self.port = port
         self.uuid = uuid.uuid1().hex
 
+    ## Terminate worker process, this should be only called when OpenCLGAClient
+    #  is shutting down. The exti_evt will be set to break the wait in the
+    #  process's run.
     def terminate(self):
         self.exit_evt.set()
         while self.running.value:
             time.sleep(0.1)
         super(OpenCLGAWorker, self).terminate()
 
+    ## The actual execution place in worker process.
+    #  First, mark the process as running.
+    #  Second, create opencl context according to the platform, device indices.
+    #  Third, create a socket client as the communication channel to server.
     def run(self):
         self.running.value = 1
         random.seed()
@@ -78,6 +86,7 @@ class OpenCLGAWorker(Process, Logger):
         finally:
             self.__shutdown()
 
+    ## Create opencl context according to specific information.
     def __create_context(self):
         self.platform = cl.get_platforms()[self.platform_index]
         assert self.platform is not None
@@ -87,6 +96,7 @@ class OpenCLGAWorker(Process, Logger):
         self.context = cl.Context(devices=[self.device])
         return self.context
 
+    ## Create opencl context according to specific information.
     def __send_and_dump_info(self, index, data):
         self.verbose("{0}\t\t==> {1} ~ {2} ~ {3}".format(index, data["best"], data["avg"],
                                                                 data["worst"]))
@@ -98,14 +108,19 @@ class OpenCLGAWorker(Process, Logger):
                                              "worst_fitness": data["worst"],
                                              "best_result": [{}, {}, {}]}}})
 
+    ## The callback funciton for OpenCLGA to notify that the algorithm is
+    #  at the end of iteration.
     def _run_end(self):
         self.__send({"type": "end"})
 
+    ## The callback funciton for OpenCLGA to notify state change.
     def _state_changed(self, state):
         self.__send({"type" : "stateChanged",
                      "data" : { "worker"    : self.uuid,
                                 "state"     : state}})
 
+    ## Create OpenCLGA instance with options
+    #  @param options Algorithm setup information
     def __create_ocl_ga(self, options):
         options["cl_context"] = self.context
         options["generation_callback"] = self.__send_and_dump_info
@@ -115,11 +130,10 @@ class OpenCLGAWorker(Process, Logger):
         self.ocl_ga.prepare()
         self.info("Worker [{}]: oclGA prepared".format(self.device.name))
 
+    ## Receive raw data from server and take actions accordingly.
+    #  @param data A string-like bytearray object which can be converted to
+    #  dictionary.  Two keys should be included. 1) 'command' 2) 'data'
     def _process_data(self, data):
-        '''
-        Called when data is received from server.
-        '''
-        # Conver bytearray "data" to string-like object
         msg = str(data, 'ASCII')
         dict_msg = eval(msg)
         cmd = dict_msg["command"]
@@ -168,20 +182,28 @@ class OpenCLGAWorker(Process, Logger):
         except:
             traceback.print_exc()
 
+    ## Send data back to server
+    #  @param data The msg to be sent.
     def __send(self, data):
         if self.client:
             self.client.send(repr(data))
 
+    ## Called when the process is terminated or receives 'exit' command from
+    #  server.
+    #  Need to notify UI that the worker is lost and then socket client
+    #  will be closed here.
     def __shutdown(self):
         self.info("Worker [{0}] is exiting ...".format(self.device.name))
         self.__notify_client_offline()
-        # A timer to make sure the notification be sent to UI.
+        # NOTE : A timer to make sure the notification be sent to UI.
+        # TODO : Find a better way to make it.
         time.sleep(1)
         if self.client:
             self.client.shutdown()
         self.client = None
         self.running.value = 0
 
+    ## Notify UI that client is connected.
     def __notify_client_online(self):
         self.__send({"type" : "workerConnected",
                      "data" : { "type"         : self.dev_type,
@@ -189,67 +211,103 @@ class OpenCLGAWorker(Process, Logger):
                                 "name"         : self.device.name,
                                 "ip"           : self.ip,
                                 "worker"       : self.uuid}})
+
+    ## Notify UI that client is lost.
     def __notify_client_offline(self):
         self.__send({"type" : "workerLost",
                      "data" : { "worker"       : self.uuid}})
 
+## OpenCLGAClient is supposed to create as many worker processes as possible.
+#  The number of workers should be the number of platforms on the machine
+#  times the number of devices which is provided by each platform.
+#  e.g. There're 2 devices for platform 1, 1 device for platform 2.
+#       Finally, 3 worker processes will be created.
+#  Since the computing power may vary among all devices, OpenCLGAClient will be
+#  down until all workers are not alive.
 class OpenCLGAClient(Logger):
-    def __init__(self, ip, port=12345):
+    def __init__(self, ip, port):
         Logger.__init__(self)
+        self.server_ip = ip
+        self.server_port = port
         self.__workerProcesses = []
-        self.create_workers_for_devices(ip, port)
-        self.start_workers()
+        self.__create_workers_for_devices()
 
-    def create_workers_for_devices(self, ip, port):
-        # This is a workaround for Mac Intel Drivers. We will get an error:
-        # pyopencl.cffi_cl.LogicError: clGetContextInfo failed: INVALID_CONTEXT
-        # if we try to use get_devices() in this process. So, we create an extra
-        # process to read all platforms and devices. After that, we can create
-        # device and command queue without this error.
+    ## Start all worker processes, and setup a while-loop to monitor the status
+    #  of each worker.
+    #  Loop will be broken when all workers are all dead (either 1. have done
+    #  their jobs or 2. are shut down by OpenCLGAServer 'exit' command) or
+    #  a KeyboardInterrupt happens.
+    def run_forever(self):
+        try:
+            self.__start_workers()
+            while True:
+                if not self.__is_alive():
+                    self.info("[OpenCLGAClient] All workers are NOT alive, ByeBye !!")
+                    break
+                time.sleep(0.01)
+        except KeyboardInterrupt:
+            self.info("[OpenCLGAClient] KeyboardInterrupt, ByeBye !!")
+
+    ## Stop all workers, and clean up variables.
+    def shutdown(self):
+        self.__stop_workers()
+        self.__workerProcesses = []
+
+    ## This is a workaround for Mac Intel Drivers. We will get an error:
+    # pyopencl.cffi_cl.LogicError: clGetContextInfo failed: INVALID_CONTEXT
+    # if we try to use get_devices() in this process. So, we create an extra
+    # process to read all platforms and devices. After that, we can create
+    # device and command queue without this error.
+    def __create_workers_for_devices(self):
         p_p, c_p = Pipe()
         p = Process(target=query_devices, args=(c_p,))
         p.start()
         device_list = p_p.recv()
         p.join()
         for dev in device_list:
-            self.__fork_process(dev[0], dev[1], ip, port)
+            self.__create_process(dev[0], dev[1])
 
-    def __fork_process(self, platform_index, device_index, ip, port):
-        process = OpenCLGAWorker(platform_index, device_index, ip, port)
+    ## Create OpenCLGAWorker process according by platform and device.
+    #  @param platform_index The index of platform
+    #  @param device_index The index of device for certain platform.
+    def __create_process(self, platform_index, device_index):
+        process = OpenCLGAWorker(platform_index,
+                                 device_index,
+                                 self.server_ip,
+                                 self.server_port)
         self.__workerProcesses.append(process)
 
-    def start_workers(self):
+    ## Start all worker processes
+    def __start_workers(self):
         for worker in self.__workerProcesses:
             worker.start()
 
-    def stop_workers(self):
+    ## Terminate all worker processes
+    def __stop_workers(self):
         for worker in self.__workerProcesses:
-            self.info('process {} is alive ? {}'.format(worker, worker.is_alive()))
             if worker.is_alive():
                 worker.terminate()
-        self.__workerProcesses = []
+                self.info('process {} is terminated.'.format(worker))
 
-    def shutdown(self):
-        self.stop_workers()
-
-    def is_alive(self):
+    ## OpenCLGAClient is only alive when all workers are alive.
+    def __is_alive(self):
         alive = True
         for worker in self.__workerProcesses:
             alive = alive and worker.is_alive()
         return alive
 
+## Start up a standalone OpenCLGAClient. It will be closed when all worker
+#  process are dead. Also will be closed when receving KeyboardInterrupt (Ctrl+c).
+#  @param server The IP of OpenCLGAServer.
+#  @param port The port which is listened by OpenCLGAServer
 def start_ocl_ga_client(server="127.0.0.1", port=12345):
     global oclClient
     assert oclClient == None
     logger = Logger()
     oclClient = OpenCLGAClient(server, port)
     try:
-        while True:
-            if not oclClient.is_alive():
-                logger.info("[OpenCLGAClient] Bye Bye !!")
-                break
-            time.sleep(0.01)
-    except KeyboardInterrupt:
+        oclClient.run_forever()
+    finally:
         oclClient.shutdown()
     oclClient = None
 
