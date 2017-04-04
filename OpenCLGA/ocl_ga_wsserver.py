@@ -4,7 +4,6 @@ import sys
 import ssl
 import threading
 from base64 import b64encode
-
 from socketserver import ThreadingMixIn
 from http.server import HTTPServer
 from io import StringIO
@@ -12,6 +11,8 @@ from io import StringIO
 from .utilities.generaltaskthread import TaskThread, Task, Logger
 from .utilities.httpwebsocketserver import HTTPWebSocketsHandler
 
+## A Handler class when the Http request is upgraded to websocket, the following
+#  methods will be called accordingly.
 class HttpWSMessageHandler(HTTPWebSocketsHandler):
     cn_hdlr = None
     msg_hdlr = None
@@ -34,9 +35,13 @@ class HttpWSMessageHandler(HTTPWebSocketsHandler):
             self.dcn_hdlr(self.client_address)
         self.log_message('%s','websocket closed')
 
+## Handle requests in a separate thread.
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
-    """Handle requests in a separate thread."""
 
+## A task class which intends to call HTTPServer's serve_forever in separated
+#  thread.
+#  @param server The Http Server instance
+#  @param credentials The credentials to be wrapped if secure connection is required.
 class HttpWSTask(Task):
     def __init__(self, server, credentials = ""):
         Task.__init__(self)
@@ -45,7 +50,7 @@ class HttpWSTask(Task):
         self.server.daemon_threads = True
         self.server.auth = b64encode(credentials.encode("ascii"))
         if credentials:
-            self.server.socket = ssl.wrap_socket (self.server.socket, certfile='./server.pem', server_side=True)
+            self.server.socket = ssl.wrap_socket(self.server.socket, certfile='./server.pem', server_side=True)
             self.info("Secure https server is created @ port {}.".format(self.server.server_port))
         else:
             self.info("Http server is created @ port {}.".format(self.server.server_port))
@@ -54,10 +59,19 @@ class HttpWSTask(Task):
         self.verbose("Http WS server is serving forever now !!")
         self.server.serve_forever()
 
+## Create threaded http server which is able to upgrade HTTP request to websocket
+#  @param ip IP for server.
+#  @param port Listen on this port to accept connection.
+#  @param credentials The credentials file if a secure connection is required.
+#  @param connect_handler A handler function which is called when the http request
+#  is upgraded to websocket.
+#  @param message_handler A handler function which is called when there's any
+#  message received by the websocket.
+#  @param disconnect_handler A handler function which is called when the websocket
+#  disconnects to server.
 class OclGAWSServer(object):
     def __init__(self, ip, port, credentials = "", connect_handler = None,
                  message_handler = None, disconnect_handler = None):
-        # Create threaded http server
         HttpWSMessageHandler.cn_hdlr = connect_handler
         HttpWSMessageHandler.msg_hdlr = message_handler
         HttpWSMessageHandler.dcn_hdlr = disconnect_handler
@@ -66,13 +80,14 @@ class OclGAWSServer(object):
         self.httpwsserver_thread.daemon = True
         self.credentials = credentials
 
+    ## Run the http server's serve_forever function in a separated thread.
     def run_server(self):
-        # Run the http server in a separated thread.
         if self.httpwsserver_thread:
             self.httpwsserver_thread.start()
             task = HttpWSTask(self.httpwsserver, self.credentials)
             self.httpwsserver_thread.addtask(task)
 
+    ## Shut down HttpServer and close the thread for it.
     def shutdown(self):
         if self.httpwsserver:
             self.httpwsserver.socket.close()
