@@ -77,7 +77,8 @@ class Main extends Component {
           <h2>OpenCLGA UI</h2>
         </div>
         <div className='app-main'>
-          <ConfigPanel config={config} actions={actions.configActions} />
+          <ConfigPanel config={config} state={control.currentState}
+                       actions={actions.configActions} />
           <ControlPanel control={control} actions={actions.controlActions} />
           <WidgetsPanel workers={workers} />
           { DEFAULT_WEBSOCKET_SERVER === 'dialog' && this.state.state === 'waiting' &&

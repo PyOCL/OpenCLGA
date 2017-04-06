@@ -41,7 +41,8 @@ class GenerationRow extends Component {
 
   render() {
     const {
-      config
+      config,
+      disabled
     } = this.props;
 
     const countChecked = config.type === 'count';
@@ -51,22 +52,22 @@ class GenerationRow extends Component {
         <Col xs={12} sm={4} md={4}><ControlLabel>Generations:</ControlLabel></Col>
         <Col xs={12} sm={8} md={8}>
           <div>
-            <Radio checked={countChecked} value='count' onChange={this.handleRadioChanged}
-                   name='generationType'>
+            <Radio checked={countChecked} disabled={disabled} name='generationType' value='count'
+                   onChange={this.handleRadioChanged}>
               By count:
             </Radio>
             <NumericInput className='generations-count-number'
                           min={1} value={this.state.count} max={1000000000} step={1000}
-                          onChange={this.handleValueChange} disabled={!countChecked} />
+                          onChange={this.handleValueChange} disabled={!countChecked || disabled} />
           </div>
           <div>
-            <Radio checked={timeChecked} value='time' onChange={this.handleRadioChanged}
-                   name='generationType'>
+            <Radio checked={timeChecked} disabled={disabled} name='generationType' value='time'
+                   onChange={this.handleRadioChanged}>
               By time (mins):
             </Radio>
             <NumericInput className='generations-time-number'
                           min={1} value={this.state.time} max={1000000000} step={1}
-                          onChange={this.handleValueChange} disabled={!timeChecked} />
+                          onChange={this.handleValueChange} disabled={!timeChecked || disabled} />
           </div>
         </Col>
       </Row>

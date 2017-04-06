@@ -13,10 +13,11 @@ const ShareResultRow = (props) => {
   };
   return (
     <div className={`${props.className}-row`}>
-      <Checkbox checked={props.value > 0} onChange={handleCheckboxChanged}>
+      <Checkbox checked={props.value > 0} disabled={props.disabled} onChange={handleCheckboxChanged}>
         Share best results after
       </Checkbox>
       <NumericInput className={`numeric-input ${props.className}-number`}
+                    disabled={props.disabled}
                     min={0} max={100000} value={props.value} step={1}
                     onChange={props.onChange}/>
       <label>generations.</label>
@@ -26,6 +27,7 @@ const ShareResultRow = (props) => {
 
 ShareResultRow.propTypes = {
   className: PropTypes.string,
+  disabled: PropTypes.bool,
   type: PropTypes.string,
   onSelect: PropTypes.func,
   onChange: PropTypes.func

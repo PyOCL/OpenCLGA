@@ -1,10 +1,9 @@
 import _ from 'lodash';
-import { OPENCLGA_STATES } from '../shared/constants';
 import { createSimpleAction } from '../shared/utils';
 import { ACTION_KEYS } from '../shared/control';
 import socket from './socket';
 
-const setState = createSimpleAction(ACTION_KEYS.SET_STATE);
+export const setState = createSimpleAction(ACTION_KEYS.SET_STATE);
 
 export const prepare = () => (dispatch, getState) => {
   const config = _.cloneDeep(getState().config);

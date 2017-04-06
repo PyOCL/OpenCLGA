@@ -19,6 +19,7 @@ export const getDropdownText = (type) => {
 const RepopulatingTypeDropdown = (props) => {
   return (
     <DropdownButton bsStyle='default' title={getDropdownText(props.value)}
+                    disabled={props.disabled}
                     className={props.className} id='repopulating-type'
                     onSelect={props.onSelect}>
       <MenuItem eventKey={REPOPULATING_CONFIG_TYPE.DISABLED}>
@@ -35,6 +36,7 @@ const RepopulatingTypeDropdown = (props) => {
 };
 
 RepopulatingTypeDropdown.propTypes = {
+  disabled: PropTypes.bool,
   value: PropTypes.string,
   onSelect: PropTypes.func
 }

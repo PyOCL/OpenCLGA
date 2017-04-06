@@ -9,16 +9,18 @@ class RepopulatingRow extends Component {
     const {
       className,
       config,
+      disabled,
       onInputChange,
       onTypeChange
     } = this.props;
-    const inputDisabled = config.type === REPOPULATING_CONFIG_TYPE.DISABLED;
+    const inputDisabled = config.type === REPOPULATING_CONFIG_TYPE.DISABLED || disabled;
     return (
       <div className={`${className}-row`}>
         <label>Repopulate 90% when</label>
         <RepopulatingTypeDropdown value={config.type}
-                                className={`type-dropdown ${className}-dropdown`}
-                                onSelect={onTypeChange} />
+                                  className={`type-dropdown ${className}-dropdown`}
+                                  disabled={disabled}
+                                  onSelect={onTypeChange} />
         <label>is greater than</label>
         <div style={{display: 'inline-block'}}>
           <NumericInput className={`numeric-input ${className}-number`}
@@ -32,6 +34,7 @@ class RepopulatingRow extends Component {
 
 RepopulatingRow.propTypes = {
   className: PropTypes.string,
+  disabled: PropTypes.bool,
   type: PropTypes.string,
   onSelect: PropTypes.func
 };
