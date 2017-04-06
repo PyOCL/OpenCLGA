@@ -73,7 +73,7 @@ class GARun(Task):
         self.ga._start_evolution(self.prob_m, self.prob_c)
         self.ga._elapsed_time += time.time() - start_time
         if self.ga.action_callbacks and 'run' in self.ga.action_callbacks:
-            self.ga.action_callbacks['run']()
+            self.ga.action_callbacks['run'](self.ga._paused)
 
 class OpenCLGA():
     def __init__(self, options, action_callbacks = {}):

@@ -23,7 +23,6 @@ class ConfigPanel extends Component {
     const isWaiting = state === OPENCLGA_STATES.WAITING;
     const isPaused = state === OPENCLGA_STATES.PAUSED;
     const isPrepared = state === OPENCLGA_STATES.PREPARED;
-    console.log('state', state, isWaiting, isPaused);
     return (
       <Panel header='Configuration Panel' bsStyle='success'>
         <Row>
