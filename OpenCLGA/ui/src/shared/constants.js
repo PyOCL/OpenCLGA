@@ -20,7 +20,11 @@ export const DEVICE_TYPE = {
   DSP: 'dsp'
 };
 
-// This is the default websocket connection information
+// This is the default websocket connection information:
+// The default websocket server may have the following candidates:
+// 1. 'dialog': for showing an input dialog for connecting to any servers.
+// 2. '[IP address]': for connecting to specified server
+// 3. null: for connecting to localhost server
 export const DEFAULT_WEBSOCKET_SERVER = null;
 export const DEFAULT_WEBSOCKET_PORT = 8000;
 
