@@ -23,10 +23,6 @@ export const prepare = () => (dispatch, getState) => {
     },
     'sharing_best_after': config.shareBestCount
   });
-
-  setTimeout(() => {
-    dispatch(setState(OPENCLGA_STATES.PREPARED));
-  }, 2000);
 };
 
 export const run = () => (dispatch, getState) => {
@@ -35,27 +31,12 @@ export const run = () => (dispatch, getState) => {
     'prob_mutation': config.mutationRatio / 100,
     'prob_crossover': config.crossoverRatio / 100
   });
-  // The following line should be removed. The state changing should be made by
-  // socket... We use this line to easy testing.
-  setTimeout(() => {
-    dispatch(setState(OPENCLGA_STATES.RUNNING));
-  }, 2000);
 };
 
 export const pause = () => (dispatch, getState) => {
   socket.sendCommand('pause');
-  // The following line should be removed. The state changing should be made by
-  // socket... We use this line to easy testing.
-  setTimeout(() => {
-    dispatch(setState(OPENCLGA_STATES.PAUSED));
-  }, 2000);
 };
 
 export const stop = () => (dispatch, getState) => {
   socket.sendCommand('stop');
-  // The following line should be removed. The state changing should be made by
-  // socket... We use this line to easy testing.
-  setTimeout(() => {
-    dispatch(setState(OPENCLGA_STATES.STOPPED));
-  }, 2000);
 };

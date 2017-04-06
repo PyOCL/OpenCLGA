@@ -57,7 +57,7 @@ const runningState = (others) => {
   const anyPausing = _.some(others, (state) => (state === OPENCLGA_STATES.PAUSING));
   const anyStopping = _.some(others, (state) => (state === OPENCLGA_STATES.STOPPING));
   const allPaused = others.every((state) => (state === OPENCLGA_STATES.PAUSED));
-  const allStopped = others.every((state) => (state === OPENCLGA_STATES.PAUSED));
+  const allStopped = others.every((state) => (state === OPENCLGA_STATES.STOPPED));
 
   if (anyPausing) {
     return OPENCLGA_STATES.PAUSING;

@@ -111,7 +111,9 @@ class OpenCLGAWorker(Process, Logger):
     ## The callback funciton for OpenCLGA to notify that the algorithm is
     #  at the end of iteration.
     def _run_end(self):
-        self.__send({"type": "end"})
+        self.__send({"type" : "stateChanged",
+                     "data" : { "worker"    : self.uuid,
+                                "state"     : "stopped"}})
 
     ## The callback funciton for OpenCLGA to notify state change.
     def _state_changed(self, state):
