@@ -37,6 +37,7 @@ class HttpWSMessageHandler(HTTPWebSocketsHandler):
 
 ## Handle requests in a separate thread.
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    pass
 
 ## A task class which intends to call HTTPServer's serve_forever in separated
 #  thread.
