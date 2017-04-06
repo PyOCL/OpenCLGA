@@ -28,7 +28,7 @@ def run(num_chromosomes, generations):
     import threading
     evt = threading.Event()
     evt.clear()
-    def run_end():
+    def run_end(paused):
         evt.set()
 
     tsp_ga_cl = OpenCLGA({"sample_chromosome": sample,
