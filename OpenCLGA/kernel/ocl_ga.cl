@@ -1,4 +1,4 @@
-#include "ga_utils.c"
+#include "ga_utils.cl"
 
 __kernel void ocl_ga_calculate_fitness(global int* chromosomes,
                                        global float* fitness FITNESS_ARGS)

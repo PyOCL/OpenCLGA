@@ -1,7 +1,7 @@
 #ifndef __oclga_simple_gene__
 #define __oclga_simple_gene__
 
-#include "ga_utils.c"
+#include "ga_utils.cl"
 
 
 void simple_gene_mutate(global int* gene, uint max, uint* ra) {

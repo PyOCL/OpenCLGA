@@ -18,7 +18,7 @@ def run(num_chromosomes, generations):
     ocl_kernels = os.path.realpath(os.path.join(tsp_path, "..", "..", "kernel"))
     tsp_kernels = os.path.join(tsp_path, "kernel")
 
-    f = open(os.path.join(tsp_kernels, "simple_tsp.c"), "r")
+    f = open(os.path.join(tsp_kernels, "simple_tsp.cl"), "r")
     fstr = "".join(f.readlines())
     f.close()
 

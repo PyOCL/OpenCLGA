@@ -50,7 +50,7 @@ def get_taiwan_travel_info():
     tsp_kernels = os.path.join(tsp_path, "kernel")
 
     sample = ShufflerChromosome([SimpleGene(v, cities) for v in city_ids])
-    f = open(os.path.join(tsp_kernels, "taiwan_fitness.c"), "r")
+    f = open(os.path.join(tsp_kernels, "taiwan_fitness.cl"), "r")
     fstr = "".join(f.readlines())
     f.close()
 

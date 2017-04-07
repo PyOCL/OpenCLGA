@@ -41,7 +41,7 @@ def run(num_chromosomes, generations):
     ocl_kernels = os.path.realpath(os.path.join(algebra_path, "..", "..", "kernel"))
     algebra_kernels = os.path.join(algebra_path, "kernel")
 
-    f = open(os.path.join(algebra_kernels, "expansion.c"), "r")
+    f = open(os.path.join(algebra_kernels, "expansion.cl"), "r")
     fstr = "".join(f.readlines())
     f.close()
 

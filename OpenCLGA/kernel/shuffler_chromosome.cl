@@ -1,7 +1,7 @@
 #ifndef __oclga_shuffler_chromosome__
 #define __oclga_shuffler_chromosome__
 
-#include "ga_utils.c"
+#include "ga_utils.cl"
 
 typedef struct {
   int genes[SHUFFLER_CHROMOSOME_GENE_SIZE];

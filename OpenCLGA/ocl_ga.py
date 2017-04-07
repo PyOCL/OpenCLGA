@@ -198,7 +198,7 @@ class OpenCLGA():
                 self.__include_code + "\n" +\
                 self.__fitness_kernel_str
         kernel_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "kernel")
-        f = open(os.path.join(kernel_path, "ocl_ga.c"), "r")
+        f = open(os.path.join(kernel_path, "ocl_ga.cl"), "r")
         fstr = "".join(f.readlines())
         f.close()
         if self.__debug_mode:

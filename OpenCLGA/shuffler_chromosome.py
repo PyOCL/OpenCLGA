@@ -58,7 +58,7 @@ class ShufflerChromosome:
 
     @property
     def kernel_file(self):
-        return "shuffler_chromosome.c"
+        return "shuffler_chromosome.cl"
 
     @property
     def struct_name(self):

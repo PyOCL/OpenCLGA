@@ -58,7 +58,7 @@ class SimpleChromosome:
 
     @property
     def kernel_file(self):
-        return "simple_chromosome.c"
+        return "simple_chromosome.cl"
 
     @property
     def struct_name(self):

@@ -55,7 +55,7 @@ class SimpleGene:
     def kernel_file(self):
         # Kernel file which contains related operating functions for SimpleGene,
         # i.e. simple_gene_mutate()
-        return "simple_gene.c"
+        return "simple_gene.cl"
 
     @property
     def elements_length(self):
