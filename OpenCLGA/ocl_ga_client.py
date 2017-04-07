@@ -208,7 +208,7 @@ class OpenCLGAWorker(Process, Logger):
     ## Notify UI that client is connected.
     def __notify_client_online(self):
         self.__send({"type" : "workerConnected",
-                     "data" : { "type"         : self.dev_type,
+                     "data" : { "type"         : cl.device_type.to_string(self.dev_type),
                                 "platform"     : self.platform.name,
                                 "name"         : self.device.name,
                                 "ip"           : self.ip,
