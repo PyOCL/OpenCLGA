@@ -11,6 +11,7 @@ import uuid
 from multiprocessing import Process, Pipe, Value, Event
 
 from .ocl_ga import OpenCLGA
+from .utils import get_local_IP
 from .utilities.generaltaskthread import Logger
 from .utilities.socketserverclient import Client, OP_MSG_BEGIN, OP_MSG_END
 
@@ -29,6 +30,17 @@ def query_devices(c_p):
                 data.append((pidx, didx))
     c_p.send(data)
 
+## OpenCLGAWorker is a spawned process which is supposed to run OpenCLGA on a
+#  target device which is decided by OpenCLGAClient.
+#  @param platform_index Platform index which is queried and assigned by Client.
+#  @param device_index Device index which is queried and assigned by Client.
+#  @param ip The IP of server.
+#  @param port The listening port of server.
+#  @var exit_evt A event to wait in method run(), and will be set when receving
+#                'exit' command, or terminating.
+#  @var uuid A unique ID for UI to identify the worker.
+#  @var running A varialbe shared by client & worker process to identify if worker
+#               is running or not.
 class OpenCLGAWorker(Process, Logger):
     def __init__(self, platform_index, device_index, ip, port):
         Process.__init__(self)
@@ -207,11 +219,12 @@ class OpenCLGAWorker(Process, Logger):
 
     ## Notify UI that client is connected.
     def __notify_client_online(self):
+        client_local_ip = get_local_IP()
         self.__send({"type" : "workerConnected",
                      "data" : { "type"         : cl.device_type.to_string(self.dev_type),
                                 "platform"     : self.platform.name,
                                 "name"         : self.device.name,
-                                "ip"           : self.ip,
+                                "ip"           : client_local_ip,
                                 "worker"       : self.uuid}})
 
     ## Notify UI that client is lost.
