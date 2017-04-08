@@ -5,6 +5,7 @@ import _ from 'lodash';
 import ConnectedWorkers from './widgets/connected_workers';
 import BestFitness from './widgets/best_fitness';
 import WorkersTable from './widgets/workers_table';
+import WorkerLineChart from './widgets/worker_line_chart';
 
 class WidgetsPanel extends Component {
 
@@ -32,6 +33,13 @@ class WidgetsPanel extends Component {
         <Row className='widgets-panel-row'>
           <Col xs={12} sm={12} md={12}>
             <WorkersTable workers={sortedWorkerArray} />
+          </Col>
+        </Row>
+        <Row className='widgets-panel-row'>
+          <Col xs={12} sm={12} md={6}>
+            <WorkerLineChart workers={workers} />
+          </Col>
+          <Col xs={12} sm={12} md={6}>
           </Col>
         </Row>
       </div>
