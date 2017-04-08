@@ -202,6 +202,7 @@ class Client(object):
     def __init__(self, server_ip, server_port, callbacks_info):
         skt = socket.socket()
         skt.connect((server_ip, server_port))
+        self.__ip = skt.getsockname()[0]
         self.msg_handler = MessageHandler(skt)
         self.msg_handler.setup_callbacks_info(callbacks_info)
 
@@ -212,6 +213,9 @@ class Client(object):
         self.thread.daemon = True
         self.thread.start()
         self.thread.addtask(task)
+
+    def get_address(self):
+        return self.__ip
 
     def shutdown(self):
         try:

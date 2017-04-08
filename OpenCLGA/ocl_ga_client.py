@@ -11,7 +11,6 @@ import uuid
 from multiprocessing import Process, Pipe, Value, Event
 
 from .ocl_ga import OpenCLGA
-from .utils import get_local_IP
 from .utilities.generaltaskthread import Logger
 from .utilities.socketserverclient import Client, OP_MSG_BEGIN, OP_MSG_END
 
@@ -82,7 +81,7 @@ class OpenCLGAWorker(Process, Logger):
             self.client = Client(self.ip, self.port, {0 : { "pre" : OP_MSG_BEGIN,
                                                             "post": OP_MSG_END,
                                                             "callback" : self._process_data}})
-            self.__notify_client_online()
+            self.__notify_client_online(self.client.get_address())
         except ConnectionRefusedError:
             self.error("Connection refused! Please check Server status.")
             self.client = None
@@ -218,13 +217,12 @@ class OpenCLGAWorker(Process, Logger):
         self.running.value = 0
 
     ## Notify UI that client is connected.
-    def __notify_client_online(self):
-        client_local_ip = get_local_IP()
+    def __notify_client_online(self, client_ip):
         self.__send({"type" : "workerConnected",
                      "data" : { "type"         : cl.device_type.to_string(self.dev_type),
                                 "platform"     : self.platform.name,
                                 "name"         : self.device.name,
-                                "ip"           : client_local_ip,
+                                "ip"           : client_ip,
                                 "worker"       : self.uuid}})
 
     ## Notify UI that client is lost.

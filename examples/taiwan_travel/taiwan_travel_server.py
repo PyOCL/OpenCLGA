@@ -167,7 +167,7 @@ def start_tt_server():
     while True:
         user_input = get_input()
         if user_input == "1":
-            start_ocl_ga_server(tt_info, {"message" : callback_from_client})
+            start_ocl_ga_server(tt_info, 12345, { "message" : callback_from_client })
             break
         elif user_input == "2":
             start_ocl_ga_local(tt_info)

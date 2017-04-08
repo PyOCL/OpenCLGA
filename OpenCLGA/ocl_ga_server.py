@@ -342,7 +342,7 @@ class OpenCLGAServer(Logger):
             self.httpws_server.shutdown()
             self.httpws_server = None
 
-def start_ocl_ga_server(port=12345, options=info, callbacks = {}):
+def start_ocl_ga_server(info, port, callbacks = {}):
     try:
         oclGAServer = OpenCLGAServer(info, port)
         for name, callback in list(callbacks.items()):
