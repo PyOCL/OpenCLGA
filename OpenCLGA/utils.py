@@ -2,6 +2,14 @@
 import random
 from math import pi, sqrt, asin, cos, sin, pow
 
+def get_local_IP():
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 1))
+    ip = s.getsockname()[0]
+    s.close()
+    return ip
+
 def get_testing_params():
     return 20, 200, 5000
 
