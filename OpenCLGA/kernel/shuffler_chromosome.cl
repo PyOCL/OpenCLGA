@@ -105,7 +105,7 @@ __kernel void shuffler_chromosome_calc_ratio(global float* fitness,
   if (idx > 0) {
     return;
   }
-  utils_calc_ratio(fitness, ratio, best, worst, avg, idx, POPULATION_SIZE);
+  utils_calc_ratio(fitness, ratio, best, worst, avg, POPULATION_SIZE);
 }
 
 __kernel void shuffler_chromosome_pick_chromosomes(global int* cs,

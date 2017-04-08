@@ -3,11 +3,23 @@
 
 #include "Noise.cl"
 
+/**
+ * prints the value of chromosomes. We can also use this function to print a
+ * single chromome with 1 value of num_of_chromosomes.
+ * @param *chromosomes (global) the reference of chromosomes array
+ * @param size_of_chromosome the size of a single chromesome
+ * @param num_of_chromosomes the number of chromosomes in this array.
+ * @param *fitnesses (global) the fitness array of all chromosomes. The size of
+ *        this array is num_of_chromosomes.
+ */
 void print_chromosomes(global int* chromosomes, int size_of_chromosome,
                        int num_of_chromosomes, global float* fitnesses)
 {
   int idx = get_global_id(0);
   if (idx > 0) {
+    // We use this function to dump all of chromosomes. In most of the cases,
+    // we shouldn't let all threads to print result because it may give us too
+    // many information. So, the first thread is the only one can dump infos.
     return;
   }
   for (int c = 0; c < num_of_chromosomes; c++) {
@@ -21,29 +33,15 @@ void print_chromosomes(global int* chromosomes, int size_of_chromosome,
   printf("\n");
 }
 
-void chromosome_swap(int idx, global int* chromosomes, int chromosome_size,
-                     int cp, int p1)
-{
-  int c1 = idx * chromosome_size;
-  uint temp_p = chromosomes[c1+cp];
-  chromosomes[c1+cp] = chromosomes[c1+p1];
-  chromosomes[c1+p1] = temp_p;
-}
-
-void calc_min_max_fitness(global float* fitnesses, int num_of_chromosomes, float* min, float* max)
-{
-  for (int i = 0; i < num_of_chromosomes; i++) {
-    max[0] = fmax(fitnesses[i], max[0]);
-    min[0] = fmin(fitnesses[i], min[0]);
-  }
-}
-
-// holder - A lenght 1 array which stores the last rand value.
-// Returns a random uint value.
-// NOTE : Since we cannot create a real random number in kernel,
-//        By passing in a random value from python, and storing the last
-//        random value generated from table, we could simulate a pesudo random
-//        number in kernel.
+/**
+ * rand generates a random number between 0 to max value of uint.
+ * NOTE : Since we cannot create a real random number in kernel,
+ *        By passing in a random value from python, and storing the last
+ *        random value generated from table, we could simulate a pesudo random
+ *        number in kernel.
+ * @param *holder a pointer of uint for storing the last rand value.
+ * @return a random uint value.
+ */
 uint rand(uint* holder)
 {
   uint b = ParallelRNG(holder[0]);
@@ -53,27 +51,37 @@ uint rand(uint* holder)
   return d;
 }
 
-// holder - A lenght 1 array which stores the last rand value.
-// Returns a random uint value in the range.
+/**
+ * rand_range generates a random number between 0 < return_vlue < range.
+ * @param *holder a pointer of uint for storing the last rand value.
+ * @param range the max value of random number.
+ * @return a random uint value in the range.
+ */
 uint rand_range(uint* holder, uint range)
 {
   uint r = rand(holder) % range;
   return r;
 }
 
-// holder - A lenght 1 array which stores the last rand value.
-// Returns a random uint value in the range except aExcluded.
+/**
+ * rand_range_exclude generates a random number between 0 < return_vlue < range.
+ * But the value aExcluded is excluded.
+ * @param *holder a pointer of uint for storing the last rand value.
+ * @param range the max value of random number.
+ * @param aExclude the excluded value
+ * @return a random uint value in the range except aExcluded.
+ */
 uint rand_range_exclude(uint* holder, uint range, uint aExcluded)
 {
-  uint r = rand(holder) % range;
-  while (r == aExcluded) {
-    r = rand(holder) % range;
-  }
-  return r;
+  uint r = rand(holder) % (range - 1);
+  return r == aExcluded ? range - 1 : r;
 }
 
-// holder - A lenght 1 array which stores the last rand value.
-// Returns a random float value from 0.0~1.0
+/**
+ * rand_prob generates a random number between 0 < return_vlue < 1 in float.
+ * @param *holder a pointer of uint for storing the last rand value.
+ * @return a random float value.
+ */
 float rand_prob(uint* holder)
 {
   uint r = rand(holder);
@@ -81,31 +89,71 @@ float rand_prob(uint* holder)
   return p;
 }
 
-// idx - global id
-// holder - A lenght 1 array which stores the last rand value.
-void init_rand(int idx, uint* holder)
+/**
+ * initialze the random seed.
+ * @param seed the reandom seed.
+ * @param *holder a pointer of uint for storing the last rand value.
+ */
+void init_rand(int seed, uint* holder)
 {
-  holder[0] = ParallelRNG(idx);
+  holder[0] = ParallelRNG(seed);
 }
 
-
-int random_choose_by_ratio(global float* ratio, uint* ra, int population)
+/**
+ * random choose a chromosome based on the ratio. For GA, we need to choose a
+ * chromosome for crossover based on fitnesses. If a chromosome with better
+ * fitness, the probability is higher. The ratio is an array with population in
+ * size. The value in ratio array is the uniform[0, 1] distribution value. The
+ * accumulated value of the whole array is 1.
+ * @param *ratio (global) the probability array for each chromosomes.
+ * @param *holder a pointer of uint for storing the last rand value.
+ * @param num_of_chromosomes the size of ratio.
+ */
+int random_choose_by_ratio(global float* ratio, uint* holder,
+                           int num_of_chromosomes)
 {
 
   // generate a random number from between 0 and 1
-  float rand_choose = rand_prob(ra);
+  float rand_choose = rand_prob(holder);
   float accumulated = 0.0;
   int i;
   // random choose a chromosome based on probability of each chromosome.
-  for (i = 0; i < population; i++) {
+  for (i = 0; i < num_of_chromosomes; i++) {
     accumulated += ratio[i];
     if (accumulated > rand_choose) {
       return i;
     }
   }
-  return population - 1;
+  return num_of_chromosomes - 1;
 }
 
+/**
+ * calc_min_max_fitness find the max and min value among all fitness values.
+ * @param *fitnesses (global) the fitness value array of all chromosomes
+ * @param num_of_chromosomes the number of chromosomes
+ * @param *min (out) for returing the min fitness value
+ * @param *max (out) for returning the max fitness value
+ */
+void calc_min_max_fitness(global float* fitnesses, int num_of_chromosomes,
+                          float* min, float* max)
+{
+  for (int i = 0; i < num_of_chromosomes; i++) {
+    max[0] = fmax(fitnesses[i], max[0]);
+    min[0] = fmin(fitnesses[i], min[0]);
+  }
+}
+
+/**
+ * utils_calc_ratio find the best, worst, avg fitnesses among all chromosomes.
+ * It also calculates the probability for each chromosomes based on their
+ * fitness value. The best and worst definition is based on the initial options
+ * of OpenCLGA.
+ * @param *fitness (global) the fitness value array of all chromosomes
+ * @param *ratio (global, out) the probability array of each chromosomes
+ * @param *best (global, out) the best fitness value
+ * @param *worst (global, out) the worse fitness value
+ * @param num_of_chromosomes the number of chromosomes.
+ */
 // Find min / max fitnesses among all chromosomes.
 // Calculate a ratio table to identify share of each chromosome among all chromosomes.
 void utils_calc_ratio(global float* fitness,
@@ -113,17 +161,17 @@ void utils_calc_ratio(global float* fitness,
                       global float* best,
                       global float* worst,
                       global float* avg,
-                      int idx,
-                      int population)
+                      int num_of_chromosomes)
 {
   float local_min = INT_MAX;
   float local_max = 0;
+  // OPTIMIZATION_FOR_MAX is set at ocl_ga.py
 #if OPTIMIZATION_FOR_MAX
-  calc_min_max_fitness(fitness, population, &local_max, &local_min);
+  calc_min_max_fitness(fitness, num_of_chromosomes, &local_max, &local_min);
   *best = local_max;
   *worst = local_min;
 #else
-  calc_min_max_fitness(fitness, population, &local_min, &local_max);
+  calc_min_max_fitness(fitness, num_of_chromosomes, &local_min, &local_max);
   *best = local_min;
   *worst = local_max;
 #endif
@@ -133,13 +181,16 @@ void utils_calc_ratio(global float* fitness,
   float avg_local = 0;
   int i;
   // we use total and diff to calculate the probability for each chromosome
-  for (i = 0; i < population; i++) {
+  for (i = 0; i < num_of_chromosomes; i++) {
+    // to have a significant different between better and worst, we use square
+    // of diff to calculate the probability.
     diffTotal += (temp_worst - fitness[i]) * (temp_worst - fitness[i]);
-    avg_local += fitness[i] / population;
+    avg_local += fitness[i] / num_of_chromosomes;
   }
   // calculate probability for each one
-  for (i = 0; i < population; i++) {
-    ratio[i] = (temp_worst - fitness[i]) * (temp_worst - fitness[i]) / diffTotal;
+  for (i = 0; i < num_of_chromosomes; i++) {
+    ratio[i] = (temp_worst - fitness[i]) * (temp_worst - fitness[i]) /
+               diffTotal;
   }
   *avg = avg_local;
 }

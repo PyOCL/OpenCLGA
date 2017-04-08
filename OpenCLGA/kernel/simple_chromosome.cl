@@ -98,7 +98,7 @@ __kernel void simple_chromosome_calc_ratio(global float* fitness,
   if (idx > 0) {
     return;
   }
-  utils_calc_ratio(fitness, ratio, best, worst, avg, idx, POPULATION_SIZE);
+  utils_calc_ratio(fitness, ratio, best, worst, avg, POPULATION_SIZE);
 }
 
 // Preparing another chromosomes array according to their fitness ratios.
