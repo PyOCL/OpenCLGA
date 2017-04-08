@@ -302,7 +302,7 @@ class OpenCLGAClient(Logger):
 #  process are dead. Also will be closed when receving KeyboardInterrupt (Ctrl+c).
 #  @param server The IP of OpenCLGAServer.
 #  @param port The port which is listened by OpenCLGAServer
-def start_ocl_ga_client(server="127.0.0.1", port=12345):
+def start_ocl_ga_client(server, port):
     global oclClient
     assert oclClient == None
     logger = Logger()
@@ -317,8 +317,10 @@ if __name__ == '__main__':
     from ocl_ga import OpenCLGA
     from utilities.generaltaskthread import Logger
     from utilities.socketserverclient import Client, OP_MSG_BEGIN, OP_MSG_END
-    parser = argparse.ArgumentParser(description='oclGA client help')
+    parser = argparse.ArgumentParser(description='OpenCLGA client help')
     parser.add_argument('server', metavar='ip', type=str,
-                        help='the server ip or address')
+                        help='the server ip, default : 127.0.0.1', default='127.0.0.1')
+    parser.add_argument('port', metavar='port', type=int,
+                        help='the server port, default : 12345', default=12345)
     args = parser.parse_args()
-    start_ocl_ga_client(args.server)
+    start_ocl_ga_client(args.server, args.port)
