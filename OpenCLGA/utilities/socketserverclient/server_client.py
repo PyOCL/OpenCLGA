@@ -172,7 +172,7 @@ def loop_for_connections(evt_break, server_mh = None, client_mh = None):
                                 read_list.remove(s)
                                 clients.pop(mh)
                                 mh.shutdown()
-            time.sleep(0.01)
+            time.sleep(0.001)
     except:
         traceback.print_exc()
         print("[Exception] inside loop for connections.")
