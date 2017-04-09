@@ -9,7 +9,7 @@ class Task(Logger):
         self.__taskid = Task.__id
 
     def __getattr__(self, name):
-        if name == "taskid":
+        if name == 'taskid':
             return self.__taskid
         return None
 
@@ -21,7 +21,7 @@ class Task(Logger):
         return t.name
 
 class TaskThread(Thread):
-    def __init__(self, name = "Unknown"):
+    def __init__(self, name = 'Unknown'):
         Thread.__init__(self, name = name)
         self.__qlock = Lock()
         self.tasks = []
@@ -35,15 +35,15 @@ class TaskThread(Thread):
             self.log(msg, prefixname, postfixname)
 
     def log(self, msg, prefixname = False, postfixname = False):
-        pre = "[%s]"%(self.name) if prefixname else ""
-        post = "[%s]"%(self.name) if postfixname else ""
+        pre = '[%s]'%(self.name) if prefixname else ''
+        post = '[%s]'%(self.name) if postfixname else ''
         print(pre+msg+post)
 
     def start(self):
         Thread.start(self)
 
     def run(self):
-        self.log(" TaskThread : running ...", prefixname = True)
+        self.log(' TaskThread : running ...', prefixname = True)
         while True:
             # If there's not pending task, wait to avoid busy-looping.
             if len(self.tasks) == 0:
@@ -59,12 +59,12 @@ class TaskThread(Thread):
             self.__qlock.release()
 
             if task:
-                self.debug_log(" TaskThread : start executing ... task (%d)"%(task.taskid), prefixname = True)
+                self.debug_log(' TaskThread : start executing ... task (%d)'%(task.taskid), prefixname = True)
                 task.run()
-        self.log(" TaskThread : ending.", prefixname = True)
+        self.log(' TaskThread : ending.', prefixname = True)
 
     def stop(self):
-        self.log("stop ...", postfixname = True)
+        self.log('stop ...', postfixname = True)
         self.wati_for_stop.set()
         self.wati_for_task.set()
         self.join()
@@ -75,7 +75,7 @@ class TaskThread(Thread):
         self.__qlock = None
 
     def addtask(self, task):
-        self.debug_log("adding task(%d) to ..."%(task.taskid), postfixname = True)
+        self.debug_log('adding task(%d) to ...'%(task.taskid), postfixname = True)
         # TODO : Add priority re-order for tasks.
         self.__qlock.acquire()
         self.tasks.append(task)
@@ -85,10 +85,10 @@ class TaskThread(Thread):
         return task.taskid
 
     def canceltask(self, taskid):
-        self.debug_log("canceling task(%d) in ..."%(taskid), postfixname = True)
+        self.debug_log('canceling task(%d) in ...'%(taskid), postfixname = True)
         self.__qlock.acquire()
         task = list(filter(lambda x: x.taskid == taskid, self.tasks))
         if len(task) == 1:
             self.tasks.remove(task[0])
-            self.debug_log("task(%d) canceled in ..."%(taskid), postfixname = True)
+            self.debug_log('task(%d) canceled in ...'%(taskid), postfixname = True)
         self.__qlock.release()

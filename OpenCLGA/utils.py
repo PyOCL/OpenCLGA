@@ -5,7 +5,7 @@ from math import pi, sqrt, asin, cos, sin, pow
 def get_local_IP():
     import socket
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(("8.8.8.8", 1))
+    s.connect(('8.8.8.8', 1))
     ip = s.getsockname()[0]
     s.close()
     return ip
@@ -57,35 +57,35 @@ def plot_ga_result(statistics):
 
     avg_time_per_gen = 0
     for key, value in statistics.items():
-        if key != "avg_time_per_gen":
+        if key != 'avg_time_per_gen':
             gen.append(key)
-            bests.append(value["best"])
-            worsts.append(value["worst"])
-            avgs.append(value["avg"])
-        elif key == "avg_time_per_gen":
+            bests.append(value['best'])
+            worsts.append(value['worst'])
+            avgs.append(value['avg'])
+        elif key == 'avg_time_per_gen':
             avg_time_per_gen = value
 
     arrow_idx = int(len(gen) * 0.7)
     arrow_x = gen[arrow_idx]
     arrow_y = bests[arrow_idx]
     plt.plot(gen, bests, 'g-')
-    plt.annotate("best", xy=(arrow_x, arrow_y,))
+    plt.annotate('best', xy=(arrow_x, arrow_y,))
 
     arrow_y = worsts[arrow_idx]
     plt.plot(gen, worsts, 'r-')
-    plt.annotate("worst", xy=(arrow_x, arrow_y))
+    plt.annotate('worst', xy=(arrow_x, arrow_y))
 
     arrow_y = avgs[arrow_idx]
-    plt.plot(gen, avgs, "b-")
-    plt.annotate("avg", xy=(arrow_x, arrow_y))
+    plt.plot(gen, avgs, 'b-')
+    plt.annotate('avg', xy=(arrow_x, arrow_y))
 
-    plt.ylabel("Fitness")
-    plt.xlabel("Generation")
+    plt.ylabel('Fitness')
+    plt.xlabel('Generation')
 
     xmin, xmax, ymin, ymax = plt.axis()
     textX = abs(xmax - xmin) * 0.1
     textY = abs(ymax) * 0.95
-    plt.text(textX, textY, "avg time per gen: %f (sec.)"%(avg_time_per_gen))
+    plt.text(textX, textY, 'avg time per gen: %f (sec.)'%(avg_time_per_gen))
     plt.grid(True)
     plt.show()
 
@@ -95,7 +95,7 @@ def calculate_estimated_kernel_usage(prog, ctx, kernel_name):
         from pyopencl import context_info as ci
         from pyopencl import kernel_work_group_info as kwgi
         devices = ctx.get_info(ci.DEVICES)
-        assert len(devices) == 1, "Should only one device is used !"
+        assert len(devices) == 1, 'Should only one device is used !'
         device = devices[0]
         # for name in kernel_names:
         kernel = cl.Kernel(prog, kernel_name)

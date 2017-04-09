@@ -4,7 +4,7 @@ import random
 from OpenCLGA import OpenCLGA, SimpleChromosome, SimpleGene, utils
 
 def show_generation_info(index, data_dict):
-    print("{0}\t\t==> {1}".format(index, data_dict["best"]))
+    print('{0}\t\t==> {1}'.format(index, data_dict['best']))
 
 '''
 In this example, we are trying to find the expansion of an algebra:
@@ -38,11 +38,11 @@ def run(num_chromosomes, generations):
     sample = SimpleChromosome([SimpleGene(0, list(range(v))) for v in value_ranges])
 
     algebra_path = os.path.dirname(os.path.abspath(__file__))
-    ocl_kernels = os.path.realpath(os.path.join(algebra_path, "..", "..", "kernel"))
-    algebra_kernels = os.path.join(algebra_path, "kernel")
+    ocl_kernels = os.path.realpath(os.path.join(algebra_path, '..', '..', 'kernel'))
+    algebra_kernels = os.path.join(algebra_path, 'kernel')
 
-    f = open(os.path.join(algebra_kernels, "expansion.cl"), "r")
-    fstr = "".join(f.readlines())
+    f = open(os.path.join(algebra_kernels, 'expansion.cl'), 'r')
+    fstr = ''.join(f.readlines())
     f.close()
 
     import threading
@@ -51,15 +51,15 @@ def run(num_chromosomes, generations):
     def run_end(paused):
         evt.set()
 
-    ga_cl = OpenCLGA({"sample_chromosome": sample,
-                      "termination": { "type": "count",
-                                       "count": generations },
-                      "population": num_chromosomes,
-                      "fitness_kernel_str": fstr,
-                      "fitness_func": "expansion_fitness",
-                      "extra_include_path": [ocl_kernels],
-                      "opt_for_max": "min",
-                      "generation_callback": show_generation_info},
+    ga_cl = OpenCLGA({'sample_chromosome': sample,
+                      'termination': { 'type': 'count',
+                                       'count': generations },
+                      'population': num_chromosomes,
+                      'fitness_kernel_str': fstr,
+                      'fitness_func': 'expansion_fitness',
+                      'extra_include_path': [ocl_kernels],
+                      'opt_for_max': 'min',
+                      'generation_callback': show_generation_info},
                       action_callbacks = {'run' : run_end})
 
     ga_cl.prepare()
@@ -70,10 +70,10 @@ def run(num_chromosomes, generations):
     evt.wait()
 
     utils.plot_ga_result(ga_cl.get_statistics())
-    print("run took", ga_cl.elapsed_time, "seconds")
+    print('run took', ga_cl.elapsed_time, 'seconds')
     best_chromosome, best_fitness, best_info = ga_cl.get_the_best()
-    print("Best Fitness: %f"%(best_fitness))
-    print("Expansion of (x + y)^10 is: " + " ".join(str(g) for g in best_chromosome))
+    print('Best Fitness: %f'%(best_fitness))
+    print('Expansion of (x + y)^10 is: ' + ' '.join(str(g) for g in best_chromosome))
 
 if __name__ == '__main__':
     run(num_chromosomes=10000, generations=500)

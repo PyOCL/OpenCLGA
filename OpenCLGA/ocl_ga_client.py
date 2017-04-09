@@ -71,23 +71,23 @@ class OpenCLGAWorker(Process, Logger):
         random.seed()
         try:
             self.__create_context()
-            self.info("Worker created for context {}".format(self.device.name))
-            self.info("Worker [{0}] connect to server {1}:{2}".format(
+            self.info('Worker created for context {}'.format(self.device.name))
+            self.info('Worker [{0}] connect to server {1}:{2}'.format(
                                 self.device.name, self.ip, self.port))
         except:
-            self.error("Create OpenCL context failed !")
+            self.error('Create OpenCL context failed !')
             return
         try:
-            self.client = Client(self.ip, self.port, {0 : { "pre" : OP_MSG_BEGIN,
-                                                            "post": OP_MSG_END,
-                                                            "callback" : self._process_data}})
+            self.client = Client(self.ip, self.port, {0 : { 'pre' : OP_MSG_BEGIN,
+                                                            'post': OP_MSG_END,
+                                                            'callback' : self._process_data}})
             self.__notify_client_online(self.client.get_address())
         except ConnectionRefusedError:
-            self.error("Connection refused! Please check Server status.")
+            self.error('Connection refused! Please check Server status.')
             self.client = None
             return
 
-        self.info("Worker [{0}] wait for commands".format(self.device.name))
+        self.info('Worker [{0}] wait for commands'.format(self.device.name))
         try:
             # If client is terminated by ctrl+c, exception will be caught in
             # worker process.
@@ -109,39 +109,39 @@ class OpenCLGAWorker(Process, Logger):
 
     ## Create opencl context according to specific information.
     def __send_and_dump_info(self, index, data):
-        self.verbose("{0}\t\t==> {1} ~ {2} ~ {3}".format(index, data["best"], data["avg"],
-                                                                data["worst"]))
+        self.verbose('{0}\t\t==> {1} ~ {2} ~ {3}'.format(index, data['best'], data['avg'],
+                                                                data['worst']))
         # TODO : Return best result
-        self.__send({"type" : "generationResult",
-                     "data" : { "worker" :   self.uuid,
-                                "result" : { "best_fitness" : data["best"],
-                                             "avg_fitness"  : data["avg"],
-                                             "worst_fitness": data["worst"],
-                                             "best_result": [{}, {}, {}]}}})
+        self.__send({'type' : 'generationResult',
+                     'data' : { 'worker' :   self.uuid,
+                                'result' : { 'best_fitness' : data['best'],
+                                             'avg_fitness'  : data['avg'],
+                                             'worst_fitness': data['worst'],
+                                             'best_result': [{}, {}, {}]}}})
 
     ## The callback funciton for OpenCLGA to notify that the algorithm is
     #  at the end of iteration.
     def _run_end(self, paused):
-        self.__send({"type" : "stateChanged",
-                     "data" : { "worker"    : self.uuid,
-                                "state"     : "paused" if paused else "stopped"}})
+        self.__send({'type' : 'stateChanged',
+                     'data' : { 'worker'    : self.uuid,
+                                'state'     : 'paused' if paused else 'stopped'}})
 
     ## The callback funciton for OpenCLGA to notify state change.
     def _state_changed(self, state):
-        self.__send({"type" : "stateChanged",
-                     "data" : { "worker"    : self.uuid,
-                                "state"     : state}})
+        self.__send({'type' : 'stateChanged',
+                     'data' : { 'worker'    : self.uuid,
+                                'state'     : state}})
 
     ## Create OpenCLGA instance with options
     #  @param options Algorithm setup information
     def __create_ocl_ga(self, options):
-        options["cl_context"] = self.context
-        options["generation_callback"] = self.__send_and_dump_info
+        options['cl_context'] = self.context
+        options['generation_callback'] = self.__send_and_dump_info
         self.ocl_ga = OpenCLGA(options,
-                               action_callbacks={"run"      : self._run_end,
-                                                 "state"    : self._state_changed})
+                               action_callbacks={'run'      : self._run_end,
+                                                 'state'    : self._state_changed})
         self.ocl_ga.prepare()
-        self.info("Worker [{}]: oclGA prepared".format(self.device.name))
+        self.info('Worker [{}]: oclGA prepared'.format(self.device.name))
 
     ## Receive raw data from server and take actions accordingly.
     #  @param data A string-like bytearray object which can be converted to
@@ -149,49 +149,49 @@ class OpenCLGAWorker(Process, Logger):
     def _process_data(self, data):
         msg = str(data, 'ASCII')
         dict_msg = eval(msg)
-        cmd = dict_msg["command"]
-        payload = dict_msg["data"]
-        self.verbose("Worker [{}]: cmd received = {}".format(self.device.name, cmd))
+        cmd = dict_msg['command']
+        payload = dict_msg['data']
+        self.verbose('Worker [{}]: cmd received = {}'.format(self.device.name, cmd))
 
-        if cmd in ["pause", "stop", "restore", "best", "save", "statistics"] and not self.ocl_ga:
-            self.error("Cmd '{}' will only be processed after prepared ".format(cmd))
+        if cmd in ['pause', 'stop', 'restore', 'best', 'save', 'statistics'] and not self.ocl_ga:
+            self.error('Cmd "{}" will only be processed after prepared '.format(cmd))
             return
         try:
-            if cmd == "prepare":
+            if cmd == 'prepare':
                 self.__create_ocl_ga(pickle.loads(payload))
-            elif cmd == "pause":
+            elif cmd == 'pause':
                 self.ocl_ga.pause()
-            elif cmd == "stop":
+            elif cmd == 'stop':
                 self.ocl_ga.stop()
-            elif cmd == "restore":
+            elif cmd == 'restore':
                 self.ocl_ga.restore(payload)
-            elif cmd == "save":
+            elif cmd == 'save':
                 # NOTE : Need to think about this ... too large !
                 # state_file = tempfile.NamedTemporaryFile(delete=False)
                 self.ocl_ga.save(payload)
                 # saved_filename  = state_file.name
                 # with open(state_file.name, 'rb') as fd:
-                self.__send({"type": "save",
-                             "result": None})
+                self.__send({'type': 'save',
+                             'result': None})
                 # state_file.close()
-            elif cmd == "best":
+            elif cmd == 'best':
                 # TODO : A workaround to get best chromesome back for TSP
                 #       May need to pickle this tuple as it contains specific data structure.
                 best_chromosome, best_fitness, chromesome_kernel = self.ocl_ga.get_the_best()
-                self.__send({"type": "best",
-                             "result": repr(best_chromosome)})
-            elif cmd == "statistics":
-                self.__send({"type": "statistics",
-                             "result": self.ocl_ga.get_statistics()})
-            elif cmd == "run":
+                self.__send({'type': 'best',
+                             'result': repr(best_chromosome)})
+            elif cmd == 'statistics':
+                self.__send({'type': 'statistics',
+                             'result': self.ocl_ga.get_statistics()})
+            elif cmd == 'run':
                 prob_mutate, prob_cross = payload
-                self.info("Worker [{}]: oclGA run with {}/{}".format(self.device.name,
+                self.info('Worker [{}]: oclGA run with {}/{}'.format(self.device.name,
                                                                             prob_mutate, prob_cross))
                 self.ocl_ga.run(prob_mutate, prob_cross)
-            elif cmd == "exit":
+            elif cmd == 'exit':
                 self.exit_evt.set()
             else:
-                self.error("unknown command {}".format(cmd))
+                self.error('unknown command {}'.format(cmd))
         except:
             traceback.print_exc()
 
@@ -206,7 +206,7 @@ class OpenCLGAWorker(Process, Logger):
     #  Need to notify UI that the worker is lost and then socket client
     #  will be closed here.
     def __shutdown(self):
-        self.info("Worker [{0}] is exiting ...".format(self.device.name))
+        self.info('Worker [{0}] is exiting ...'.format(self.device.name))
         self.__notify_client_offline()
         # NOTE : A timer to make sure the notification be sent to UI.
         # TODO : Find a better way to make it.
@@ -218,17 +218,17 @@ class OpenCLGAWorker(Process, Logger):
 
     ## Notify UI that client is connected.
     def __notify_client_online(self, client_ip):
-        self.__send({"type" : "workerConnected",
-                     "data" : { "type"         : cl.device_type.to_string(self.dev_type),
-                                "platform"     : self.platform.name,
-                                "name"         : self.device.name,
-                                "ip"           : client_ip,
-                                "worker"       : self.uuid}})
+        self.__send({'type' : 'workerConnected',
+                     'data' : { 'type'         : cl.device_type.to_string(self.dev_type),
+                                'platform'     : self.platform.name,
+                                'name'         : self.device.name,
+                                'ip'           : client_ip,
+                                'worker'       : self.uuid}})
 
     ## Notify UI that client is lost.
     def __notify_client_offline(self):
-        self.__send({"type" : "workerLost",
-                     "data" : { "worker"       : self.uuid}})
+        self.__send({'type' : 'workerLost',
+                     'data' : { 'worker'       : self.uuid}})
 
 ## OpenCLGAClient is supposed to create as many worker processes as possible.
 #  The number of workers should be the number of platforms on the machine
@@ -255,11 +255,11 @@ class OpenCLGAClient(Logger):
             self.__start_workers()
             while True:
                 if not self.__is_alive():
-                    self.info("[OpenCLGAClient] All workers are NOT alive, ByeBye !!")
+                    self.info('[OpenCLGAClient] All workers are NOT alive, ByeBye !!')
                     break
                 time.sleep(0.01)
         except KeyboardInterrupt:
-            self.info("[OpenCLGAClient] KeyboardInterrupt, ByeBye !!")
+            self.info('[OpenCLGAClient] KeyboardInterrupt, ByeBye !!')
 
     ## Stop all workers, and clean up variables.
     def shutdown(self):

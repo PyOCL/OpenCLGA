@@ -10,7 +10,7 @@ class SimpleChromosome:
     # __improving_func - a function name in kernel to gurantee a better mutation result.
     # dna - an listed of Gene's dna
     # dna_total_length - sum of the lenght of all genes's dna
-    def __init__(self, genes, name = ""):
+    def __init__(self, genes, name = ''):
         assert all(isinstance(gene, SimpleGene) for gene in genes)
         assert type(genes) == list
         self.__genes = genes
@@ -58,15 +58,15 @@ class SimpleChromosome:
 
     @property
     def kernel_file(self):
-        return "simple_chromosome.cl"
+        return 'simple_chromosome.cl'
 
     @property
     def struct_name(self):
-        return "__SimpleChromosome";
+        return '__SimpleChromosome';
 
     @property
     def chromosome_size_define(self):
-        return "SIMPLE_CHROMOSOME_GENE_SIZE"
+        return 'SIMPLE_CHROMOSOME_GENE_SIZE'
 
     @property
     def early_terminated(self):
@@ -91,11 +91,11 @@ class SimpleChromosome:
         # - Gene elements, size, mutation function is pre-defined as MACRO for
         #   easier usage.
         elements_size_list = [str(gene.elements_length) for gene in self.__genes]
-        candidates = "#define SIMPLE_CHROMOSOME_GENE_ELEMENTS_SIZE {" +\
-                            ", ".join(elements_size_list) + "}\n"
-        defines = "#define SIMPLE_CHROMOSOME_GENE_SIZE " + str(self.num_of_genes) + "\n" +\
-                  "#define SIMPLE_CHROMOSOME_GENE_MUTATE_FUNC " +\
-                        self.__genes[0].mutate_func_name + "\n"
+        candidates = '#define SIMPLE_CHROMOSOME_GENE_ELEMENTS_SIZE {' +\
+                            ', '.join(elements_size_list) + '}\n'
+        defines = '#define SIMPLE_CHROMOSOME_GENE_SIZE ' + str(self.num_of_genes) + '\n' +\
+                  '#define SIMPLE_CHROMOSOME_GENE_MUTATE_FUNC ' +\
+                        self.__genes[0].mutate_func_name + '\n'
 
         return candidates + defines
 
@@ -111,18 +111,18 @@ class SimpleChromosome:
         cl.enqueue_read_buffer(queue, self.__dev_avg, self.__avg)
         cl.enqueue_read_buffer(queue, self.__dev_other_chromosomes, other_chromosomes).wait()
         # save all of them
-        data["best"] = self.__best
-        data["worst"] = self.__worst
-        data["avg"] = self.__avg
-        data["other_chromosomes"] = other_chromosomes
-        data["ratios"] = ratios
+        data['best'] = self.__best
+        data['worst'] = self.__worst
+        data['avg'] = self.__avg
+        data['other_chromosomes'] = other_chromosomes
+        data['ratios'] = ratios
 
     def restore(self, data, ctx, queue, population):
-        self.__best = data["best"]
-        self.__worst = data["worst"]
-        self.__avg = data["avg"]
-        other_chromosomes = data["other_chromosomes"]
-        ratios = data["ratios"]
+        self.__best = data['best']
+        self.__worst = data['worst']
+        self.__avg = data['avg']
+        other_chromosomes = data['other_chromosomes']
+        ratios = data['ratios']
         # prepare CL memory
         mf = cl.mem_flags
         self.__dev_ratios = cl.Buffer(ctx, mf.WRITE_ONLY, ratios.nbytes)
@@ -171,15 +171,15 @@ class SimpleChromosome:
         return self.__avg[0]
 
     def get_populate_kernel_names(self):
-        return ["simple_chromosome_populate"]
+        return ['simple_chromosome_populate']
 
     def get_crossover_kernel_names(self):
-        return ["simple_chromosome_calc_ratio",\
-                "simple_chromosome_pick_chromosomes",\
-                "simple_chromosome_do_crossover"]
+        return ['simple_chromosome_calc_ratio',\
+                'simple_chromosome_pick_chromosomes',\
+                'simple_chromosome_do_crossover']
 
     def get_mutation_kernel_names(self):
-        return ["simple_chromosome_mutate_all"]
+        return ['simple_chromosome_mutate_all']
 
     def execute_populate(self, prg, queue, population, dev_chromosomes, dev_rnum):
         prg.simple_chromosome_populate(queue,

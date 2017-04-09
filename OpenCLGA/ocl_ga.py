@@ -51,9 +51,9 @@ class StateMachine(Logger):
             return
         last_state = self.__curr_state
         self.__curr_state = next_state
-        self.info("Change State : {} => {}".format(last_state, next_state))
-        if self.openclga.action_callbacks and "state" in self.openclga.action_callbacks:
-            self.openclga.action_callbacks["state"](next_state)
+        self.info('Change State : {} => {}'.format(last_state, next_state))
+        if self.openclga.action_callbacks and 'state' in self.openclga.action_callbacks:
+            self.openclga.action_callbacks['state'](next_state)
 
 class GARun(Task):
     # Iterating GA generation in a separated thread.
@@ -85,8 +85,8 @@ class OpenCLGA():
                 assert callable(cb)
         self.state_machine = StateMachine(self, 'waiting')
         self.__init_members(options)
-        extra_path = options.get("extra_include_path", [])
-        cl_context = options.get("cl_context", None)
+        extra_path = options.get('extra_include_path', [])
+        cl_context = options.get('cl_context', None)
         self.__init_cl(cl_context, extra_path)
         self.__create_program()
         self.action_callbacks = action_callbacks
@@ -103,61 +103,61 @@ class OpenCLGA():
     # private properties
     @property
     def __args_codes(self):
-        opt_for_max = 0 if self.__opt_for_max == "min" else 1
-        return "#define OPTIMIZATION_FOR_MAX " + str(opt_for_max) + "\n"
+        opt_for_max = 0 if self.__opt_for_max == 'min' else 1
+        return '#define OPTIMIZATION_FOR_MAX ' + str(opt_for_max) + '\n'
 
     @property
     def __populate_codes(self):
-        return "#define POPULATION_SIZE " + str(self.__population) + "\n" +\
-               "#define CHROMOSOME_TYPE " +  self.__sample_chromosome.struct_name + "\n"
+        return '#define POPULATION_SIZE ' + str(self.__population) + '\n' +\
+               '#define CHROMOSOME_TYPE ' +  self.__sample_chromosome.struct_name + '\n'
 
     @property
     def __evaluate_code(self):
         chromosome = self.__sample_chromosome
         if self.__fitness_args is not None:
-            fit_args = ", ".join(["global " + v["t"] + "* _f_" + v["n"] for v in self.__fitness_args])
-            fit_argv = ", ".join(["_f_" + v["n"] for v in self.__fitness_args])
+            fit_args = ', '.join(['global ' + v['t'] + '* _f_' + v['n'] for v in self.__fitness_args])
+            fit_argv = ', '.join(['_f_' + v['n'] for v in self.__fitness_args])
             if len(fit_args) > 0:
-                fit_args = ", " + fit_args
-                fit_argv = ", " + fit_argv
+                fit_args = ', ' + fit_args
+                fit_argv = ', ' + fit_argv
         else:
-            fit_args = ""
-            fit_argv = ""
+            fit_args = ''
+            fit_argv = ''
 
-        return "#define CHROMOSOME_SIZE " + chromosome.chromosome_size_define + "\n" +\
-               "#define CALCULATE_FITNESS " + self.__fitness_function + "\n" +\
-               "#define FITNESS_ARGS " + fit_args + "\n"+\
-               "#define FITNESS_ARGV " + fit_argv + "\n"
+        return '#define CHROMOSOME_SIZE ' + chromosome.chromosome_size_define + '\n' +\
+               '#define CALCULATE_FITNESS ' + self.__fitness_function + '\n' +\
+               '#define FITNESS_ARGS ' + fit_args + '\n'+\
+               '#define FITNESS_ARGV ' + fit_argv + '\n'
 
     @property
     def __include_code(self):
         sample_gene = self.__sample_chromosome.genes[0]
-        return self.__sample_chromosome.kernelize() + "\n" +\
-               "#include \"" + sample_gene.kernel_file + "\"\n" +\
-               "#include \"" + self.__sample_chromosome.kernel_file + "\"\n\n"
+        return self.__sample_chromosome.kernelize() + '\n' +\
+               '#include "' + sample_gene.kernel_file + '"\n' +\
+               '#include "' + self.__sample_chromosome.kernel_file + '"\n\n'
 
     # private methods
     def __init_members(self, options):
-        self.thread = TaskThread(name="GARun")
+        self.thread = TaskThread(name='GARun')
         self.thread.daemon = True
         self.thread.start()
 
-        self.__sample_chromosome = options["sample_chromosome"]
-        self.__termination = options["termination"]
-        self.__population = options["population"]
-        self.__opt_for_max = options.get("opt_for_max", "max")
+        self.__sample_chromosome = options['sample_chromosome']
+        self.__termination = options['termination']
+        self.__population = options['population']
+        self.__opt_for_max = options.get('opt_for_max', 'max')
         self.__np_chromosomes = None
-        self.__fitness_function = options["fitness_func"]
-        self.__fitness_kernel_str = options["fitness_kernel_str"]
-        self.__fitness_args = options.get("fitness_args", None)
+        self.__fitness_function = options['fitness_func']
+        self.__fitness_kernel_str = options['fitness_kernel_str']
+        self.__fitness_args = options.get('fitness_args', None)
 
-        self.__saved_filename = options.get("saved_filename", None)
-        self.__prob_mutation = options.get("prob_mutation", 0)
-        self.__prob_crossover = options.get("prob_crossover", 0)
-        # { gen : {"best":  best_fitness,
-        #          "worst": worst_fitness,
-        #          "avg":   avg_fitness},
-        #  "avg_time_per_gen": avg. elapsed time per generation}
+        self.__saved_filename = options.get('saved_filename', None)
+        self.__prob_mutation = options.get('prob_mutation', 0)
+        self.__prob_crossover = options.get('prob_crossover', 0)
+        # { gen : {'best':  best_fitness,
+        #          'worst': worst_fitness,
+        #          'avg':   avg_fitness},
+        #  'avg_time_per_gen': avg. elapsed time per generation}
         self.__dictStatistics = {}
 
         # Generally in GA, it depends on the problem to treat the maximal fitness
@@ -168,57 +168,57 @@ class OpenCLGA():
         self._forceStop = False
         self.__generation_index = 0
         self.__generation_time_diff = 0
-        self.__debug_mode = "debug" in options
-        self.__generation_callback = options["generation_callback"]\
-                                        if "generation_callback" in options else None
+        self.__debug_mode = 'debug' in options
+        self.__generation_callback = options['generation_callback']\
+                                        if 'generation_callback' in options else None
 
     def __init_cl(self, cl_context, extra_include_path):
         # create OpenCL context, queue, and memory
         # NOTE: Please set PYOPENCL_CTX=N (N is the device number you want to use)
-        #       at first if it"s in external_process mode, otherwise a exception
-        #       will be thrown, since it"s not in interactive mode.
+        #       at first if it's in external_process mode, otherwise a exception
+        #       will be thrown, since it's not in interactive mode.
         # TODO: Select a reliable device during runtime by default.
         self.__ctx = cl_context if cl_context is not None else cl.create_some_context()
         self.__queue = cl.CommandQueue(self.__ctx)
         self.__include_path = []
-        kernel_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "kernel")
+        kernel_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'kernel')
         paths = extra_include_path + [kernel_path]
         for path in paths:
-            escapedPath = path.replace(" ", "^ ") if sys.platform.startswith("win")\
-                                                  else path.replace(" ", "\\ ")
+            escapedPath = path.replace(' ', '^ ') if sys.platform.startswith('win')\
+                                                  else path.replace(' ', '\\ ')
             # After looking into the source code of pyopencl/__init__.py
-            # "-I" and folder path should be sepearetd. And " should not included in string path.
-            self.__include_path.append("-I")
+            # '-I' and folder path should be sepearetd. And ' should not included in string path.
+            self.__include_path.append('-I')
             self.__include_path.append(os.path.join(os.getcwd(), escapedPath))
 
     def __create_program(self):
-        codes = self.__args_codes + "\n" +\
-                self.__populate_codes + "\n" +\
-                self.__evaluate_code + "\n" +\
-                self.__include_code + "\n" +\
+        codes = self.__args_codes + '\n' +\
+                self.__populate_codes + '\n' +\
+                self.__evaluate_code + '\n' +\
+                self.__include_code + '\n' +\
                 self.__fitness_kernel_str
-        kernel_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "kernel")
-        f = open(os.path.join(kernel_path, "ocl_ga.cl"), "r")
-        fstr = "".join(f.readlines())
+        kernel_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'kernel')
+        f = open(os.path.join(kernel_path, 'ocl_ga.cl'), 'r')
+        fstr = ''.join(f.readlines())
         f.close()
         if self.__debug_mode:
-            fdbg = open("final.cl", "w")
+            fdbg = open('final.cl', 'w')
             fdbg.write(codes + fstr)
             fdbg.close()
 
         self.__prg = cl.Program(self.__ctx, codes + fstr).build(self.__include_path);
 
     def __type_to_numpy_type(self, t):
-        if t == "float":
+        if t == 'float':
             return numpy.float32
-        elif t == "int":
+        elif t == 'int':
             return numpy.int32
         else:
-            raise "unsupported python type"
+            raise 'unsupported python type'
 
     def __dump_kernel_info(self, prog, ctx, chromosome_wrapper, device = None):
         kernel_names = chromosome_wrapper.get_populate_kernel_names() +\
-                        ["ocl_ga_calculate_fitness"] +\
+                        ['ocl_ga_calculate_fitness'] +\
                         chromosome_wrapper.get_crossover_kernel_names() +\
                         chromosome_wrapper.get_mutation_kernel_names();
         for name in kernel_names:
@@ -237,8 +237,8 @@ class OpenCLGA():
             for arg in self.__fitness_args:
                 cl_buffer = cl.Buffer(self.__ctx,
                                 mf.READ_ONLY | mf.COPY_HOST_PTR,
-                                hostbuf=numpy.array(arg["v"],
-                                dtype=self.__type_to_numpy_type(arg["t"])))
+                                hostbuf=numpy.array(arg['v'],
+                                dtype=self.__type_to_numpy_type(arg['t'])))
                 self.__extra_fitness_args_list.append(cl_buffer)
         # concatenate two fitness args list
         self.__fitness_args_list = self.__fitness_args_list + self.__extra_fitness_args_list
@@ -308,9 +308,9 @@ class OpenCLGA():
                                             (1,),
                                             *self.__fitness_args_list).wait()
         self.__dictStatistics[index] = {}
-        self.__dictStatistics[index]["best"] = self.__sample_chromosome.get_current_best()
-        self.__dictStatistics[index]["worst"] = self.__sample_chromosome.get_current_worst()
-        self.__dictStatistics[index]["avg"] = self.__sample_chromosome.get_current_avg()
+        self.__dictStatistics[index]['best'] = self.__sample_chromosome.get_current_best()
+        self.__dictStatistics[index]['worst'] = self.__sample_chromosome.get_current_worst()
+        self.__dictStatistics[index]['avg'] = self.__sample_chromosome.get_current_avg()
         if self.__generation_callback is not None:
             self.__generation_callback(index, self.__dictStatistics[index])
 
@@ -355,10 +355,10 @@ class OpenCLGA():
     def _start_evolution(self, prob_mutate, prob_crossover):
         generation_start = time.time()
         ## start the evolution
-        if self.__termination["type"] == "time":
-            self.__evolve_by_time(self.__termination["time"], prob_mutate, prob_crossover)
-        elif self.__termination["type"] == "count":
-            self.__evolve_by_count(self.__termination["count"], prob_mutate, prob_crossover)
+        if self.__termination['type'] == 'time':
+            self.__evolve_by_time(self.__termination['time'], prob_mutate, prob_crossover)
+        elif self.__termination['type'] == 'count':
+            self.__evolve_by_count(self.__termination['count'], prob_mutate, prob_crossover)
 
         if self._paused:
             return;
@@ -368,14 +368,14 @@ class OpenCLGA():
 
         total_time_consumption = time.time() - generation_start + self.__generation_time_diff
         avg_time_per_gen = total_time_consumption / float(len(self.__dictStatistics))
-        self.__dictStatistics["avg_time_per_gen"] = avg_time_per_gen
+        self.__dictStatistics['avg_time_per_gen'] = avg_time_per_gen
 
     def __save_state(self, data):
         # save data from intenal struct
-        data["generation_idx"] = self.__generation_index
-        data["statistics"] = self.__dictStatistics
-        data["generation_time_diff"] = self.__generation_time_diff
-        data["population"] = self.__population
+        data['generation_idx'] = self.__generation_index
+        data['statistics'] = self.__dictStatistics
+        data['generation_time_diff'] = self.__generation_time_diff
+        data['population'] = self.__population
 
         # read data from kernel
         rnum = numpy.zeros(self.__population, dtype=numpy.uint32)
@@ -383,29 +383,29 @@ class OpenCLGA():
         cl.enqueue_read_buffer(self.__queue, self.__dev_fitnesses, self.__fitnesses)
         cl.enqueue_read_buffer(self.__queue, self.__dev_chromosomes, self.__np_chromosomes).wait()
         # save kernel memory to data
-        data["rnum"] = rnum
-        data["fitnesses"] = self.__fitnesses
-        data["chromosomes"] = self.__np_chromosomes
+        data['rnum'] = rnum
+        data['fitnesses'] = self.__fitnesses
+        data['chromosomes'] = self.__np_chromosomes
 
         # save algorithm information
-        data["prob_mutation"] = self.__prob_mutation
-        data["prob_crossover"] = self.__prob_crossover
+        data['prob_mutation'] = self.__prob_mutation
+        data['prob_crossover'] = self.__prob_crossover
 
         self.__sample_chromosome.save(data, self.__ctx, self.__queue, self.__population)
 
     def __restore_state(self, data):
         # restore algorithm information
-        self.__prob_mutation = data["prob_mutation"]
-        self.__prob_crossover = data["prob_crossover"]
+        self.__prob_mutation = data['prob_mutation']
+        self.__prob_crossover = data['prob_crossover']
 
-        self.__generation_index = data["generation_idx"]
-        self.__dictStatistics = data["statistics"]
-        self.__generation_time_diff = data["generation_time_diff"]
-        self.__population = data["population"]
+        self.__generation_index = data['generation_idx']
+        self.__dictStatistics = data['statistics']
+        self.__generation_time_diff = data['generation_time_diff']
+        self.__population = data['population']
 
-        rnum = data["rnum"]
-        self.__fitnesses = data["fitnesses"]
-        self.__np_chromosomes = data["chromosomes"]
+        rnum = data['rnum']
+        self.__fitnesses = data['fitnesses']
+        self.__np_chromosomes = data['chromosomes']
         # build CL memory from restored memory
         mf = cl.mem_flags
         self.__dev_rnum = cl.Buffer(self.__ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
@@ -429,8 +429,8 @@ class OpenCLGA():
         # This function is not supposed to be overriden
         prob_mutate = arg_prob_mutate if arg_prob_mutate else self.__prob_mutation
         prob_crossover = arg_prob_crossover if arg_prob_crossover else self.__prob_crossover
-        assert 0 < prob_mutate < 1, "Make sure you've set it in options or passed when calling run."
-        assert 0 < prob_crossover < 1, "Make sure you've set it in options or passed when calling run."
+        assert 0 < prob_mutate < 1, 'Make sure you have set it in options or passed when calling run.'
+        assert 0 < prob_crossover < 1, 'Make sure you have set it in options or passed when calling run.'
         assert self.thread != None
 
         self._forceStop = False
@@ -450,11 +450,11 @@ class OpenCLGA():
 
     @EnterExit()
     def save(self, filename = None):
-        assert self._paused, "save is only availabled while paused"
+        assert self._paused, 'save is only availabled while paused'
         data = dict()
         self.__save_state(data)
         fname = self.__saved_filename if self.__saved_filename else filename
-        f = open(fname, "wb")
+        f = open(fname, 'wb')
         pickle.dump(data, f)
         f.close()
 
@@ -462,7 +462,7 @@ class OpenCLGA():
     def restore(self, filename = None):
         fname = self.__saved_filename if self.__saved_filename else filename
         # TODO : Should check file existence ?
-        f = open(fname, "rb")
+        f = open(fname, 'rb')
         data = pickle.load(f)
         f.close()
         self.__restore_state(data)
@@ -471,7 +471,7 @@ class OpenCLGA():
         return self.__dictStatistics
 
     def get_the_best(self):
-        assert self.__opt_for_max in ["max", "min"]
+        assert self.__opt_for_max in ['max', 'min']
 
         best_fitness = eval(self.__opt_for_max)(value for value in self.__fitnesses)
         best_index = list(self.__fitnesses).index(best_fitness)

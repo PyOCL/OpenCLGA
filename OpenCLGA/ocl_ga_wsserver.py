@@ -21,7 +21,7 @@ class HttpWSMessageHandler(HTTPWebSocketsHandler):
         if message is None:
             message = ''
 
-        self.log_message('websocket received "%s"',str(message))
+        self.log_message('websocket received %s', str(message))
         if self.msg_hdlr:
             self.msg_hdlr(self.client_address, message)
 
@@ -44,20 +44,20 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 #  @param server The Http Server instance
 #  @param credentials The credentials to be wrapped if secure connection is required.
 class HttpWSTask(Task):
-    def __init__(self, server, credentials = ""):
+    def __init__(self, server, credentials = ''):
         Task.__init__(self)
         self.logger_level = Logger.MSG_ALL ^ Logger.MSG_VERBOSE
         self.server = server
         self.server.daemon_threads = True
-        self.server.auth = b64encode(credentials.encode("ascii"))
+        self.server.auth = b64encode(credentials.encode('ascii'))
         if credentials:
             self.server.socket = ssl.wrap_socket(self.server.socket, certfile='./server.pem', server_side=True)
-            self.info("Secure https server is created @ port {}.".format(self.server.server_port))
+            self.info('Secure https server is created @ port {}.'.format(self.server.server_port))
         else:
-            self.info("Http server is created @ port {}.".format(self.server.server_port))
+            self.info('Http server is created @ port {}.'.format(self.server.server_port))
 
     def run(self):
-        self.verbose("Http WS server is serving forever now !!")
+        self.verbose('Http WS server is serving forever now !!')
         self.server.serve_forever()
 
 ## Create threaded http server which is able to upgrade HTTP request to websocket
@@ -71,13 +71,13 @@ class HttpWSTask(Task):
 #  @param disconnect_handler A handler function which is called when the websocket
 #  disconnects to server.
 class OclGAWSServer(object):
-    def __init__(self, ip, port, credentials = "", connect_handler = None,
+    def __init__(self, ip, port, credentials = '', connect_handler = None,
                  message_handler = None, disconnect_handler = None):
         HttpWSMessageHandler.cn_hdlr = connect_handler
         HttpWSMessageHandler.msg_hdlr = message_handler
         HttpWSMessageHandler.dcn_hdlr = disconnect_handler
         self.httpwsserver = ThreadedHTTPServer((ip, port), HttpWSMessageHandler)
-        self.httpwsserver_thread = TaskThread(name="httpwsserver")
+        self.httpwsserver_thread = TaskThread(name='httpwsserver')
         self.httpwsserver_thread.daemon = True
         self.credentials = credentials
 

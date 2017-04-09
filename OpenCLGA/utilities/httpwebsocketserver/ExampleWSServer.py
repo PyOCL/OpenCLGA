@@ -21,13 +21,13 @@ if len(sys.argv) > 1:
 else:
     port = 8000
 if len(sys.argv) > 2:
-    secure = str(sys.argv[2]).lower()=="secure"
+    secure = str(sys.argv[2]).lower()=='secure'
 else:
     secure = False
 if len(sys.argv) > 3:
     credentials = str(sys.argv[3])
 else:
-    credentials = ""
+    credentials = ''
 
 class WSSimpleEcho(HTTPWebSocketsHandler):
     def on_ws_message(self, message):
@@ -35,7 +35,7 @@ class WSSimpleEcho(HTTPWebSocketsHandler):
             message = ''
         # echo message back to client
         self.send_message(message)
-        self.log_message('websocket received "%s"',str(message))
+        self.log_message('websocket received '%s'',str(message))
 
     def on_ws_connected(self):
         self.log_message('%s','websocket connected')
@@ -44,14 +44,14 @@ class WSSimpleEcho(HTTPWebSocketsHandler):
         self.log_message('%s','websocket closed')
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
-    """Handle requests in a separate thread."""
+    '''Handle requests in a separate thread.'''
 
 def _ws_main():
     try:
         #Replace WSSimpleEcho with your own subclass of HTTPWebSocketHandler
         server = ThreadedHTTPServer(('', port), WSSimpleEcho)
         server.daemon_threads = True
-        server.auth = b64encode(credentials.encode("ascii"))
+        server.auth = b64encode(credentials.encode('ascii'))
         if secure:
             server.socket = ssl.wrap_socket (server.socket, certfile='./server.pem', server_side=True)
             print('started secure https server at port %d' % (port,))

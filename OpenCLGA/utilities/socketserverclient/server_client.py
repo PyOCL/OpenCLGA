@@ -6,35 +6,35 @@ import traceback
 
 from ..generaltaskthread import TaskThread, Task
 
-OP_MSG_BEGIN       = bytearray("OPMsgB", "ASCII")
-OP_MSG_END         = bytearray("OPMsgE", "ASCII")
+OP_MSG_BEGIN       = bytearray('OPMsgB', 'ASCII')
+OP_MSG_END         = bytearray('OPMsgE', 'ASCII')
 
 class ReceiveDataHandler(object):
     def __init__(self):
-        self.temp_data = b""
+        self.temp_data = b''
         self.callbacks_info = {}
 
     def setup_callbacks_info(self, callbacks_info):
         # Register the callback function when specific message is received.
         # e.g.
-        # { 0 : { "pre" : OP_HT_DATA_BEGIN,
-        #         "post": OP_HT_DATA_END,
-        #         "mid" : OP_HT_DATA_MID,
-        #         "callback"  : callbak }}
+        # { 0 : { 'pre' : OP_HT_DATA_BEGIN,
+        #         'post': OP_HT_DATA_END,
+        #         'mid' : OP_HT_DATA_MID,
+        #         'callback'  : callbak }}
         #
-        # Data in between "pre" & "mid" is a repr form of ip-ports information dictionary.
-        # e.g.         ip_port_pairs = { "host_ip"     : string of IP,
-        #                                "host_port"   : int of PORT,
-        #                                "sender_ip"   : string of IP,
-        #                                "sender_port" : int of PORT}
+        # Data in between 'pre' & 'mid' is a repr form of ip-ports information dictionary.
+        # e.g.         ip_port_pairs = { 'host_ip'     : string of IP,
+        #                                'host_port'   : int of PORT,
+        #                                'sender_ip'   : string of IP,
+        #                                'sender_port' : int of PORT}
         #
-        # Data in between "mid" & "post" is a pickled bitstream.
+        # Data in between 'mid' & 'post' is a pickled bitstream.
         #
-        # "callback" is going to be invoked when a *complete* message is received.
-        # *complete* - enclosed by "pre" & "post"
+        # 'callback' is going to be invoked when a *complete* message is received.
+        # *complete* - enclosed by 'pre' & 'post'
 
         for v in callbacks_info.values():
-            assert "pre" in v and "post" in v and "callback" in v and callable(v["callback"])
+            assert 'pre' in v and 'post' in v and 'callback' in v and callable(v['callback'])
         self.callbacks_info = callbacks_info
 
     def _check_for_recv(self, s):
@@ -49,34 +49,34 @@ class ReceiveDataHandler(object):
         assert self.callbacks_info != {}
         # Check the completeness of received data, and callback if it's finished.
         for info in self.callbacks_info.values():
-            pre_idx = self.temp_data.find(info["pre"])
-            post_idx = self.temp_data.find(info["post"])
+            pre_idx = self.temp_data.find(info['pre'])
+            post_idx = self.temp_data.find(info['post'])
             if pre_idx >= 0 and post_idx >= 0:
-                assert pre_idx == 0, "pre_idx should be 0 !"
+                assert pre_idx == 0, 'pre_idx should be 0 !'
                 # If the data is in the format pre + XXX + mid + XXX + post
                 # TODO : We don't have this case now
-                if info.get("mid", "") and self.temp_data.find(info["mid"]) >= 0:
-                    mid_idx = self.temp_data.find(info["mid"])
-                    ipport = self.temp_data[pre_idx+len(info["pre"]):mid_idx]
-                    msg = self.temp_data[mid_idx+len(info["mid"]):post_idx]
-                    info["callback"](ipport, msg)
-                    return True, post_idx, len(info["post"])
+                if info.get('mid', '') and self.temp_data.find(info['mid']) >= 0:
+                    mid_idx = self.temp_data.find(info['mid'])
+                    ipport = self.temp_data[pre_idx+len(info['pre']):mid_idx]
+                    msg = self.temp_data[mid_idx+len(info['mid']):post_idx]
+                    info['callback'](ipport, msg)
+                    return True, post_idx, len(info['post'])
                 else:
-                    # If the data is enclosed between "pre" & "post"
-                    msg = self.temp_data[pre_idx+len(info["pre"]):post_idx]
-                    info["callback"](msg)
-                    return True, post_idx, len(info["post"])
+                    # If the data is enclosed between 'pre' & 'post'
+                    msg = self.temp_data[pre_idx+len(info['pre']):post_idx]
+                    info['callback'](msg)
+                    return True, post_idx, len(info['post'])
         return False, -1, -1
 
     def _remove_temp_data(self, post_idx, len_of_post):
-        # print("temp_data = {}".format(self.temp_data))
-        # print("length of temp_data = {}".format(len(self.temp_data)))
-        # print(" post_idx = {}, len_of_post = {}".format(post_idx, len_of_post))
+        # print('temp_data = {}'.format(self.temp_data))
+        # print('length of temp_data = {}'.format(len(self.temp_data)))
+        # print(' post_idx = {}, len_of_post = {}'.format(post_idx, len_of_post))
         if len(self.temp_data) > post_idx + len_of_post:
             self.temp_data = self.temp_data[post_idx + len_of_post:]
         else:
-            self.temp_data = b""
-        # print("after temp_data = {}".format(self.temp_data))
+            self.temp_data = b''
+        # print('after temp_data = {}'.format(self.temp_data))
 
 class MessageHandler(ReceiveDataHandler):
     def __init__(self, socket):
@@ -100,8 +100,8 @@ class MessageHandler(ReceiveDataHandler):
 
     def send(self, msg):
         assert not self.is_done
-        data = bytearray(msg, "ASCII") if msg != None and type(msg) == str else msg
-        # print("data:{} ,type:{}, current sendq:{}, type of sendq:{}".format(data, type(data), self.sendq, type(self.sendq)))
+        data = bytearray(msg, 'ASCII') if msg != None and type(msg) == str else msg
+        # print('data:{} ,type:{}, current sendq:{}, type of sendq:{}'.format(data, type(data), self.sendq, type(self.sendq)))
         self.sendq += OP_MSG_BEGIN + data +  OP_MSG_END
 
 def socket_send(socket, data):
@@ -113,14 +113,14 @@ def socket_send(socket, data):
             while totalsent < len(data):
                 sent = socket.send(data[totalsent:])
                 if sent == 0:
-                    raise RuntimeError("socket connection broken")
+                    raise RuntimeError('socket connection broken')
                 totalsent = totalsent + sent
-            # print("%d bytes data has been sent successfully !"%(totalsent))
+            # print('%d bytes data has been sent successfully !'%(totalsent))
         except ConnectionResetError:
-            print("ConnectionResetError : Connection reset by peer")
+            print('ConnectionResetError : Connection reset by peer')
         except:
             traceback.print_exc()
-            print("Error while sending data via socket ...")
+            print('Error while sending data via socket ...')
 
 def loop_for_connections(evt_break, server_mh = None, client_mh = None):
     clients = {}
@@ -129,7 +129,7 @@ def loop_for_connections(evt_break, server_mh = None, client_mh = None):
         read_list.append(server_mh.socket)
     if client_mh:
         read_list.append(client_mh.socket)
-        clients[client_mh] = ""
+        clients[client_mh] = ''
     try:
         while 1:
             if evt_break.is_set():
@@ -153,7 +153,7 @@ def loop_for_connections(evt_break, server_mh = None, client_mh = None):
                     mh.setup_callbacks_info(server_mh.callbacks_info)
                     clients[mh] = addr
                     read_list.append(connection)
-                    print("[%s] Connected !"%(str(addr)))
+                    print('[%s] Connected !'%(str(addr)))
                 else:
                     for mh, a in list(clients.items()):
                         if s is mh.socket:
@@ -175,15 +175,15 @@ def loop_for_connections(evt_break, server_mh = None, client_mh = None):
             time.sleep(0.001)
     except:
         traceback.print_exc()
-        print("[Exception] inside loop for connections.")
+        print('[Exception] inside loop for connections.')
     finally:
         try:
             while len(clients) > 0:
                 mh, a = clients.popitem()
-                print("[loop] Closing clients [%s] ..."%(str(a)))
+                print('[loop] Closing clients [%s] ...'%(str(a)))
                 mh.shutdown()
             if server_mh:
-                print("[loop] Closing server_mh ...")
+                print('[loop] Closing server_mh ...')
                 server_mh.shutdown()
         except:
             traceback.print_exc()
@@ -209,7 +209,7 @@ class Client(object):
         self.evt_break = threading.Event()
         self.evt_break.clear()
         task = HandlerTask(self.evt_break, client_mh = self.msg_handler)
-        self.thread = TaskThread(name="client_loop")
+        self.thread = TaskThread(name='client_loop')
         self.thread.daemon = True
         self.thread.start()
         self.thread.addtask(task)
@@ -222,7 +222,7 @@ class Client(object):
             self.msg_handler.shutdown()
             self.evt_break.set()
             self.thread.stop()
-            print(" Client goes down ... ")
+            print(' Client goes down ... ')
         except:
             pass
         finally:
@@ -235,14 +235,14 @@ class Client(object):
 
 class Server(object):
     def __init__(self, ip, port, callbacks_info, max_client = 10):
-        assert (ip != "")
+        assert (ip != '')
         skt = socket.socket()
         skt.bind((ip, port))
         skt.listen(max_client)
         self.msg_handler = MessageHandler(skt)
         self.msg_handler.setup_callbacks_info(callbacks_info)
 
-        self.thread = TaskThread(name="server_loop")
+        self.thread = TaskThread(name='server_loop')
         self.thread.daemon = True
         self.evt_break = threading.Event()
         self.evt_break.clear()
@@ -251,7 +251,7 @@ class Server(object):
         self.msg_handler.send(msg)
 
     def shutdown(self):
-        print("[Server] Shutting down ...")
+        print('[Server] Shutting down ...')
         if self.msg_handler:
             self.msg_handler.shutdown()
             self.msg_handler = None
@@ -259,7 +259,7 @@ class Server(object):
             self.evt_break.set()
             self.thread.stop()
             self.thread = None
-        print("[Server] Shutting down ... end")
+        print('[Server] Shutting down ... end')
 
     def get_connected_lists(self):
         # TODO : Get connected clients from Server MessageHandler
@@ -269,7 +269,7 @@ class Server(object):
 
     def run_server(self):
         assert (self.thread != None)
-        print("Start the server ...")
+        print('Start the server ...')
         if self.thread and not self.thread.is_alive():
             task = HandlerTask(self.evt_break, server_mh = self.msg_handler)
             self.thread.start()

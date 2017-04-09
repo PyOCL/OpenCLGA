@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 import random
-HUMAN_DNA_ELEMENTS = ["A","C","G","T"]
+HUMAN_DNA_ELEMENTS = ['A','C','G','T']
 
 class SimpleGene:
 
@@ -12,7 +12,7 @@ class SimpleGene:
     # SimpleGene - is a Gene with only one DNA element.
     # dna - a single element picked from elements.
     # elements - a set of element which is the basic component of dna.
-    def __init__(self, dna, elements=HUMAN_DNA_ELEMENTS, name=""):
+    def __init__(self, dna, elements=HUMAN_DNA_ELEMENTS, name=''):
         assert dna is not None
         assert type(elements) == list
         self.__elements = elements
@@ -55,7 +55,7 @@ class SimpleGene:
     def kernel_file(self):
         # Kernel file which contains related operating functions for SimpleGene,
         # i.e. simple_gene_mutate()
-        return "simple_gene.cl"
+        return 'simple_gene.cl'
 
     @property
     def elements_length(self):
@@ -67,13 +67,13 @@ class SimpleGene:
     def mutate_func_name(self):
         # Chromosome can use this function to execute built-in mutate function which choose an
         # excluded elments randomly.
-        return "simple_gene_mutate"
+        return 'simple_gene_mutate'
 
     @property
     def elements_in_kernel_str(self):
         # Chromosome can use this function to declare elements array
-        elements_str = ", ".join([str(v) for v in self.elements_in_kernel])
-        return "{" + elements_str + "}\n"
+        elements_str = ', '.join([str(v) for v in self.elements_in_kernel])
+        return '{' + elements_str + '}\n'
 
     def from_kernel_value(self, v):
         # Construct a SimpleGene object on system memory according to
