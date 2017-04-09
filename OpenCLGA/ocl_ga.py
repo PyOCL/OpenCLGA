@@ -6,19 +6,22 @@ import random
 import numpy
 import pickle
 import pyopencl as cl
-
+import threading
 from . import utils
 from .utilities.generaltaskthread import TaskThread, Task, Logger
 
+## A decorator class to notify state change before/after the action.
 class EnterExit(object):
     def __call__(self, func):
         def wrapper(parent, *args, **kwargs):
             parent.state_machine.next(func.__name__)
             func(parent, *args, **kwargs)
             parent.state_machine.next('done')
-            # TODO : May send state information back to UI here.
         return wrapper
 
+## A class which manages the state trasition.
+#  @var openclga The OpenCLGA instance
+#  @var __curr_state Current state.
 class StateMachine(Logger):
     # (current state, action) : (next state)
     TRANSITION_TABLE = {
@@ -41,6 +44,9 @@ class StateMachine(Logger):
         self.openclga = openclga
         self.__curr_state = init_state
 
+    ## Transit to next state if (current state, action) is matched.
+    #  After state changes, notify the change back to UI.
+    #  @param action Could be the name of function or 'done'
     def next(self, action):
         next_state = None
         for k, v in StateMachine.TRANSITION_TABLE.items():
@@ -55,31 +61,32 @@ class StateMachine(Logger):
         if self.openclga.action_callbacks and 'state' in self.openclga.action_callbacks:
             self.openclga.action_callbacks['state'](next_state)
 
+## A task to iterate GA generation in a separated thread.
 class GARun(Task):
-    # Iterating GA generation in a separated thread.
-    def __init__(self, ga, prob_mutation, prob_crossover):
+    def __init__(self, ga, prob_mutation, prob_crossover, callback):
         Task.__init__(self)
         self.ga = ga
         self.prob_m = prob_mutation
         self.prob_c = prob_crossover
+        self.end_of_run = callback
         pass
 
     def run(self):
         start_time = time.time()
-        # We only need to populate first generation at first time, not paused and not restored
-        if not self.ga._paused:
-            self.ga._populate_first_generations(self.prob_m, self.prob_c)
-        self.ga._paused = False
+        # No need to generate new population for pause or restore.
+        self.ga._generate_population_if_needed(self.prob_m, self.prob_c)
         self.ga._start_evolution(self.prob_m, self.prob_c)
-        self.ga._elapsed_time += time.time() - start_time
-        if self.ga.action_callbacks and 'run' in self.ga.action_callbacks:
-            self.ga.action_callbacks['run'](self.ga._paused)
 
+        self.ga._elapsed_time += time.time() - start_time
+        self.end_of_run()
+
+## Implementation of the flow of GA on OpenCL.
+#  Initialize opencl command queue, collect include path, build programs.
+#  @param options Used to initizlize all member variables
+#  @param action_callbacks Called when state is changed and carry execution status
+#                          back to ocl_ga_worker.
 class OpenCLGA():
     def __init__(self, options, action_callbacks = {}):
-        # action_callback
-        # - A callback function to send execution status back to ocl_ga_worker.
-        #  TODO : Could define to call specific callback according to state.
         if action_callbacks is not None:
             for action, cb in action_callbacks.items():
                 assert callable(cb)
@@ -91,7 +98,7 @@ class OpenCLGA():
         self.__create_program()
         self.action_callbacks = action_callbacks
 
-    # public properties
+    ## public properties
     @property
     def paused(self):
         return self._paused
@@ -100,7 +107,7 @@ class OpenCLGA():
     def elapsed_time(self):
         return self._elapsed_time
 
-    # private properties
+    ## private properties
     @property
     def __args_codes(self):
         opt_for_max = 0 if self.__opt_for_max == 'min' else 1
@@ -136,7 +143,12 @@ class OpenCLGA():
                '#include "' + sample_gene.kernel_file + '"\n' +\
                '#include "' + self.__sample_chromosome.kernel_file + '"\n\n'
 
-    # private methods
+    ## private methods
+    #  @var __dictStatistics A dictionary. e.g. { gen : { 'best':  best_fitness,
+    #                                                     'worst': worst_fitness,
+    #                                                     'avg':   avg_fitness },
+    #                                            'avg_time_per_gen': avg. elapsed time per generation }
+    #  @var thread The thread runs the actual algorithm.
     def __init_members(self, options):
         self.thread = TaskThread(name='GARun')
         self.thread.daemon = True
@@ -154,16 +166,14 @@ class OpenCLGA():
         self.__saved_filename = options.get('saved_filename', None)
         self.__prob_mutation = options.get('prob_mutation', 0)
         self.__prob_crossover = options.get('prob_crossover', 0)
-        # { gen : {'best':  best_fitness,
-        #          'worst': worst_fitness,
-        #          'avg':   avg_fitness},
-        #  'avg_time_per_gen': avg. elapsed time per generation}
         self.__dictStatistics = {}
 
         # Generally in GA, it depends on the problem to treat the maximal fitness
         # value as the best or to treat the minimal fitness value as the best.
         self.__fitnesses = numpy.zeros(self.__population, dtype=numpy.float32)
         self._elapsed_time = 0
+        self._populated = False
+        self._pausing_evt = threading.Event()
         self._paused = False
         self._forceStop = False
         self.__generation_index = 0
@@ -271,8 +281,11 @@ class OpenCLGA():
         ## dump information on kernel resources usage
         self.__dump_kernel_info(self.__prg, self.__ctx, self.__sample_chromosome)
 
-    def _populate_first_generations(self, prob_mutate, prob_crossover):
-        ## populate the first generation
+    ## Populate the first generation.
+    def _generate_population_if_needed(self, prob_mutate, prob_crossover):
+        if self._populated:
+            return
+        self._populated = True
         self.__sample_chromosome.execute_populate(self.__prg,
                                                   self.__queue,
                                                   self.__population,
@@ -361,7 +374,7 @@ class OpenCLGA():
             self.__evolve_by_count(self.__termination['count'], prob_mutate, prob_crossover)
 
         if self._paused:
-            return;
+            return
 
         cl.enqueue_read_buffer(self.__queue, self.__dev_fitnesses, self.__fitnesses)
         cl.enqueue_read_buffer(self.__queue, self.__dev_chromosomes, self.__np_chromosomes).wait()
@@ -424,6 +437,14 @@ class OpenCLGA():
     def prepare(self):
         self.__preexecute_kernels()
 
+    def __end_of_run(self):
+        if self._paused:
+            self._pausing_evt.set()
+        else:
+            t = threading.Thread(target=self.stop)
+            t.daemon = True
+            t.start()
+
     @EnterExit()
     def run(self, arg_prob_mutate = 0, arg_prob_crossover = 0):
         # This function is not supposed to be overriden
@@ -434,7 +455,8 @@ class OpenCLGA():
         assert self.thread != None
 
         self._forceStop = False
-        task = GARun(self, prob_mutate, prob_crossover)
+        self._paused = False
+        task = GARun(self, prob_mutate, prob_crossover, self.__end_of_run)
         self.thread.addtask(task)
 
     @EnterExit()
@@ -447,6 +469,8 @@ class OpenCLGA():
     @EnterExit()
     def pause(self):
         self._paused = True
+        self._pausing_evt.wait()
+        self._pausing_evt.clear()
 
     @EnterExit()
     def save(self, filename = None):

@@ -44,6 +44,7 @@ class OpenCLGAWorker(Process, Logger):
     def __init__(self, platform_index, device_index, ip, port):
         Process.__init__(self)
         Logger.__init__(self)
+        # self.logger_level ^= Logger.MSG_VERBOSE
         self.daemon = True
         self.exit_evt = Event()
         self.running = Value('i', 0)
@@ -119,13 +120,6 @@ class OpenCLGAWorker(Process, Logger):
                                              'worst_fitness': data['worst'],
                                              'best_result': [{}, {}, {}]}}})
 
-    ## The callback funciton for OpenCLGA to notify that the algorithm is
-    #  at the end of iteration.
-    def _run_end(self, paused):
-        self.__send({'type' : 'stateChanged',
-                     'data' : { 'worker'    : self.uuid,
-                                'state'     : 'paused' if paused else 'stopped'}})
-
     ## The callback funciton for OpenCLGA to notify state change.
     def _state_changed(self, state):
         self.__send({'type' : 'stateChanged',
@@ -138,8 +132,7 @@ class OpenCLGAWorker(Process, Logger):
         options['cl_context'] = self.context
         options['generation_callback'] = self.__send_and_dump_info
         self.ocl_ga = OpenCLGA(options,
-                               action_callbacks={'run'      : self._run_end,
-                                                 'state'    : self._state_changed})
+                               action_callbacks={ 'state' : self._state_changed })
         self.ocl_ga.prepare()
         self.info('Worker [{}]: oclGA prepared'.format(self.device.name))
 

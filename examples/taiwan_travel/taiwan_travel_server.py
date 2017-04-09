@@ -62,7 +62,7 @@ def get_taiwan_travel_info():
 
     dict_info = {'sample_chromosome': sample,
                  'termination': { 'type': 'count',
-                                  'count': 1000000 },
+                                  'count': 100 },
                  'population': 10240,
                  'fitness_kernel_str': fstr,
                  'fitness_func': 'taiwan_fitness',
