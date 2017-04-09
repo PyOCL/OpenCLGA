@@ -51,7 +51,7 @@ class OpenCLGAServer(Logger):
         }
 
         self.__options = options
-        self.__q_kb = ""
+        self.__q_kb = ''
         self.__q_ws = queue.Queue()
         self.__ip = self.__get_host_ip()
 
@@ -59,6 +59,7 @@ class OpenCLGAServer(Logger):
         self.socket_server_port = port
         self._start_socket_server()
 
+        self.client_workers = {}
         self.websockets = {'controller' : {}, 'viewers' : []}
         self.httpws_server = None
         self.httpws_server_port = 8000
@@ -71,18 +72,18 @@ class OpenCLGAServer(Logger):
     ## Handle keyboard input on different platform
     def _handle_keyboard_message(self):
         data = None
-        if sys.platform in ["linux", "darwin"]:
+        if sys.platform in ['linux', 'darwin']:
             import select
             if select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], []):
                 data = sys.stdin.readline().rstrip()
-        elif sys.platform == "win32":
+        elif sys.platform == 'win32':
             import msvcrt
             if msvcrt.kbhit():
-                data = msvcrt.getch().decode("utf-8")
-                if data == "\r":
+                data = msvcrt.getch().decode('utf-8')
+                if data == '\r':
                     # Enter is pressed
                     data = self.__q_kb
-                    self.__q_kb = ""
+                    self.__q_kb = ''
                 else:
                     self.__q_kb += data
                     data = None
@@ -102,7 +103,7 @@ class OpenCLGAServer(Logger):
     ## Inputs from keyboard are raw command, i.e. 'run' / 'prepare' ...etc.
     #  we need to wrap it into a dictionary for following usage.
     def __adjust_kb_inputs(self, inputs):
-        dict_inputs = {"command" : inputs} if inputs else {}
+        dict_inputs = {'command' : inputs} if inputs else {}
         return dict_inputs
 
     ## A while loop will keep call this method for inputs
@@ -131,29 +132,29 @@ class OpenCLGAServer(Logger):
         if cmd == 'prepare':
             payload = msg.get('payload', {})
             if not payload:
-                self.warning("Getting nothing in payload from UI to prepare. Use default configuration.")
+                self.warning('Getting nothing in payload from UI to prepare. Use default configuration.')
             self.__options.update(payload)
             self.verbose('prepare with args: {}'.format(self.__options))
             packed = pickle.dumps(self.__options)
             self.__prepare(packed)
-        elif cmd == "pause":
+        elif cmd == 'pause':
             self.__pause()
-        elif cmd == "run":
+        elif cmd == 'run':
             if 'payload' in msg:
                 self.__run(msg['payload']['prob_mutation'], msg['payload']['prob_crossover'])
             else:
                 self.__run()
-        elif cmd == "stop":
+        elif cmd == 'stop':
             self.__stop()
-        elif cmd == "save":
+        elif cmd == 'save':
             self.__save()
-        elif cmd == "get_st":
+        elif cmd == 'get_st':
             self.__get_statistics()
-        elif cmd == "get_best":
+        elif cmd == 'get_best':
             self.__get_the_best()
-        elif cmd == "restore":
+        elif cmd == 'restore':
             self.__restore()
-        elif cmd == "exit":
+        elif cmd == 'exit':
             self.__shutdown()
             return False
         return True
@@ -163,17 +164,21 @@ class OpenCLGAServer(Logger):
         viewers_addr = [addr for addr, handler in self.websockets['viewers']]
         if not self.websockets['controller']:
             self.websockets['controller'] = (client_addr, wshandler)
-            self.info("WS Controller {} is on !! ".format(client_addr))
+            self.info('WS Controller {} is on !! '.format(client_addr))
         elif client_addr not in viewers_addr:
             self.websockets['viewers'].append((client_addr, wshandler))
+
+        # Send current connected clients information to a UI new comer.
+        for worker_id, msg in self.client_workers.items():
+            self.__send_message_to_WSs(msg)
 
     ## A callback function to notify OpenCLGAServer the disconnection of websocket
     def _ws_disconnected(self, client_addr):
         viewers_addr = [addr for addr, handler in self.websockets['viewers']]
         if client_addr in viewers_addr:
-            self.websockets['viewers'] = [ws for ws in self.websockets["viewers"] if ws[0] != client_addr]
+            self.websockets['viewers'] = [ws for ws in self.websockets['viewers'] if ws[0] != client_addr]
         if self.websockets['controller'] and client_addr == self.websockets['controller'][0]:
-            self.info("WS Controller is off, clean up all websockets !! ")
+            self.info('WS Controller is off, clean up all websockets !! ')
             self.websockets['controller'] = None
             self.websockets['viewers'] = []
 
@@ -182,14 +187,14 @@ class OpenCLGAServer(Logger):
     def _ws_queue_inputs(self, client_addr, byte_message):
         # Handle messages from WebSocket.
         if self.websockets['controller'] and client_addr != self.websockets['controller'][0]:
-            self.verbose("WS client: {} message is ignored (Not controller !!)".format(client_addr))
+            self.verbose('WS client: {} message is ignored (Not controller !!)'.format(client_addr))
             return
 
         try:
-            str_msg = str(byte_message, "utf-8")
+            str_msg = str(byte_message, 'utf-8')
             self.__q_ws.put(json.loads(str_msg))
         except Exception as e:
-            self.error("[Exception] WS client: {} sends message format: {}".format(client_addr, byte_message))
+            self.error('[Exception] WS client: {} sends message format: {}'.format(client_addr, byte_message))
 
     ## Create http server which is able to handle websocket connections.
     def _start_http_websocket_server(self):
@@ -205,9 +210,9 @@ class OpenCLGAServer(Logger):
     def _start_socket_server(self):
         try:
             self.socket_server = Server(self.__ip, self.socket_server_port,
-                                        {0 : {"pre" : OP_MSG_BEGIN,
-                                              "post": OP_MSG_END,
-                                              "callback"  : self.__process_data}})
+                                        {0 : {'pre' : OP_MSG_BEGIN,
+                                              'post': OP_MSG_END,
+                                              'callback'  : self.__process_data}})
             self.socket_server.run_server()
         except:
             traceback.print_exc()
@@ -216,20 +221,26 @@ class OpenCLGAServer(Logger):
     ## Process the received results from Clients and send to UI.
     def __process_data(self, data):
         try:
-            # Conver bytearray "data" to string-like object
+            # Conver bytearray 'data' to string-like object
             msg = str(data, 'ASCII')
             dict_msg = eval(msg)
-            result_type = dict_msg["type"]
-            self.verbose("[Server] __process_data from client, type = %s "%(result_type))
+            result_type = dict_msg['type']
+            self.verbose('[Server] __process_data from client, type = %s '%(result_type))
 
-            if dict_msg["type"] == "statistics":
-                st = dict_msg["result"]
-                self.__notify("message", {"statistics" : st})
-            elif dict_msg["type"] == "best":
-                best_chromosome = eval(dict_msg["result"])
-                self.__notify("message", {"best" : best_chromosome})
-            elif dict_msg["type"] == "save":
-                saved_filename = dict_msg["result"]
+            if dict_msg['type'] == 'workerConnected':
+                worker_id = dict_msg['data']['worker']
+                self.client_workers[worker_id] = dict_msg
+            elif dict_msg['type'] == 'workerLost':
+                worker_id = dict_msg['data']['worker']
+                self.client_workers.pop(worker_id, None)
+            elif dict_msg['type'] == 'statistics':
+                st = dict_msg['result']
+                self.__notify('message', {'statistics' : st})
+            elif dict_msg['type'] == 'best':
+                best_chromosome = eval(dict_msg['result'])
+                self.__notify('message', {'best' : best_chromosome})
+            elif dict_msg['type'] == 'save':
+                saved_filename = dict_msg['result']
 
             self.__send_message_to_WSs(dict_msg)
         except:
@@ -240,11 +251,11 @@ class OpenCLGAServer(Logger):
         contoller = self.websockets.get('controller', None)
         jmsg = json.dumps(msg)
         if contoller:
-            self.info("Send to Controller : {}".format(msg))
+            self.info('Send to Controller : {}'.format(msg))
             contoller[1].send_message(jmsg)
         viewers = self.websockets.get('viewers', [])
         for viewer in viewers:
-            self.info("Send to Viewer : {}".format(msg))
+            self.info('Send to Viewer : {}'.format(msg))
             viewer[1].send_message(jmsg)
 
     ## Notify correpsonding information back to the registrar.
@@ -256,18 +267,8 @@ class OpenCLGAServer(Logger):
             try:
                 func(data)
             except Exception as e:
-                self.error("exception while execution %s callback"%(name))
+                self.error('exception while execution %s callback'%(name))
                 traceback.print_exc()
-
-    ## TODO : Do we still need this ?
-    @property
-    def paused(self):
-        return self.__paused
-
-    ## TODO : Do we still need this ?
-    @property
-    def elapsed_time(self):
-        return self.__elapsed_time
 
     ## Register the callback function with speicif name.
     #  Right now only 'statistics', 'best' information will be sent back via
@@ -284,51 +285,51 @@ class OpenCLGAServer(Logger):
             self.__callbacks[name].remove(func)
 
     def __prepare(self, s_info):
-        data = {"command" : "prepare", "data" : s_info}
+        data = {'command' : 'prepare', 'data' : s_info}
         self.socket_server.send(repr(data))
 
     def __run(self, prob_mutate = 0, prob_crossover = 0):
         assert self.socket_server != None
-        data = {"command" : "run", "data" : (prob_mutate, prob_crossover)}
+        data = {'command' : 'run', 'data' : (prob_mutate, prob_crossover)}
         self.socket_server.send(repr(data))
 
     def __stop(self):
         assert self.socket_server != None
         self.__forceStop = True
-        data = {"command" : "stop", "data" : None}
+        data = {'command' : 'stop', 'data' : None}
         self.socket_server.send(repr(data))
 
     def __pause(self):
         assert self.socket_server != None
         self.__paused = True
-        data = {"command" : "pause", "data" : None}
+        data = {'command' : 'pause', 'data' : None}
         self.socket_server.send(repr(data))
 
     def __save(self, filename = None):
         assert self.socket_server != None
-        data = {"command" : "save", "data" : filename}
+        data = {'command' : 'save', 'data' : filename}
         self.socket_server.send(repr(data))
 
     def __restore(self, filename = None):
         assert self.socket_server != None
-        data = {"command" : "restore", "data" : filename}
+        data = {'command' : 'restore', 'data' : filename}
         self.socket_server.send(repr(data))
 
     def __get_statistics(self):
         assert self.socket_server != None
-        data = {"command" : "statistics", "data" : None}
+        data = {'command' : 'statistics', 'data' : None}
         self.socket_server.send(repr(data))
 
     def __get_the_best(self):
         assert self.socket_server != None
-        data = {"command" : "best", "data" : None}
+        data = {'command' : 'best', 'data' : None}
         self.socket_server.send(repr(data))
 
     ## Shut down all servers and correpsonding clients when receives
     # 'exit' command or KeyboardInterrupt.
     def __shutdown(self):
         assert self.socket_server != None
-        data = {"command" : "exit", "data" : None}
+        data = {'command' : 'exit', 'data' : None}
         self.socket_server.send(repr(data))
 
         # TODO : check if there's no existing clients
@@ -341,6 +342,8 @@ class OpenCLGAServer(Logger):
         if self.httpws_server:
             self.httpws_server.shutdown()
             self.httpws_server = None
+        self.client_workers = {}
+        self.websockets = {}
 
 def start_ocl_ga_server(info, port, callbacks = {}):
     try:
@@ -348,27 +351,27 @@ def start_ocl_ga_server(info, port, callbacks = {}):
         for name, callback in list(callbacks.items()):
             oclGAServer.on(name, callback)
         time.sleep(0.5)
-        print("Press prepare    + <Enter> to prepare")
-        print("Press run        + <Enter> to run");
-        print("Press restore    + <Enter> to restore");
-        print("Press pause      + <Enter> to pause")
-        print("Press save       + <Enter> to save (filename:test%d%d.pickle)")
-        print("Press stop       + <Enter> to stop")
-        print("Press get_st     + <Enter> to get statistics")
-        print("Press get_best   + <Enter> to get best")
-        print("Press ctrl       + c       to exit")
+        print('Press prepare    + <Enter> to prepare')
+        print('Press run        + <Enter> to run');
+        print('Press restore    + <Enter> to restore');
+        print('Press pause      + <Enter> to pause')
+        print('Press save       + <Enter> to save (filename:test%d%d.pickle)')
+        print('Press stop       + <Enter> to stop')
+        print('Press get_st     + <Enter> to get statistics')
+        print('Press get_best   + <Enter> to get best')
+        print('Press ctrl       + c       to exit')
 
         while True:
             user_input = oclGAServer.get_input()
             if not oclGAServer.handle_message(user_input):
-                print("[OpenCLGAServer] Bye Bye !!")
+                print('[OpenCLGAServer] Bye Bye !!')
                 break
     except:
         traceback.print_exc()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     # NOTE : NOT support executing ocl_ga_server.py directly.
     #        Please call start_ocl_ga_server from each example.
     #        Configuration options for OpenCLGA should be provided.
-    assert False, "NOT support executing ocl_ga_client.py directly. "\
-                  "Please call start_ocl_ga_server in each example."
+    assert False, 'NOT support executing ocl_ga_client.py directly. '\
+                  'Please call start_ocl_ga_server in each example.'
