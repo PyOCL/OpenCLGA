@@ -210,9 +210,9 @@ class OpenCLGAServer(Logger):
     def _start_socket_server(self):
         try:
             self.socket_server = Server(self.__ip, self.socket_server_port,
-                                        {0 : {'pre' : OP_MSG_BEGIN,
-                                              'post': OP_MSG_END,
-                                              'callback'  : self.__process_data}})
+                                        {'pre' : OP_MSG_BEGIN,
+                                         'post': OP_MSG_END,
+                                         'callback'  : self.__process_data })
             self.socket_server.run_server()
         except:
             traceback.print_exc()

@@ -79,9 +79,9 @@ class OpenCLGAWorker(Process, Logger):
             self.error('Create OpenCL context failed !')
             return
         try:
-            self.client = Client(self.ip, self.port, {0 : { 'pre' : OP_MSG_BEGIN,
-                                                            'post': OP_MSG_END,
-                                                            'callback' : self._process_data}})
+            self.client = Client(self.ip, self.port, { 'pre' : OP_MSG_BEGIN,
+                                                       'post': OP_MSG_END,
+                                                       'callback' : self._process_data })
             self.__notify_client_online(self.client.get_address())
         except ConnectionRefusedError:
             self.error('Connection refused! Please check Server status.')
@@ -318,9 +318,6 @@ def start_ocl_ga_client(server, port):
     oclClient = None
 
 if __name__ == '__main__':
-    from ocl_ga import OpenCLGA
-    from utilities.generaltaskthread import Logger
-    from utilities.socketserverclient import Client, OP_MSG_BEGIN, OP_MSG_END
     parser = argparse.ArgumentParser(description='OpenCLGA client help')
     parser.add_argument('server', metavar='ip', type=str,
                         help='the server ip, default : 127.0.0.1', default='127.0.0.1')

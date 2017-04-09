@@ -69,7 +69,6 @@ class TaskThread(Thread):
         self.wati_for_task.set()
         self.join()
         self.tasks.clear()
-        self.tasks = None
         self.wati_for_task = None
         self.wati_for_stop = None
         self.__qlock = None
