@@ -3,10 +3,21 @@
 
 #include "ga_utils.cl"
 
+/**
+ * __ShufflerChromosome is a struct for accessing n gene.
+ */
 typedef struct {
   int genes[SHUFFLER_CHROMOSOME_GENE_SIZE];
 } __ShufflerChromosome;
 
+/**
+ * During the development, we may found some bugs in our chromosomes. One of them is our codes
+ * generate duplicated gene while crossing over or mutating. This is not acceptable in shuffler
+ * chromosome.
+ * This function, shuffler_chromosome_check_duplicate, checks if there is any duplicated gene in a
+ * chromosome.
+ * @param *chromosome (global) the pointer of a chromosome which wants to be checked.
+ */
 void shuffler_chromosome_check_duplicate(global __ShufflerChromosome* chromosome) {
   for (int i = 0; i < SHUFFLER_CHROMOSOME_GENE_SIZE; i++) {
     for (int j = i + 1; j < SHUFFLER_CHROMOSOME_GENE_SIZE; j++) {
@@ -18,10 +29,22 @@ void shuffler_chromosome_check_duplicate(global __ShufflerChromosome* chromosome
   }
 }
 
-// functions for populate
+/* ============== populating functions ============== */
+/**
+ * shuffler_chromosome_do_populate populates a chromosome randomly. Since this is a shuffler
+ * chromosome. The elements index of a gene is the size of chromosome. This function random shuffles
+ * the whole chromosome.
+ * @param *chromosome (global) the chromosome we want to populate
+ * @param *rand_holder the random value holder
+ */
 void shuffler_chromosome_do_populate(global __ShufflerChromosome* chromosome, uint* rand_holder) {
   int gene_elements[] = SIMPLE_GENE_ELEMENTS;
   int rndIdx;
+  // The algorithm here is:
+  // 1. random pick a index from 0 ~ size and moved to chromosome
+  // 2. move the latest index to the picked index
+  // 3. go back to 1 until end
+  // 4. put the left element to the end of chromosome.
   for (int i = 0; i < SHUFFLER_CHROMOSOME_GENE_SIZE - 1; i++) {
     rndIdx = rand_range(rand_holder, (SHUFFLER_CHROMOSOME_GENE_SIZE - i - 1));
     chromosome->genes[i] = gene_elements[rndIdx];
@@ -30,6 +53,13 @@ void shuffler_chromosome_do_populate(global __ShufflerChromosome* chromosome, ui
   chromosome->genes[SHUFFLER_CHROMOSOME_GENE_SIZE - 1] = gene_elements[0];
 }
 
+/**
+ * shuffler_chromosome_populate populate chromosomes with random. The current design is to generate
+ * a chromosome in a thread.
+ * Note: this is a kernel function and will be called by python.
+ * @param *chromosomes (global) all memory storage for populating chromosomes.
+ * @param *input_rand (global) random seeds for all threads.
+ */
 __kernel void shuffler_chromosome_populate(global int* chromosomes, global uint* input_rand) {
   int idx = get_global_id(0);
   // out of bound kernel task for padding
@@ -42,6 +72,7 @@ __kernel void shuffler_chromosome_populate(global int* chromosomes, global uint*
   shuffler_chromosome_do_populate(((global CHROMOSOME_TYPE*) chromosomes) + idx, ra);
   input_rand[idx] = ra[0];
 }
+/* ============== end of populating functions ============== */
 
 // functions for mutation
 void shuffler_chromosome_swap(global __ShufflerChromosome* chromosome, int cp, int p1)
