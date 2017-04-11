@@ -9,14 +9,18 @@ typedef struct {
 
 /* ============== populate functions ============== */
 // functions for populate
-void simple_chromosome_do_populate(global __SimpleChromosome* chromosome, uint* rand_holder) {
+void simple_chromosome_do_populate(global __SimpleChromosome* chromosome,
+                                   uint* rand_holder)
+{
   uint gene_elements_size[] = SIMPLE_CHROMOSOME_GENE_ELEMENTS_SIZE;
   for (int i = 0; i < SIMPLE_CHROMOSOME_GENE_SIZE; i++) {
     chromosome->genes[i] = rand_range(rand_holder, gene_elements_size[i]);
   }
 }
 
-__kernel void simple_chromosome_populate(global int* chromosomes, global uint* input_rand) {
+__kernel void simple_chromosome_populate(global int* cs,
+                                         global uint* input_rand)
+{
   int idx = get_global_id(0);
   // out of bound kernel task for padding
   if (idx >= POPULATION_SIZE) {
@@ -25,18 +29,22 @@ __kernel void simple_chromosome_populate(global int* chromosomes, global uint* i
   // create a private variable for each kernel to hold randome number.
   uint ra[1];
   init_rand(input_rand[idx], ra);
-  simple_chromosome_do_populate(((global __SimpleChromosome*) chromosomes) + idx, ra);
+  simple_chromosome_do_populate(((global __SimpleChromosome*) cs) + idx,
+                                ra);
   input_rand[idx] = ra[0];
 }
 
 /* ============== mutate functions ============== */
 
-void simple_chromosome_do_mutate(global __SimpleChromosome* chromosome, uint* ra) {
+void simple_chromosome_do_mutate(global __SimpleChromosome* chromosome,
+                                 uint* ra)
+{
   // create element size list
   uint elements_size[] = SIMPLE_CHROMOSOME_GENE_ELEMENTS_SIZE;
   uint gene_idx = rand_range(ra, SIMPLE_CHROMOSOME_GENE_SIZE);
   // use gene's mutate function to mutate it.
-  SIMPLE_CHROMOSOME_GENE_MUTATE_FUNC(chromosome->genes + gene_idx, elements_size[gene_idx], ra);
+  SIMPLE_CHROMOSOME_GENE_MUTATE_FUNC(chromosome->genes + gene_idx,
+                                     elements_size[gene_idx], ra);
 }
 
 __kernel void simple_chromosome_mutate(global int* cs,
@@ -63,8 +71,8 @@ __kernel void simple_chromosome_mutate(global int* cs,
 // Chromosomes are picked by chance.
 // The picked chromosome must mutate.
 __kernel void simple_chromosome_mutate_all(global int* cs,
-                                           float prob_mutate,
-                                           global uint* input_rand)
+                                           global uint* input_rand,
+                                           float prob_mutate)
 {
   int idx = get_global_id(0);
   // out of bound kernel task for padding
@@ -118,13 +126,13 @@ __kernel void simple_chromosome_pick_chromosomes(global int* cs,
   uint ra[1];
   init_rand(input_rand[idx], ra);
   global __SimpleChromosome* chromosomes = (global __SimpleChromosome*) cs;
-  global __SimpleChromosome* parent_other = (global __SimpleChromosome*) p_other;
+  global __SimpleChromosome* other = (global __SimpleChromosome*) p_other;
   int i;
   // Pick another chromosome as parent_2.
   int cross_idx = random_choose_by_ratio(ratio, ra, POPULATION_SIZE);
   // copy the chromosome to local memory for cross over
   for (i = 0; i < SIMPLE_CHROMOSOME_GENE_SIZE; i++) {
-    parent_other[idx].genes[i] = chromosomes[cross_idx].genes[i];
+    other[idx].genes[i] = chromosomes[cross_idx].genes[i];
   }
   input_rand[idx] = ra[0];
 }
@@ -139,9 +147,8 @@ __kernel void simple_chromosome_do_crossover(global int* cs,
                                              global float* fitness,
                                              global int* p_other,
                                              global float* best_local,
-                                             float prob_crossover,
                                              global uint* input_rand,
-                                             int generation_idx)
+                                             float prob_crossover)
 {
   int idx = get_global_id(0);
   // out of bound kernel task for padding
@@ -161,14 +168,14 @@ __kernel void simple_chromosome_do_crossover(global int* cs,
     return;
   }
   global __SimpleChromosome* chromosomes = (global __SimpleChromosome*) cs;
-  global __SimpleChromosome* parent_other = (global __SimpleChromosome*) p_other;
+  global __SimpleChromosome* other = (global __SimpleChromosome*) p_other;
   int i;
   // keep at least one for .
-  int cross_start = rand_range(ra, SIMPLE_CHROMOSOME_GENE_SIZE - 1);
-  int cross_end = cross_start + rand_range(ra, SIMPLE_CHROMOSOME_GENE_SIZE - cross_start);
+  int start = rand_range(ra, SIMPLE_CHROMOSOME_GENE_SIZE - 1);
+  int end = start + rand_range(ra, SIMPLE_CHROMOSOME_GENE_SIZE - start);
   // copy partial genes from other chromosome
-  for (i = cross_start; i < cross_end; i++) {
-    chromosomes[idx].genes[i] = parent_other[idx].genes[i];
+  for (i = start; i < end; i++) {
+    chromosomes[idx].genes[i] = other[idx].genes[i];
   }
 
   input_rand[idx] = ra[0];

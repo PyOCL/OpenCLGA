@@ -221,9 +221,8 @@ class SimpleChromosome:
                                              dev_fitnesses,
                                              self.__dev_other_chromosomes,
                                              self.__dev_best,
-                                             numpy.float32(prob_crossover),
                                              dev_rnum,
-                                             numpy.int32(generation_idx)).wait()
+                                             numpy.float32(prob_crossover)).wait()
 
 
     def execute_mutation(self, prg, queue, population, generation_idx, prob_mutate,
@@ -232,5 +231,5 @@ class SimpleChromosome:
                                          (population,),
                                          (1,),
                                          dev_chromosomes,
-                                         numpy.float32(prob_mutate),
-                                         dev_rnum).wait()
+                                         dev_rnum,
+                                         numpy.float32(prob_mutate)).wait()
