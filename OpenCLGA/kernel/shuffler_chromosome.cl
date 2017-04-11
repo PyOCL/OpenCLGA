@@ -177,10 +177,10 @@ __kernel void shuffler_chromosome_single_gene_mutate(global int* cs,
  * @param *worst (global, out) the worse fitness value
  * @param *avg (global, out) the average fitness value
  */__kernel void shuffler_chromosome_calc_ratio(global float* fitness,
-                                             global float* ratio,
-                                             global float* best,
-                                             global float* worst,
-                                             global float* avg)
+                                                global float* ratio,
+                                                global float* best,
+                                                global float* worst,
+                                                global float* avg)
 {
   int idx = get_global_id(0);
   // we use the first kernel to calculate the ratio
