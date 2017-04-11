@@ -11,14 +11,15 @@ typedef struct {
 } __ShufflerChromosome;
 
 /**
- * During the development, we may found some bugs in our chromosomes. One of them is our codes
- * generate duplicated gene while crossing over or mutating. This is not acceptable in shuffler
- * chromosome.
- * This function, shuffler_chromosome_check_duplicate, checks if there is any duplicated gene in a
- * chromosome.
- * @param *chromosome (global) the pointer of a chromosome which wants to be checked.
+ * During the development, we may found some bugs in our chromosomes. One of
+ * them is our codes generate duplicated gene while crossing over or mutating.
+ * This is not acceptable in shuffler chromosome.
+ * This function, shuffler_chromosome_check_dup, checks if there is any
+ * duplicated gene in a chromosome.
+ * @param *chromosome (global) the pointer of a chromosome which wants to be
+ *                             checked.
  */
-void shuffler_chromosome_check_duplicate(global __ShufflerChromosome* chromosome) {
+void shuffler_chromosome_check_dup(global __ShufflerChromosome* chromosome) {
   for (int i = 0; i < SHUFFLER_CHROMOSOME_GENE_SIZE; i++) {
     for (int j = i + 1; j < SHUFFLER_CHROMOSOME_GENE_SIZE; j++) {
       if (chromosome->genes[i] == chromosome->genes[j]) {
@@ -31,13 +32,14 @@ void shuffler_chromosome_check_duplicate(global __ShufflerChromosome* chromosome
 
 /* ============== populating functions ============== */
 /**
- * shuffler_chromosome_do_populate populates a chromosome randomly. Since this is a shuffler
- * chromosome. The elements index of a gene is the size of chromosome. This function random shuffles
- * the whole chromosome.
+ * shuffler_chromosome_do_populate populates a chromosome randomly. Since this
+ * is a shuffler chromosome, the elements index of a gene is the size of
+ * chromosome. This function random shuffles the whole chromosome.
  * @param *chromosome (global) the chromosome we want to populate
  * @param *rand_holder the random value holder
  */
-void shuffler_chromosome_do_populate(global __ShufflerChromosome* chromosome, uint* rand_holder) {
+void shuffler_chromosome_do_populate(global __ShufflerChromosome* chromosome,
+                                     uint* rand_holder) {
   int gene_elements[] = SIMPLE_GENE_ELEMENTS;
   int rndIdx;
   // The algorithm here is:
@@ -48,19 +50,21 @@ void shuffler_chromosome_do_populate(global __ShufflerChromosome* chromosome, ui
   for (int i = 0; i < SHUFFLER_CHROMOSOME_GENE_SIZE - 1; i++) {
     rndIdx = rand_range(rand_holder, (SHUFFLER_CHROMOSOME_GENE_SIZE - i - 1));
     chromosome->genes[i] = gene_elements[rndIdx];
-    gene_elements[rndIdx] = gene_elements[SHUFFLER_CHROMOSOME_GENE_SIZE - i - 1];
+    gene_elements[rndIdx] = gene_elements[
+                                SHUFFLER_CHROMOSOME_GENE_SIZE - i - 1];
   }
   chromosome->genes[SHUFFLER_CHROMOSOME_GENE_SIZE - 1] = gene_elements[0];
 }
 
 /**
- * shuffler_chromosome_populate populate chromosomes with random. The current design is to generate
- * a chromosome in a thread.
+ * shuffler_chromosome_populate populate chromosomes with random. The current
+ * design is to generate a chromosome in a thread.
  * Note: this is a kernel function and will be called by python.
  * @param *chromosomes (global) all memory storage for populating chromosomes.
  * @param *input_rand (global) random seeds for all threads.
  */
-__kernel void shuffler_chromosome_populate(global int* chromosomes, global uint* input_rand) {
+__kernel void shuffler_chromosome_populate(global int* chromosomes,
+                                           global uint* input_rand) {
   int idx = get_global_id(0);
   // out of bound kernel task for padding
   if (idx >= POPULATION_SIZE) {
@@ -69,19 +73,38 @@ __kernel void shuffler_chromosome_populate(global int* chromosomes, global uint*
   // create a private variable for each kernel to hold randome number.
   uint ra[1];
   init_rand(input_rand[idx], ra);
-  shuffler_chromosome_do_populate(((global CHROMOSOME_TYPE*) chromosomes) + idx, ra);
+  shuffler_chromosome_do_populate(((global CHROMOSOME_TYPE*) chromosomes) + idx,
+                                  ra);
   input_rand[idx] = ra[0];
 }
 /* ============== end of populating functions ============== */
 
-// functions for mutation
-void shuffler_chromosome_swap(global __ShufflerChromosome* chromosome, int cp, int p1)
+/* ============== mutation functions ============== */
+/**
+ * shuffler_chromosome_swap swaps two genes of a chromosome.
+ * @param *chromosome (global) the chromosome whose genes are swapped.
+ * @param p1 the position of gene 1
+ * @param p2 the position of gene 2
+ */
+void shuffler_chromosome_swap(global __ShufflerChromosome* chromosome, int p1,
+                              int p2)
 {
-  int temp_p = chromosome->genes[cp];
-  chromosome->genes[cp] = chromosome->genes[p1];
-  chromosome->genes[p1] = temp_p;
+  int temp_p = chromosome->genes[p1];
+  chromosome->genes[p1] = chromosome->genes[p2];
+  chromosome->genes[p2] = temp_p;
 }
 
+/**
+ * the dummy improving function. An improving function is a help function for
+ * hinting the better result for swapping the selected gene. Since this is a
+ * user provided function, we only need to implement a dummy function here.
+ * @param *chromosome (global) the chromosome for improving. Please note this
+ *                             chromosome is in int array mode.
+ * @param idx the position of a gene which will be swapped.
+ * @param chromosome_size the size of a chromosome.
+ * @param FITNESS_ARGS the fitness arguments from ocl_ga options.
+ * @return the index of suggested position for swapping.
+ */
 int shuffler_chromosome_dummy_improving_func(global int* chromosome,
                                              int idx,
                                              int chromosome_size FITNESS_ARGS)
@@ -89,9 +112,20 @@ int shuffler_chromosome_dummy_improving_func(global int* chromosome,
   return 0;
 }
 
+/**
+ * shuffler_chromosome_single_gene_mutate does the mutation of all chromosomes.
+ *
+ * Note: this is a kernel function and will be called by python.
+ * @param *cs (global) all chromosomes.
+ * @param *input_rand (global) random seeds array for all threads.
+ * @param prob_mutate the threshold for mutation.
+ * @param improve a flag to say if we need to call improving function.
+ * @param FITNESS_ARGS the fitness arguments from ocl_ga options for improving
+ *                     function.
+ */
 __kernel void shuffler_chromosome_single_gene_mutate(global int* cs,
-                                                     float prob_mutate,
                                                      global uint* input_rand,
+                                                     float prob_mutate,
                                                      int improve FITNESS_ARGS)
 {
   int idx = get_global_id(0);
@@ -99,19 +133,23 @@ __kernel void shuffler_chromosome_single_gene_mutate(global int* cs,
   if (idx >= POPULATION_SIZE) {
     return;
   }
-
+  // prepare random number for current thread
   uint ra[1];
   init_rand(input_rand[idx], ra);
+  // generate a probability for mutation
   float prob_m =  rand_prob(ra);
   if (prob_m > prob_mutate) {
+    // no need to mutate
     input_rand[idx] = ra[0];
     return;
   }
   global __ShufflerChromosome* chromosomes = (global __ShufflerChromosome*) cs;
+  // choose a position for mutation randomly.
   uint i = rand_range(ra, SHUFFLER_CHROMOSOME_GENE_SIZE);
   uint j;
   if (improve == 1) {
-    // we only gives global int* type to IMPROVED_FITNESS_FUNC instead of __ShufflerChromosome
+    // we only gives global int* type to IMPROVED_FITNESS_FUNC instead of
+    // __ShufflerChromosome
     j = IMPROVED_FITNESS_FUNC((global int*)(chromosomes + idx), i,
                               SHUFFLER_CHROMOSOME_GENE_SIZE FITNESS_ARGV);
     if (i != j) {
@@ -122,10 +160,23 @@ __kernel void shuffler_chromosome_single_gene_mutate(global int* cs,
     shuffler_chromosome_swap(chromosomes + idx, i, j);
   }
   input_rand[idx] = ra[0];
-  shuffler_chromosome_check_duplicate(chromosomes + idx);
+  shuffler_chromosome_check_dup(chromosomes + idx);
 }
+/* ============== end of mutation functions ============== */
 
-__kernel void shuffler_chromosome_calc_ratio(global float* fitness,
+/* ============== crossover functions ============== */
+
+/**
+ * shuffler_chromosome_calc_ratio uses utils_calc_ratio to find the best, worst,
+ * avg fitnesses among all chromosomes the probability for each chromosomes
+ * based on their fitness value.
+ * Note: this is a kernel function and will be called by python.
+ * @param *fitness (global) the fitness value array of all chromosomes
+ * @param *ratio (global, out) the probability array of each chromosomes
+ * @param *best (global, out) the best fitness value
+ * @param *worst (global, out) the worse fitness value
+ * @param *avg (global, out) the average fitness value
+ */__kernel void shuffler_chromosome_calc_ratio(global float* fitness,
                                              global float* ratio,
                                              global float* best,
                                              global float* worst,
@@ -139,15 +190,31 @@ __kernel void shuffler_chromosome_calc_ratio(global float* fitness,
   utils_calc_ratio(fitness, ratio, best, worst, avg, POPULATION_SIZE);
 }
 
+/**
+ * shuffler_chromosome_pick_chromosomes picks a chromosome randomly based on the
+ * ratio of each chromosome and copy all genes to p_other for crossover. The
+ * reason copy to p_other is that OpenCLGA runs crossover at multi-thread mode.
+ * The picked chromosomes may also be modified at the same time while crossing
+ * over. If we don't copy them, we may have duplicated genes in a chromosome.
+ * Note: this is a kernel function and will be called by python.
+ * @param *cs (global) all chromosomes
+ * @param *fitness (global) all fitness of chromosomes
+ * @param *p_other (global) a spared space for storing another chromosome for
+ *                          crossover.
+ * @param *best (global) the best fitness of all chromosomes.
+ * @param *worst (global) the worst fitness of all chromosomes.
+ * @param *input_rand (global) all random seeds.
+ */
 __kernel void shuffler_chromosome_pick_chromosomes(global int* cs,
                                                    global float* fitness,
                                                    global int* p_other,
                                                    global float* ratio,
-                                                   global float* best_local,
-                                                   global float* worst_local,
+                                                   global float* best,
+                                                   global float* worst,
                                                    global uint* input_rand)
 {
-  if (fabs(*worst_local - *best_local) < 0.00001) {
+  // We want to prevent the best one being changed.
+  if (fabs(*worst - *best) < 0.00001) {
     return;
   }
   int idx = get_global_id(0);
@@ -160,26 +227,41 @@ __kernel void shuffler_chromosome_pick_chromosomes(global int* cs,
   global __ShufflerChromosome* chromosomes = (global __ShufflerChromosome*) cs;
   global __ShufflerChromosome* parent_other = (global __ShufflerChromosome*) p_other;
   int i;
+  // pick another chromosome randomly
   int cross_idx = random_choose_by_ratio(ratio, ra, POPULATION_SIZE);
-  // copy the chromosome to local memory for cross over
+  // copy the chromosome to local memory for crossover
   for (i = 0; i < SHUFFLER_CHROMOSOME_GENE_SIZE; i++) {
     parent_other[idx].genes[i] = chromosomes[cross_idx].genes[i];
   }
   input_rand[idx] = ra[0];
 }
 
+/**
+ * shuffler_chromosome_do_crossover do the crossover algorithm.
+ * Note: this is a kernel function and will be called by python.
+ * @param *cs (global) all chromosomes
+ * @param *fitness (global) all fitness of chromosomes
+ * @param *p_other (global) a spared space for storing another chromosome for
+ *                          crossover.
+ * @param *c_map (global) a temp int array for marking if a gene is already in
+ *                        the chromosome.
+ * @param *best (global) the best fitness of all chromosomes.
+ * @param *worst (global) the worst fitness of all chromosomes.
+ * @param *avg (global) the average fitness of all chromosomes.
+ * @param *input_rand (global) all random seeds.
+ * @param prob_crossover the threshold of crossover.
+ */
 __kernel void shuffler_chromosome_do_crossover(global int* cs,
                                                global float* fitness,
                                                global int* p_other,
                                                global int* c_map,
-                                               global float* best_local,
-                                               global float* worst_local,
-                                               global float* avg_local,
-                                               float prob_crossover,
+                                               global float* best,
+                                               global float* worst,
+                                               global float* avg,
                                                global uint* input_rand,
-                                               int generation_idx)
+                                               float prob_crossover)
 {
-  if (fabs(*worst_local - *best_local) < 0.00001) {
+  if (fabs(*worst - *best) < 0.00001) {
     return;
   }
   int idx = get_global_id(0);
@@ -191,7 +273,7 @@ __kernel void shuffler_chromosome_do_crossover(global int* cs,
   init_rand(input_rand[idx], ra);
 
   // keep the shortest path, we have to return here to prevent async barrier if someone is returned.
-  if (fabs(fitness[idx] - *best_local) < 0.000001) {
+  if (fabs(fitness[idx] - *best) < 0.000001) {
     input_rand[idx] = ra[0];
     return;
   } else if (rand_prob(ra) >= prob_crossover) {
@@ -227,8 +309,9 @@ __kernel void shuffler_chromosome_do_crossover(global int* cs,
         chromosomes[idx].genes[cross_point++] = self.genes[i];
     }
   }
-  shuffler_chromosome_check_duplicate(chromosomes + idx);
+  shuffler_chromosome_check_dup(chromosomes + idx);
   input_rand[idx] = ra[0];
 }
+/* ============== end of crossover functions ============== */
 
 #endif

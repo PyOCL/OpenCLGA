@@ -152,10 +152,9 @@ void calc_min_max_fitness(global float* fitnesses, int num_of_chromosomes,
  * @param *ratio (global, out) the probability array of each chromosomes
  * @param *best (global, out) the best fitness value
  * @param *worst (global, out) the worse fitness value
+ * @param *avg (global, out) the average fitness value
  * @param num_of_chromosomes the number of chromosomes.
  */
-// Find min / max fitnesses among all chromosomes.
-// Calculate a ratio table to identify share of each chromosome among all chromosomes.
 void utils_calc_ratio(global float* fitness,
                       global float* ratio,
                       global float* best,
