@@ -28,8 +28,9 @@ def run(num_chromosomes, generations):
     import threading
     evt = threading.Event()
     evt.clear()
-    def run_end(paused):
-        evt.set()
+    def state_changed(state):
+        if 'stopped' == state:
+            evt.set()
 
     tsp_ga_cl = OpenCLGA({'sample_chromosome': sample,
                           'termination': {
@@ -45,7 +46,7 @@ def run(num_chromosomes, generations):
                           'opt_for_max': 'min',
                           'debug': True,
                           'generation_callback': show_generation_info},
-                          action_callbacks = {'run' : run_end})
+                          action_callbacks = {'state' : state_changed})
 
     tsp_ga_cl.prepare()
 
