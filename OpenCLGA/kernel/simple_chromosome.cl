@@ -8,16 +8,28 @@ typedef struct {
 } __SimpleChromosome;
 
 /* ============== populate functions ============== */
-// functions for populate
+/**
+ * simple_chromosome_do_populate populates a chromosome randomly. Unlike shuffler chromosome, it
+ * chooses a gene randomly based on gene's element.
+ * @param *chromosome (global, out) the target chromosome.
+ * @param *rand_holder the random seed holder.
+ */
 void simple_chromosome_do_populate(global __SimpleChromosome* chromosome,
                                    uint* rand_holder)
 {
   uint gene_elements_size[] = SIMPLE_CHROMOSOME_GENE_ELEMENTS_SIZE;
   for (int i = 0; i < SIMPLE_CHROMOSOME_GENE_SIZE; i++) {
+    // choose an element randomly based on each gene's element size.
     chromosome->genes[i] = rand_range(rand_holder, gene_elements_size[i]);
   }
 }
 
+/**
+ * simple_chromosome_populate populates all chromosomes randomly.
+ * Note: this is a kernel function and will be called by python.
+ * @param *cs (global, out) all chromosomes where population to be stored.
+ * @param *input_rand (global) random seeds.
+ */
 __kernel void simple_chromosome_populate(global int* cs,
                                          global uint* input_rand)
 {
@@ -33,9 +45,14 @@ __kernel void simple_chromosome_populate(global int* cs,
                                 ra);
   input_rand[idx] = ra[0];
 }
+/* ============== end of populating functions ============== */
 
-/* ============== mutate functions ============== */
-
+/* ============== mutation functions ============== */
+/**
+ * mutate a single gene of a chromosome.
+ * @param *chromosome (global) the chromosome for mutation.
+ * @param *ra random seed holder.
+ */
 void simple_chromosome_do_mutate(global __SimpleChromosome* chromosome,
                                  uint* ra)
 {
@@ -46,10 +63,16 @@ void simple_chromosome_do_mutate(global __SimpleChromosome* chromosome,
   SIMPLE_CHROMOSOME_GENE_MUTATE_FUNC(chromosome->genes + gene_idx,
                                      elements_size[gene_idx], ra);
 }
-
+/**
+ * mutate a single gene of all chromosomes based on the prob_mutate. If a
+ * chromosome pass the probability, a single gene of it will be mutated.
+ * @param *chromosome (global) the chromosome for mutation.
+ * @param *ra (global) random seed holder.
+ * @param prob_mutate the probability of mutation.
+ */
 __kernel void simple_chromosome_mutate(global int* cs,
-                                       float prob_mutate,
-                                       global uint* input_rand)
+                                       global uint* input_rand,
+                                       float prob_mutate)
 {
   int idx = get_global_id(0);
   // out of bound kernel task for padding
@@ -68,8 +91,13 @@ __kernel void simple_chromosome_mutate(global int* cs,
   simple_chromosome_do_mutate((global __SimpleChromosome*) cs, ra);
 }
 
-// Chromosomes are picked by chance.
-// The picked chromosome must mutate.
+/**
+ * mutate all genes of all chromosomes based on the prob_mutate. Once a
+ * chromosome passes the probability, all genes of it will be mutated.
+ * @param *chromosome (global) the chromosome for mutation.
+ * @param *ra (global) random seed holder.
+ * @param prob_mutate the probability of mutation.
+ */
 __kernel void simple_chromosome_mutate_all(global int* cs,
                                            global uint* input_rand,
                                            float prob_mutate)
@@ -92,9 +120,21 @@ __kernel void simple_chromosome_mutate_all(global int* cs,
 
   input_rand[idx] = ra[0];
 }
+/* ============== end of mutation functions ============== */
 
 /* ============== crossover functions ============== */
-// See comment for utils_calc_ratio()
+/**
+ * simple_chromosome_calc_ratio uses utils_calc_ratio to find the best, worst,
+ * avg fitnesses among all chromosomes the probability for each chromosomes
+ * based on their fitness value.
+ * Note: this is a kernel function and will be called by python.
+ * @param *fitness (global) the fitness value array of all chromosomes
+ * @param *ratio (global, out) the probability array of each chromosomes
+ * @param *best (global, out) the best fitness value
+ * @param *worst (global, out) the worse fitness value
+ * @param *avg (global, out) the average fitness value
+ * @seealso ::utils_calc_ratio
+ */
 __kernel void simple_chromosome_calc_ratio(global float* fitness,
                                            global float* ratio,
                                            global float* best,
@@ -109,9 +149,20 @@ __kernel void simple_chromosome_calc_ratio(global float* fitness,
   utils_calc_ratio(fitness, ratio, best, worst, avg, POPULATION_SIZE);
 }
 
-// Preparing another chromosomes array according to their fitness ratios.
-// Then crossover by picking parent_1 from original chromosomes array and
-// parent_2 from the newly-prepared chromosomes array.
+/**
+ * simple_chromosome_pick_chromosomes picks a chromosome randomly based on the
+ * ratio of each chromosome and copy all genes to p_other for crossover. The
+ * reason copy to p_other is that OpenCLGA runs crossover at multi-thread mode.
+ * The picked chromosomes may also be modified at the same time while crossing
+ * over. If we don't copy them, we may have duplicated genes in a chromosome.
+ * Note: this is a kernel function and will be called by python.
+ * @param *cs (global) all chromosomes
+ * @param *fitness (global) all fitness of chromosomes
+ * @param *p_other (global) a spared space for storing another chromosome for
+ *                          crossover.
+ * @param *ratio (global) the ratio of all chromosomes.
+ * @param *input_rand (global) all random seeds.
+ */
 __kernel void simple_chromosome_pick_chromosomes(global int* cs,
                                                  global float* fitness,
                                                  global int* p_other,
@@ -128,7 +179,7 @@ __kernel void simple_chromosome_pick_chromosomes(global int* cs,
   global __SimpleChromosome* chromosomes = (global __SimpleChromosome*) cs;
   global __SimpleChromosome* other = (global __SimpleChromosome*) p_other;
   int i;
-  // Pick another chromosome as parent_2.
+  // Pick another chromosome as parent_other.
   int cross_idx = random_choose_by_ratio(ratio, ra, POPULATION_SIZE);
   // copy the chromosome to local memory for cross over
   for (i = 0; i < SIMPLE_CHROMOSOME_GENE_SIZE; i++) {
@@ -137,12 +188,17 @@ __kernel void simple_chromosome_pick_chromosomes(global int* cs,
   input_rand[idx] = ra[0];
 }
 
-// Pick 2 random cross-point index (start, end), then Parent 1(cs) and
-// Parent 2(p_other) start crossover.
-// CS1 |----------------------------------|
-//           |start                |end
-//           |=> to be exchanged <=|
-// CS2 |----------------------------------|
+/**
+ * simple_chromosome_do_crossover does crossover for all chromosomes.
+ * If a chromosomes passes the prob_crossover, we pick another chromosome for
+ * crossover, see simple_chromosome_pick_chromosomes for more information. The
+ * crossover procedure copys a range of genes from parent 2(p_other) to
+ * parent 1(cs), like:
+ * CS1 |----------------------------------|
+ *        |start (copy from parent 2)  |end
+ *        |^^^^^^^^^^^^^^^^^^^^^^^^^^^^|
+ * CS2 |----------------------------------|
+ */
 __kernel void simple_chromosome_do_crossover(global int* cs,
                                              global float* fitness,
                                              global int* p_other,
@@ -180,5 +236,5 @@ __kernel void simple_chromosome_do_crossover(global int* cs,
 
   input_rand[idx] = ra[0];
 }
-
+/* ============== end of crossover functions ============== */
 #endif

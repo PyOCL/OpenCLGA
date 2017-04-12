@@ -165,7 +165,6 @@ __kernel void shuffler_chromosome_single_gene_mutate(global int* cs,
 /* ============== end of mutation functions ============== */
 
 /* ============== crossover functions ============== */
-
 /**
  * shuffler_chromosome_calc_ratio uses utils_calc_ratio to find the best, worst,
  * avg fitnesses among all chromosomes the probability for each chromosomes
@@ -176,7 +175,9 @@ __kernel void shuffler_chromosome_single_gene_mutate(global int* cs,
  * @param *best (global, out) the best fitness value
  * @param *worst (global, out) the worse fitness value
  * @param *avg (global, out) the average fitness value
- */__kernel void shuffler_chromosome_calc_ratio(global float* fitness,
+ * @seealso ::utils_calc_ratio
+ */
+__kernel void shuffler_chromosome_calc_ratio(global float* fitness,
                                                 global float* ratio,
                                                 global float* best,
                                                 global float* worst,
