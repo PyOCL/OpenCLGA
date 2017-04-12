@@ -123,3 +123,4 @@ export const STATE_HANDLERS = {
   [OPENCLGA_STATES.STOPPED]: stoppedState
 };
 
+export const AGGREGRATION_SECONDS = 5;

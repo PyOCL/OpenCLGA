@@ -6,11 +6,13 @@ import ConnectedWorkers from './widgets/connected_workers';
 import BestFitness from './widgets/best_fitness';
 import WorkersTable from './widgets/workers_table';
 import WorkerLineChart from './widgets/worker_line_chart';
+import ResultLineChart from './widgets/result_line_chart';
 
 class WidgetsPanel extends Component {
 
   render() {
     const {
+      aggregrated,
       workers
     } = this.props;
 
@@ -40,6 +42,7 @@ class WidgetsPanel extends Component {
             <WorkerLineChart workers={workers} />
           </Col>
           <Col xs={12} sm={12} md={6}>
+            <ResultLineChart aggregrated={aggregrated} />
           </Col>
         </Row>
       </div>

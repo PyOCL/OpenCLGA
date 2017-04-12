@@ -1,9 +1,21 @@
 import _ from 'lodash';
-import { DEVICE_TYPE, OPENCLGA_STATES } from '../shared/constants';
+import {
+  AGGREGRATION_SECONDS,
+  DEVICE_TYPE,
+  OPENCLGA_STATES
+} from '../shared/constants';
 import { ACTION_KEYS } from '../shared/socket';
 
 export const initialState = {
+  aggregrated: {},
   workers: {}
+};
+
+const AGGREGRATION_TEMPLATE = {
+  avg_fitness: 0,
+  best_fitness: 0,
+  count: 0,
+  worst_fitness: 0
 };
 
 const WORKER_TEMPLATE = {
@@ -42,6 +54,20 @@ const handleStateChanged = (workers, data) => {
   worker.state = data.state;
 };
 
+const aggregrateGlobalResult = (aggregrated, data) => {
+  const result = data.result;
+  const time = new Date();
+  time.setSeconds(((time.getSeconds() / AGGREGRATION_SECONDS) >> 0) * AGGREGRATION_SECONDS);
+  time.setMilliseconds(0);
+  const groupKey = time.getTime();
+  const group = aggregrated[groupKey] || _.cloneDeep(AGGREGRATION_TEMPLATE);
+  group.count++;
+  group.best_fitness += (result.best_fitness - group.best_fitness) / group.count;
+  group.avg_fitness += (result.avg_fitness - group.avg_fitness) / group.count;
+  group.worst_fitness += (result.worst_fitness - group.worst_fitness) / group.count;
+  aggregrated[groupKey] = group;
+};
+
 const handleGenerationResult = (workers, data) => {
   const worker = workers[data.worker];
   if (!worker) {
@@ -59,20 +85,22 @@ const handleGenerationResult = (workers, data) => {
 
 export default (state = initialState, payload) => {
   const data = payload.data;
-  const workers = _.cloneDeep(state.workers);
+  const workers = { ...state.workers };
   switch (payload.type) {
     case ACTION_KEYS.WORKER_CONNECTED:
       handleWorkerConnected(workers, data);
-      return { workers };
+      return { ...state, workers };
     case ACTION_KEYS.WORKER_LOST:
       handleWorkerLost(workers, data);
-      return { workers };
+      return { ...state, workers };
     case ACTION_KEYS.STATE_CHANGED:
       handleStateChanged(workers, data);
-      return { workers };
+      return { ...state, workers };
     case ACTION_KEYS.GENERATION_RESULT:
+      const aggregrated = { ...state.aggregrated };
       handleGenerationResult(workers, data);
-      return { workers };
+      aggregrateGlobalResult(aggregrated, data);
+      return { aggregrated, workers };
     default:
       return state;
   }

@@ -41,7 +41,7 @@ class WorkerLineChart extends Component {
 
   mapWorkersToMenuItems(workers) {
     return _.map(workers, (item) => (
-      <MenuItem eventKey={item.id}>
+      <MenuItem eventKey={item.id} key={item.id}>
         {this.getWorkerInfo(item)}
       </MenuItem>
     ));
