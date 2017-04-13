@@ -10,7 +10,7 @@ import PopulationRow from './config/population_row';
 import CrossoverRow from './config/crossover_row';
 import MutationRow from './config/mutation_row';
 import ExtinctionRow from './config/extinction_row';
-import ShareResultRow from './config/share_result_row';
+import ElitismModeRow from './config/elitism_mode_row';
 
 class ConfigPanel extends Component {
 
@@ -52,9 +52,9 @@ class ConfigPanel extends Component {
                            onInputChange={actions.setExtinctionConfigDiff} />
           </Col>
           <Col xs={12} sm={12} md={12}>
-            <ShareResultRow disabled={!isWaiting}
-                            value={config.shareBestCount}
-                            onChange={actions.setShareBestCount} />
+            <ElitismModeRow disabled={!isWaiting}
+                            value={config.elitismMode}
+                            onChange={actions.setElitismMode} />
           </Col>
         </Row>
       </Panel>

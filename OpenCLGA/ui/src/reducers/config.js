@@ -12,7 +12,7 @@ const initialState = {
     type: EXTINCTION_CONFIG_TYPE.DEFAULT,
     diff: 1
   },
-  shareBestCount: 0
+  elitismMode: 0
 };
 
 export default (state = initialState, payload) => {

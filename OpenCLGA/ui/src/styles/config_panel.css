@@ -3,34 +3,34 @@
 .crossover-row .crossover-number,
 .mutation-row .mutation-number,
 .repopulating-row .repopulating-number,
-.share-result-row .share-result-number,
+.elitism-mode-row .elitism-mode-number,
 .population-row .population-number {
   text-align: right;
 }
 
 .repopulating-row .dropdown,
 .repopulating-row .react-numeric-input,
-.share-result-row .react-numeric-input {
+.elitism-mode-row .react-numeric-input {
   margin-left: 20px;
   margin-right: 20px;
 }
 
 .repopulating-row div,
-.share-result-row div,
+.elitism-mode-row div,
 .repopulating-row .react-numeric-input,
-.share-result-row .react-numeric-input {
+.elitism-mode-row .react-numeric-input {
   display: inline-block;
   margin-top: 0;
   margin-bottom: 0;
 }
 
-.share-result-row {
+.elitism-mode-row {
   margin-top: 20px;
 }
 
 @-moz-document url-prefix() {
   .repopulating-row .react-numeric-input,
-  .share-result-row .react-numeric-input {
+  .elitism-mode-row .react-numeric-input {
     top: 5px;
   }
 }

@@ -12,13 +12,12 @@ export const prepare = () => (dispatch, getState) => {
   if (config.termination.type === 'time') {
     config.termination.time *= 60;
   }
-  debugger;
+
   const options = {
     'termination': config.termination,
     'population': config.population,
     'prob_mutation': config.mutationRatio / 100,
-    'prob_crossover': config.crossoverRatio / 100,
-    'sharing_best_after': config.shareBestCount
+    'prob_crossover': config.crossoverRatio / 100
   };
 
   if (config.extinctionConfig.type !== EXTINCTION_CONFIG_TYPE.DISABLED) {
@@ -27,6 +26,10 @@ export const prepare = () => (dispatch, getState) => {
       diff: config.extinctionConfig.diff,
       ratio: 0.9
     }
+  }
+
+  if (config.elitismMode) {
+    options['elitism_mode'] = config.elitismMode;
   }
 
   socket.sendCommand('prepare', options);

@@ -6,7 +6,7 @@ import NumericInput from 'react-numeric-input';
 
 // TODO: make this as a stateful component because create a function inside render is an
 // anti-pattern.
-const ShareResultRow = (props) => {
+const ElitismModeRow = (props) => {
   const handleCheckboxChanged = (evt) => {
     const value = props.value || 1;
     props.onChange(evt.target.checked ? value : 0);
@@ -25,7 +25,7 @@ const ShareResultRow = (props) => {
    );
 };
 
-ShareResultRow.propTypes = {
+ElitismModeRow.propTypes = {
   className: PropTypes.string,
   disabled: PropTypes.bool,
   type: PropTypes.string,
@@ -33,10 +33,8 @@ ShareResultRow.propTypes = {
   onChange: PropTypes.func
 };
 
-ShareResultRow.defaultProps = {
-  className: 'share-result'
+ElitismModeRow.defaultProps = {
+  className: 'elitism-mode'
 };
 
-export default ShareResultRow;
-
-
+export default ElitismModeRow;
