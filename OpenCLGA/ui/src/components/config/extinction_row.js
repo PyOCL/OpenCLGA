@@ -16,7 +16,7 @@ class ExtinctionRow extends Component {
     const inputDisabled = config.type === EXTINCTION_CONFIG_TYPE.DISABLED || disabled;
     return (
       <div className={`${className}-row`}>
-        <label>Repopulate 90% when</label>
+        <label>Extinct 90% populations when</label>
         <ExtinctionTypeDropdown value={config.type}
                                   className={`type-dropdown ${className}-dropdown`}
                                   disabled={disabled}
