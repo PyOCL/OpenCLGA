@@ -14,6 +14,8 @@ from .utilities.httpwebsocketserver import HTTPWebSocketsHandler
 ## A Handler class when the Http request is upgraded to websocket, the following
 #  methods will be called accordingly.
 class HttpWSMessageHandler(HTTPWebSocketsHandler):
+
+    base_path = None
     cn_hdlr = None
     msg_hdlr = None
     dcn_hdlr = None
@@ -72,10 +74,12 @@ class HttpWSTask(Task):
 #  disconnects to server.
 class OclGAWSServer(object):
     def __init__(self, ip, port, credentials = '', connect_handler = None,
-                 message_handler = None, disconnect_handler = None):
+                 message_handler = None, disconnect_handler = None,
+                 base_path = None):
         HttpWSMessageHandler.cn_hdlr = connect_handler
         HttpWSMessageHandler.msg_hdlr = message_handler
         HttpWSMessageHandler.dcn_hdlr = disconnect_handler
+        HttpWSMessageHandler.base_path = base_path
         self.httpwsserver = ThreadedHTTPServer((ip, port), HttpWSMessageHandler)
         self.httpwsserver_thread = TaskThread(name='httpwsserver')
         self.httpwsserver_thread.daemon = True

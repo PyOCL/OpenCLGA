@@ -17,6 +17,9 @@ import struct
 import errno, socket
 import threading
 import traceback
+import posixpath
+import os
+from urllib.parse import unquote
 from base64 import b64encode
 from hashlib import sha1
 
@@ -27,7 +30,24 @@ from email.message import Message
 class WebSocketError(Exception):
     pass
 
-class HTTPWebSocketsHandler(SimpleHTTPRequestHandler):
+class RootedHTTPRequestHandler(SimpleHTTPRequestHandler):
+    # PleaseThe implementation of RootedHTTPRequestHandler refers to:
+    # http://louistiao.me/posts/python-simplehttpserver-recipe-serve-specific-directory/
+    def translate_path(self, path):
+        path = posixpath.normpath(unquote(path))
+        words = path.split('/')
+        words = filter(None, words)
+        path = self.base_path
+        for word in words:
+            drive, word = os.path.splitdrive(word)
+            head, word = os.path.split(word)
+            if word in (os.curdir, os.pardir):
+                continue
+            path = os.path.join(path, word)
+        print('trying to access {}'.format(path))
+        return path
+
+class HTTPWebSocketsHandler(RootedHTTPRequestHandler):
     _ws_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
     _opcode_continu = 0x0
     _opcode_text = 0x1

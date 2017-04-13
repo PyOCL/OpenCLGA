@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import json
+import os
 import pickle
 import queue
 import socket
@@ -39,7 +40,7 @@ from .ocl_ga_wsserver import OclGAWSServer
 #                  controlling the whole operation ; viewers are only allowed
 #                  to receive results.
 class OpenCLGAServer(Logger):
-    def __init__(self, options, port):
+    def __init__(self, options, port, base_path):
         Logger.__init__(self)
         self.logger_level = Logger.MSG_ALL ^ Logger.MSG_VERBOSE
         self.__paused = False
@@ -63,6 +64,7 @@ class OpenCLGAServer(Logger):
         self.websockets = {'controller' : {}, 'viewers' : []}
         self.httpws_server = None
         self.httpws_server_port = 8000
+        self.base_path = base_path
         self._start_http_websocket_server()
 
     def __get_host_ip(self, use_all=True):
@@ -202,7 +204,8 @@ class OpenCLGAServer(Logger):
         self.httpws_server = OclGAWSServer(self.__ip, self.httpws_server_port,
                                            connect_handler = self._ws_connected,
                                            message_handler = self._ws_queue_inputs,
-                                           disconnect_handler = self._ws_disconnected)
+                                           disconnect_handler = self._ws_disconnected,
+                                           base_path = self.base_path)
         self.httpws_server.run_server()
 
     ## Create a socket server and bind at all IP address with specified port.
@@ -345,9 +348,12 @@ class OpenCLGAServer(Logger):
         self.client_workers = {}
         self.websockets = {}
 
-def start_ocl_ga_server(info, port, callbacks = {}):
+def start_ocl_ga_server(info, port, callbacks = {}, base_path = None):
     try:
-        oclGAServer = OpenCLGAServer(info, port)
+        if base_path is None:
+            base_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                     'ui')
+        oclGAServer = OpenCLGAServer(info, port, base_path)
         for name, callback in list(callbacks.items()):
             oclGAServer.on(name, callback)
         time.sleep(0.5)
