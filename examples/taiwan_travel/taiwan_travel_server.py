@@ -57,22 +57,23 @@ def get_taiwan_travel_info():
     # It seems we don't need to use this helper if we enlarge the population size. Please
     # re-evaluate and remove or uncomment the following line:
     # sample.use_improving_only_mutation('improving_only_mutation_helper')
-    sample.repopulate_diff = {'type': 'best_avg',
-                              'diff': 1000}
 
-    dict_info = {'sample_chromosome': sample,
-                 'termination': { 'type': 'count',
-                                  'count': 100 },
-                 'population': 10240,
-                 'fitness_kernel_str': fstr,
-                 'fitness_func': 'taiwan_fitness',
-                 'fitness_args': [{'t': 'float', 'v': city_infoX, 'n': 'x'},
-                                  {'t': 'float', 'v': city_infoY, 'n': 'y'}],
-                 'extra_include_path': [ocl_kernels],
-                 'opt_for_max': 'min',
-                 'saved_filename' : 'test%d%d.pickle',
-                 'prob_mutation' : 0.1,
-                 'prob_crossover' : 0.8,}
+    dict_info = { 'sample_chromosome': sample,
+                  'termination': { 'type': 'count',
+                                   'count': 100 },
+                  'population': 10240,
+                  'fitness_kernel_str': fstr,
+                  'fitness_func': 'taiwan_fitness',
+                  'fitness_args': [{ 't': 'float', 'v': city_infoX, 'n': 'x' },
+                                   { 't': 'float', 'v': city_infoY, 'n': 'y' }],
+                  'extra_include_path': [ocl_kernels],
+                  'opt_for_max': 'min',
+                  'saved_filename' : 'test%d%d.pickle',
+                  'prob_mutation' : 0.1,
+                  'prob_crossover' : 0.8,
+                  'extinction': { 'type': 'best_avg',
+                                  'diff': 1,
+                                  'ratio': 0.9 }}
     return dict_info
 
 lines_input = ''

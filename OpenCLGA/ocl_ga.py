@@ -182,6 +182,9 @@ class OpenCLGA():
         self.__generation_callback = options['generation_callback']\
                                         if 'generation_callback' in options else None
 
+        self.__extinction = options['extinction']\
+                                if 'extinction' in options else None
+
     def __init_cl(self, cl_context, extra_include_path):
         # create OpenCL context, queue, and memory
         # NOTE: Please set PYOPENCL_CTX=N (N is the device number you want to use)
@@ -235,6 +238,20 @@ class OpenCLGA():
             utils.calculate_estimated_kernel_usage(prog,
                                                    ctx,
                                                    name)
+
+    def __is_extinction_matched(self, best, avg, worst):
+        if self.__extinction is None:
+            return False
+
+        assert('type' in self.__extinction)
+        assert('diff' in self.__extinction)
+
+        if self.__extinction['type'] == 'best_worst':
+            return abs(best - worst) < self.__extinction['diff']
+        elif self.__extinction['type'] == 'best_avg':
+            return abs(best - avg) < self.__extinction['diff']
+
+        return False
 
     def __prepare_fitness_args(self):
         mf = cl.mem_flags
@@ -297,7 +314,33 @@ class OpenCLGA():
                                             (1,),
                                             *self.__fitness_args_list).wait()
 
+    def __examine_single_generation(self, index):
+        # we cannot extinct the first generation
+        if index == 0:
+            return
+
+        last_result = self.__dictStatistics[index - 1]
+
+        should_extinct = self.__is_extinction_matched(last_result['best'],
+                                                      last_result['avg'],
+                                                      last_result['worst'])
+
+        if should_extinct == False:
+            return
+
+        assert('ratio' in self.__extinction)
+        # To add 1 for preventing 0 if the population size is too small.
+        size = int(self.__population * self.__extinction['ratio']) + 1
+        self.__sample_chromosome.execute_populate(self.__prg,
+                                                  self.__queue,
+                                                  size,
+                                                  self.__dev_chromosomes,
+                                                  self.__dev_rnum)
+
     def __execute_single_generation(self, index, prob_mutate, prob_crossover):
+
+        self.__examine_single_generation(index)
+
         self.__sample_chromosome.execute_crossover(self.__prg,
                                                    self.__queue,
                                                    self.__population,
