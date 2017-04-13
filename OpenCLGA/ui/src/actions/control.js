@@ -1,5 +1,6 @@
 import _ from 'lodash';
 import { createSimpleAction } from '../shared/utils';
+import { EXTINCTION_CONFIG_TYPE } from '../shared/config';
 import { ACTION_KEYS } from '../shared/control';
 import socket from './socket';
 
@@ -11,17 +12,24 @@ export const prepare = () => (dispatch, getState) => {
   if (config.termination.type === 'time') {
     config.termination.time *= 60;
   }
-  socket.sendCommand('prepare', {
+  debugger;
+  const options = {
     'termination': config.termination,
     'population': config.population,
     'prob_mutation': config.mutationRatio / 100,
     'prob_crossover': config.crossoverRatio / 100,
-    'repopulating': {
-      type: config.repopulatingConfig.type,
-      diff: config.repopulatingConfig.diff
-    },
     'sharing_best_after': config.shareBestCount
-  });
+  };
+
+  if (config.extinctionConfig.type !== EXTINCTION_CONFIG_TYPE.DISABLED) {
+    options['extinction'] = {
+      type: config.extinctionConfig.type,
+      diff: config.extinctionConfig.diff,
+      ratio: 0.9
+    }
+  }
+
+  socket.sendCommand('prepare', options);
 };
 
 export const run = () => (dispatch, getState) => {

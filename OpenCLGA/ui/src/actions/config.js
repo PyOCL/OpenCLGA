@@ -12,21 +12,21 @@ export const setMutationRatio = (value) => (setConfig('mutationRatio', value));
 export const setPopulation = (value) => (setConfig('population', value));
 export const setShareBestCount = (value) => (setConfig('shareBestCount', value));
 
-export const setRepopulatingConfig = (type, diff) => (dispatch, getState) => {
-  const { repopulatingConfig } = getState().config;
-  dispatch(setConfig('repopulatingConfig', {
-    type: type || repopulatingConfig.type,
+export const setExtinctionCnfig = (type, diff) => (dispatch, getState) => {
+  const { extinctionConfig } = getState().config;
+  dispatch(setConfig('extinctionConfig', {
+    type: type || extinctionConfig.type,
     // please note, we view 0 as an invalid value that will be reset to default.
-    diff: diff || repopulatingConfig.diff
+    diff: diff || extinctionConfig.diff
   }));
 };
 
-export const setRepopulatingConfigType = (type) => {
-  return setRepopulatingConfig(type);
+export const setExtinctionConfigType = (type) => {
+  return setExtinctionCnfig(type);
 };
 
-export const setRepopulatingConfigDiff = (diff) => {
-  return setRepopulatingConfig(null, diff);
+export const setExtinctionConfigDiff = (diff) => {
+  return setExtinctionCnfig(null, diff);
 };
 
 export const setTermination = (type, value) => (dispatch, getState) => {

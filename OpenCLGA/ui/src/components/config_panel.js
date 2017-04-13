@@ -9,7 +9,7 @@ import GenerationRow from './config/generation_row';
 import PopulationRow from './config/population_row';
 import CrossoverRow from './config/crossover_row';
 import MutationRow from './config/mutation_row';
-import RepopulatingRow from './config/repopulating_row';
+import ExtinctionRow from './config/extinction_row';
 import ShareResultRow from './config/share_result_row';
 
 class ConfigPanel extends Component {
@@ -46,10 +46,10 @@ class ConfigPanel extends Component {
         <hr/>
         <Row>
           <Col xs={12} sm={12} md={12}>
-            <RepopulatingRow disabled={!isWaiting}
-                             config={config.repopulatingConfig}
-                             onTypeChange={actions.setRepopulatingConfigType}
-                             onInputChange={actions.setRepopulatingConfigDiff} />
+            <ExtinctionRow disabled={!isWaiting}
+                           config={config.extinctionConfig}
+                           onTypeChange={actions.setExtinctionConfigType}
+                           onInputChange={actions.setExtinctionConfigDiff} />
           </Col>
           <Col xs={12} sm={12} md={12}>
             <ShareResultRow disabled={!isWaiting}

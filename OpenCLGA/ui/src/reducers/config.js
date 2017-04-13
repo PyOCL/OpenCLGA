@@ -1,4 +1,4 @@
-import { ACTION_KEYS, REPOPULATING_CONFIG_TYPE } from '../shared/config';
+import { ACTION_KEYS, EXTINCTION_CONFIG_TYPE } from '../shared/config';
 
 const initialState = {
   termination: {
@@ -8,8 +8,8 @@ const initialState = {
   population: 100,
   mutationRatio: 10,
   crossoverRatio: 80,
-  repopulatingConfig: {
-    type: REPOPULATING_CONFIG_TYPE.DEFAULT,
+  extinctionConfig: {
+    type: EXTINCTION_CONFIG_TYPE.DEFAULT,
     diff: 1
   },
   shareBestCount: 0
