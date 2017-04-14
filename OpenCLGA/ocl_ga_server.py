@@ -7,7 +7,6 @@ import socket
 import sys
 import time
 import traceback
-
 from .utils import get_local_IP
 from .utilities.generaltaskthread import Logger
 from .utilities.socketserverclient import Server, OP_MSG_BEGIN, OP_MSG_END
@@ -39,6 +38,11 @@ from .ocl_ga_wsserver import OclGAWSServer
 #                  connecter who is allowed to send commands from UI for
 #                  controlling the whole operation ; viewers are only allowed
 #                  to receive results.
+#  @var elitism_round How many times that server received elites.
+#  @var elitism_pick The number of elites what we need to keep and sort.
+#  @var elitism_limit If elitism_round hits the limit, it's time for server
+#                     to send elites back to ocl_ga
+#  @var bests The list to store elites
 class OpenCLGAServer(Logger):
     def __init__(self, options, port, base_path):
         Logger.__init__(self)
@@ -60,6 +64,9 @@ class OpenCLGAServer(Logger):
         self.socket_server_port = port
         self._start_socket_server()
 
+        self.elitism_round = 0
+        self.elitism_pick, self.elitism_limit = options.get('elitism_mode', (0, 0))
+        self.bests = []
         self.client_workers = {}
         self.websockets = {'controller' : {}, 'viewers' : []}
         self.httpws_server = None
@@ -244,6 +251,18 @@ class OpenCLGAServer(Logger):
                 self.__notify('message', {'best' : best_chromosome})
             elif dict_msg['type'] == 'save':
                 saved_filename = dict_msg['result']
+            elif dict_msg['type'] == 'generationResult':
+                worker_id = dict_msg['data']['worker']
+                best_result = dict_msg['data']['result'].pop('best_result', None)
+                best_fitness = dict_msg['data']['result'].get('best_fitness', 0.0)
+                self.bests.append((best_fitness, best_result, worker_id))
+                self.bests.sort(key=lambda item : item[0])
+                if len(self.bests) >= self.elitism_pick:
+                    self.bests = self.bests[:self.elitism_pick]
+                self.elitism_round += 1
+                if self.elitism_round >= self.elitism_limit:
+                    self.__update_elites(self.bests)
+                    self.elitism_round = 0
 
             self.__send_message_to_WSs(dict_msg)
         except:
@@ -326,6 +345,11 @@ class OpenCLGAServer(Logger):
     def __get_the_best(self):
         assert self.socket_server != None
         data = {'command' : 'best', 'data' : None}
+        self.socket_server.send(repr(data))
+
+    def __update_elites(self, elites):
+        assert self.socket_server != None
+        data = {'command' : 'elites', 'data' : elites}
         self.socket_server.send(repr(data))
 
     ## Shut down all servers and correpsonding clients when receives

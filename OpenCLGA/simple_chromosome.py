@@ -188,21 +188,37 @@ class SimpleChromosome:
                                        dev_chromosomes,
                                        dev_rnum).wait()
 
-    def execute_crossover(self, prg, queue, population, generation_idx, prob_crossover,
-                          dev_chromosomes, dev_fitnesses, dev_rnum):
-        prg.simple_chromosome_calc_ratio(queue,
-                                         (1,),
-                                         (1,),
-                                         dev_fitnesses,
-                                         self.__dev_ratios,
-                                         self.__dev_best,
-                                         self.__dev_worst,
-                                         self.__dev_avg).wait()
-
+    def selection_preparation(self, prg, queue, dev_fitnesses):
+        prg.shuffler_chromosome_calc_ratio(queue,
+                                           (1,),
+                                           (1,),
+                                           dev_fitnesses,
+                                           self.__dev_ratios,
+                                           self.__dev_best,
+                                           self.__dev_worst,
+                                           self.__dev_avg).wait()
         cl.enqueue_read_buffer(queue, self.__dev_best, self.__best)
         cl.enqueue_read_buffer(queue, self.__dev_avg, self.__avg)
         cl.enqueue_read_buffer(queue, self.__dev_worst, self.__worst).wait()
 
+    def execute_get_current_elites(self, prg, queue, dev_fitnesses,
+                                   dev_chromosomes, dev_current_elites):
+        prg.get_the_elites(queue, (1,), (1,),
+                           dev_fitnesses,
+                           self.__dev_best,
+                           dev_chromosomes,
+                           dev_current_elites).wait()
+
+    def execute_update_current_elites(self, prg, queue, dev_fitnesses,
+                                      dev_chromosomes, dev_updated_elites):
+        prg.update_the_elites(queue, (1,), (1,),
+                              dev_fitnesses,
+                              self.__dev_worst,
+                              dev_chromosomes,
+                              dev_updated_elites).wait()
+
+    def execute_crossover(self, prg, queue, population, generation_idx, prob_crossover,
+                          dev_chromosomes, dev_fitnesses, dev_rnum):
         if self.early_terminated:
             return
 

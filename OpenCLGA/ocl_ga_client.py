@@ -110,15 +110,17 @@ class OpenCLGAWorker(Process, Logger):
 
     ## Create opencl context according to specific information.
     def __send_and_dump_info(self, index, data):
+        assert self.ocl_ga != None
         self.verbose('{0}\t\t==> {1} ~ {2} ~ {3}'.format(index, data['best'], data['avg'],
                                                                 data['worst']))
-        # TODO : Return best result
+        best_chromosome = self.ocl_ga.get_current_best_chromosome()
+        best_result = pickle.dumps(best_chromosome)
         self.__send({'type' : 'generationResult',
                      'data' : { 'worker' :   self.uuid,
                                 'result' : { 'best_fitness' : data['best'],
                                              'avg_fitness'  : data['avg'],
                                              'worst_fitness': data['worst'],
-                                             'best_result': [{}, {}, {}]}}})
+                                             'best_result': best_result }}})
 
     ## The callback funciton for OpenCLGA to notify state change.
     def _state_changed(self, state):
@@ -181,6 +183,8 @@ class OpenCLGAWorker(Process, Logger):
                 self.info('Worker [{}]: oclGA run with {}/{}'.format(self.device.name,
                                                                             prob_mutate, prob_cross))
                 self.ocl_ga.run(prob_mutate, prob_cross)
+            elif cmd == 'elites':
+                self.ocl_ga.update_elites(payload)
             elif cmd == 'exit':
                 self.exit_evt.set()
             else:

@@ -149,6 +149,14 @@ class OpenCLGA():
     #                                                     'avg':   avg_fitness },
     #                                            'avg_time_per_gen': avg. elapsed time per generation }
     #  @var thread The thread runs the actual algorithm.
+    #  @var __is_elitism_mode Off = 0, On = 1. If On, spare chromosomes memory will
+    #                      be prepared to hold the best chromosomes of all clients.
+    #                      Then put these best of bests into next-gen population.
+    # @var __elitism_pick The number of elites to be picked in each generation.
+    # @var __elitism_limit The number of rounds for server to notify all clients
+    #                      that newly sorted elites are coming
+    # @var __elites_updated Indicating that newly sorted elites are received.
+    #                       These elites are going to be updated into dev memory.
     def __init_members(self, options):
         self.thread = TaskThread(name='GARun')
         self.thread.daemon = True
@@ -162,6 +170,9 @@ class OpenCLGA():
         self.__fitness_function = options['fitness_func']
         self.__fitness_kernel_str = options['fitness_kernel_str']
         self.__fitness_args = options.get('fitness_args', None)
+        self.__elitism_pick, self.__elitism_limit = options.get('elitism_mode', (0, 0))
+        self.__is_elitism_mode = self.__elitism_pick != 0
+        self.__elites_updated = False
 
         self.__saved_filename = options.get('saved_filename', None)
         self.__prob_mutation = options.get('prob_mutation', 0)
@@ -290,6 +301,17 @@ class OpenCLGA():
         self.__dev_fitnesses = cl.Buffer(self.__ctx, mf.WRITE_ONLY, self.__fitnesses.nbytes)
         self.__prepare_fitness_args()
 
+        if self.__is_elitism_mode:
+            self.__elites_updated = False
+            self.__current_elites = numpy.zeros(self.__sample_chromosome.dna_total_length,
+                                                dtype=numpy.int32)
+            self.__dev_current_elites = cl.Buffer(self.__ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
+                                                  hostbuf=self.__current_elites)
+            self.__udpated_elites = numpy.zeros(self.__sample_chromosome.dna_total_length,
+                                                dtype=numpy.int32)
+            self.__dev_updated_elites = cl.Buffer(self.__ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
+                                                  hostbuf=self.__udpated_elites)
+
         cl.enqueue_copy(self.__queue, self.__dev_fitnesses, self.__fitnesses)
 
         ## call preexecute_kernels for internal data structure preparation
@@ -338,8 +360,16 @@ class OpenCLGA():
                                                   self.__dev_rnum)
 
     def __execute_single_generation(self, index, prob_mutate, prob_crossover):
-
         self.__examine_single_generation(index)
+
+        if self.__is_elitism_mode and self.__elites_updated:
+            self.__sample_chromosome.execute_update_current_elites(self.__prg,
+                                                                   self.__queue,
+                                                                   self.__dev_fitnesses,
+                                                                   self.__dev_chromosomes,
+                                                                   self.__dev_updated_elites)
+            self.__elites_updated = False
+            pass
 
         self.__sample_chromosome.execute_crossover(self.__prg,
                                                    self.__queue,
@@ -363,6 +393,18 @@ class OpenCLGA():
                                             (self.__population,),
                                             (1,),
                                             *self.__fitness_args_list).wait()
+
+        self.__sample_chromosome.selection_preparation(self.__prg,
+                                                       self.__queue,
+                                                       self.__dev_fitnesses)
+        if self.__is_elitism_mode:
+            self.__sample_chromosome.execute_get_current_elites(self.__prg,
+                                                                self.__queue,
+                                                                self.__dev_fitnesses,
+                                                                self.__dev_chromosomes,
+                                                                self.__dev_current_elites)
+            cl.enqueue_copy(self.__queue, self.__current_elites, self.__dev_current_elites)
+
         self.__dictStatistics[index] = {}
         self.__dictStatistics[index]['best'] = self.__sample_chromosome.get_current_best()
         self.__dictStatistics[index]['worst'] = self.__sample_chromosome.get_current_worst()
@@ -537,6 +579,9 @@ class OpenCLGA():
     def get_statistics(self):
         return self.__dictStatistics
 
+    def get_current_best_chromosome(self):
+        return self.__current_elites
+
     def get_the_best(self):
         assert self.__opt_for_max in ['max', 'min']
 
@@ -549,3 +594,13 @@ class OpenCLGA():
         endGeneId = (best_index + 1) * (self.__sample_chromosome.num_of_genes)
         best = [v for v in self.__np_chromosomes[startGeneId:endGeneId]]
         return best, best_fitness, self.__sample_chromosome.from_kernel_value(best)
+
+    def update_elites(self, elites):
+        for elite_info in elites:
+            fitness, serialized_elite, worker_id = elite_info
+            print('updating {} elites ... fitness = {} '.format(len(elites), fitness))
+            elite = pickle.loads(serialized_elite)
+            self.__udpated_elites = numpy.asarray(elite, dtype=numpy.int32)
+            cl.enqueue_copy(self.__queue, self.__dev_updated_elites, self.__udpated_elites)
+            break
+        self.__elites_updated = True

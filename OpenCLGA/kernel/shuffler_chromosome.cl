@@ -192,6 +192,70 @@ __kernel void shuffler_chromosome_calc_ratio(global float* fitness,
 }
 
 /**
+ * get_the_elites get the elites which meet the best_fitness
+ * Note: this is a kernel function and will be called by python.
+ * @param *fitness (global) all fitness of chromosomes
+ * @param *best_fitness (global) the best fitness value.
+ * @param *cs (global) all chromosomes.
+ * @param *elites (global) elite chromosomes.
+ */
+__kernel void get_the_elites(global float* fitness,
+                             global float* best_fitness,
+                             global int* cs,
+                             global int* elites)
+{
+  int idx = get_global_id(0);
+  // we use the first kernel to get the best chromosome for now.
+  if (idx > 0) {
+    return;
+  }
+  int i;
+  int j;
+  global __ShufflerChromosome* chromosomes = (global __ShufflerChromosome*) cs;
+  global __ShufflerChromosome* best_chromosome = (global __ShufflerChromosome*) elites;
+  for (i = 0 ; i < POPULATION_SIZE; i++) {
+    if (fitness[i] == *best_fitness) {
+      for (j = 0; j < SHUFFLER_CHROMOSOME_GENE_SIZE; j++) {
+        best_chromosome[0].genes[j] = chromosomes[i].genes[j];
+      }
+      break;
+    }
+  }
+}
+
+/**
+ * update_the_elites update sorted elites into chromosomes
+ * Note: this is a kernel function and will be called by python.
+ * @param *fitness (global) all fitness of chromosomes
+ * @param *worst_fitness (global) the worst fitness value.
+ * @param *cs (global) all chromosomes.
+ * @param *elites (global) elite chromosomes.
+ */
+__kernel void update_the_elites(global float* fitness,
+                                global float* worst_fitness,
+                                global int* cs,
+                                global int* elites)
+{
+  int idx = get_global_id(0);
+  // we use the first kernel to get the best chromosome for now.
+  if (idx > 0) {
+    return;
+  }
+  int i;
+  int j;
+  global __ShufflerChromosome* chromosomes = (global __ShufflerChromosome*) cs;
+  global __ShufflerChromosome* best_chromosome = (global __ShufflerChromosome*) elites;
+  for (i = 0 ; i < POPULATION_SIZE; i++) {
+    if (fitness[i] == *worst_fitness) {
+      for (j = 0; j < SHUFFLER_CHROMOSOME_GENE_SIZE; j++) {
+        chromosomes[i].genes[j] = best_chromosome[0].genes[j];
+      }
+      break;
+    }
+  }
+}
+
+/**
  * shuffler_chromosome_pick_chromosomes picks a chromosome randomly based on the
  * ratio of each chromosome and copy all genes to p_other for crossover. The
  * reason copy to p_other is that OpenCLGA runs crossover at multi-thread mode.
