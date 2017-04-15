@@ -16,9 +16,6 @@ class SimpleChromosome:
         self.__genes = genes
         self.__name = name
         self.__improving_func = None
-        self.__best = numpy.zeros(1, dtype=numpy.float32)
-        self.__worst = numpy.zeros(1, dtype=numpy.float32)
-        self.__avg = numpy.zeros(1, dtype=numpy.float32)
 
     @property
     def num_of_genes(self):
@@ -68,11 +65,10 @@ class SimpleChromosome:
     def chromosome_size_define(self):
         return 'SIMPLE_CHROMOSOME_GENE_SIZE'
 
-    @property
-    def early_terminated(self):
+    def early_terminated(self, best , worst):
         # If the difference between the best and the worst is negligible,
         # terminate the program to save time.
-        return abs(self.__worst[0] - self.__best[0]) < 0.0001
+        return abs(worst - best) < 0.0001
 
     def from_kernel_value(self, data):
         # Construct a SimpleChromosome object on system memory according to
@@ -106,39 +102,21 @@ class SimpleChromosome:
         ratios = numpy.zeros(population, dtype=numpy.float32)
         # read data from cl
         cl.enqueue_read_buffer(queue, self.__dev_ratios, ratios)
-        cl.enqueue_read_buffer(queue, self.__dev_best, self.__best)
-        cl.enqueue_read_buffer(queue, self.__dev_worst, self.__worst)
-        cl.enqueue_read_buffer(queue, self.__dev_avg, self.__avg)
         cl.enqueue_read_buffer(queue, self.__dev_other_chromosomes, other_chromosomes).wait()
         # save all of them
-        data['best'] = self.__best
-        data['worst'] = self.__worst
-        data['avg'] = self.__avg
         data['other_chromosomes'] = other_chromosomes
         data['ratios'] = ratios
 
     def restore(self, data, ctx, queue, population):
-        self.__best = data['best']
-        self.__worst = data['worst']
-        self.__avg = data['avg']
         other_chromosomes = data['other_chromosomes']
         ratios = data['ratios']
         # prepare CL memory
         mf = cl.mem_flags
         self.__dev_ratios = cl.Buffer(ctx, mf.WRITE_ONLY, ratios.nbytes)
-        self.__dev_best = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
-                                    hostbuf=self.__best)
-        self.__dev_worst = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
-                                     hostbuf=self.__worst)
-        self.__dev_avg = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
-                                   hostbuf=self.__avg)
         self.__dev_other_chromosomes = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
                                                  hostbuf=other_chromosomes)
         # Copy data from main memory to GPU memory
         cl.enqueue_copy(queue, self.__dev_ratios, ratios)
-        cl.enqueue_copy(queue, self.__dev_best, self.__best)
-        cl.enqueue_copy(queue, self.__dev_worst, self.__worst)
-        cl.enqueue_copy(queue, self.__dev_avg, self.__avg)
         cl.enqueue_copy(queue, self.__dev_other_chromosomes, other_chromosomes)
 
     def preexecute_kernels(self, ctx, queue, population):
@@ -152,23 +130,8 @@ class SimpleChromosome:
 
         # prepare device memory for usage.
         self.__dev_ratios = cl.Buffer(ctx, mf.WRITE_ONLY, ratios.nbytes)
-        self.__dev_best = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
-                                    hostbuf=self.__best)
-        self.__dev_worst = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
-                                     hostbuf=self.__worst)
-        self.__dev_avg = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
-                                   hostbuf=self.__avg)
         self.__dev_other_chromosomes = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
                                                  hostbuf=other_chromosomes)
-
-    def get_current_best(self):
-        return self.__best[0]
-
-    def get_current_worst(self):
-        return self.__worst[0]
-
-    def get_current_avg(self):
-        return self.__avg[0]
 
     def get_populate_kernel_names(self):
         return ['simple_chromosome_populate']
@@ -188,40 +151,38 @@ class SimpleChromosome:
                                        dev_chromosomes,
                                        dev_rnum).wait()
 
-    def selection_preparation(self, prg, queue, dev_fitnesses):
-        prg.shuffler_chromosome_calc_ratio(queue,
-                                           (1,),
-                                           (1,),
-                                           dev_fitnesses,
-                                           self.__dev_ratios,
-                                           self.__dev_best,
-                                           self.__dev_worst,
-                                           self.__dev_avg).wait()
-        cl.enqueue_read_buffer(queue, self.__dev_best, self.__best)
-        cl.enqueue_read_buffer(queue, self.__dev_avg, self.__avg)
-        cl.enqueue_read_buffer(queue, self.__dev_worst, self.__worst).wait()
+    def selection_preparation(self, prg, queue, dev_fitnesses,
+                              dev_best, dev_worst, dev_avg):
+        prg.simple_chromosome_calc_ratio(queue,
+                                         (1,),
+                                         (1,),
+                                         dev_fitnesses,
+                                         self.__dev_ratios,
+                                         dev_best,
+                                         dev_worst,
+                                         dev_avg).wait()
 
     def execute_get_current_elites(self, prg, queue, dev_fitnesses,
-                                   dev_chromosomes, dev_current_elites):
+                                   dev_chromosomes, dev_current_elites,
+                                   dev_best):
         prg.get_the_elites(queue, (1,), (1,),
                            dev_fitnesses,
-                           self.__dev_best,
+                           dev_best,
                            dev_chromosomes,
                            dev_current_elites).wait()
 
     def execute_update_current_elites(self, prg, queue, dev_fitnesses,
-                                      dev_chromosomes, dev_updated_elites):
+                                      dev_chromosomes, dev_updated_elites,
+                                      dev_worst):
         prg.update_the_elites(queue, (1,), (1,),
                               dev_fitnesses,
-                              self.__dev_worst,
+                              dev_worst,
                               dev_chromosomes,
                               dev_updated_elites).wait()
 
     def execute_crossover(self, prg, queue, population, generation_idx, prob_crossover,
-                          dev_chromosomes, dev_fitnesses, dev_rnum):
-        if self.early_terminated:
-            return
-
+                          dev_chromosomes, dev_fitnesses, dev_rnum,
+                          dev_best, dev_worst, dev_avg):
         prg.simple_chromosome_pick_chromosomes(queue,
                                                (population,),
                                                (1,),
@@ -236,7 +197,7 @@ class SimpleChromosome:
                                              dev_chromosomes,
                                              dev_fitnesses,
                                              self.__dev_other_chromosomes,
-                                             self.__dev_best,
+                                             dev_best,
                                              dev_rnum,
                                              numpy.float32(prob_crossover)).wait()
 

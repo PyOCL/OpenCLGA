@@ -42,7 +42,7 @@ from .ocl_ga_wsserver import OclGAWSServer
 #  @var elitism_pick The number of elites what we need to keep and sort.
 #  @var elitism_limit If elitism_round hits the limit, it's time for server
 #                     to send elites back to ocl_ga
-#  @var bests The list to store elites
+#  @var elites The list to store elites
 class OpenCLGAServer(Logger):
     def __init__(self, options, port, base_path):
         Logger.__init__(self)
@@ -64,9 +64,12 @@ class OpenCLGAServer(Logger):
         self.socket_server_port = port
         self._start_socket_server()
 
+        elitism_info = options.get('elitism_mode', {})
         self.elitism_round = 0
-        self.elitism_pick, self.elitism_limit = options.get('elitism_mode', (0, 0))
-        self.bests = []
+        self.elitism_top = elitism_info.get('top', 0)
+        self.elitism_every = elitism_info.get('every', 0)
+        self.elites = []
+
         self.client_workers = {}
         self.websockets = {'controller' : {}, 'viewers' : []}
         self.httpws_server = None
@@ -255,13 +258,13 @@ class OpenCLGAServer(Logger):
                 worker_id = dict_msg['data']['worker']
                 best_result = dict_msg['data']['result'].pop('best_result', None)
                 best_fitness = dict_msg['data']['result'].get('best_fitness', 0.0)
-                self.bests.append((best_fitness, best_result, worker_id))
-                self.bests.sort(key=lambda item : item[0])
-                if len(self.bests) >= self.elitism_pick:
-                    self.bests = self.bests[:self.elitism_pick]
+                self.elites.append((best_fitness, best_result, worker_id))
+                self.elites.sort(key=lambda item : item[0])
+                if len(self.elites) >= self.elitism_top:
+                    self.elites = self.elites[:self.elitism_top]
                 self.elitism_round += 1
-                if self.elitism_round >= self.elitism_limit:
-                    self.__update_elites(self.bests)
+                if self.elitism_round >= self.elitism_every:
+                    self.__update_elites(self.elites)
                     self.elitism_round = 0
 
             self.__send_message_to_WSs(dict_msg)
