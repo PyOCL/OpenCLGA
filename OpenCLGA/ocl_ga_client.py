@@ -113,8 +113,8 @@ class OpenCLGAWorker(Process, Logger):
         assert self.ocl_ga != None
         self.verbose('{0}\t\t==> {1} ~ {2} ~ {3}'.format(index, data['best'], data['avg'],
                                                                 data['worst']))
-        best_chromosome = self.ocl_ga.get_current_best_chromosome()
-        best_result = pickle.dumps(best_chromosome)
+        elites_info = self.ocl_ga.get_current_elites_info()
+        best_result = pickle.dumps(elites_info)
         self.__send({'type' : 'generationResult',
                      'data' : { 'worker' :   self.uuid,
                                 'result' : { 'best_fitness' : data['best'],
@@ -184,7 +184,7 @@ class OpenCLGAWorker(Process, Logger):
                                                                             prob_mutate, prob_cross))
                 self.ocl_ga.run(prob_mutate, prob_cross)
             elif cmd == 'elites':
-                self.ocl_ga.update_elites(payload)
+                self.ocl_ga.update_elites(pickle.loads(payload))
             elif cmd == 'exit':
                 self.exit_evt.set()
             else:

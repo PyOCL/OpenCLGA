@@ -68,6 +68,7 @@ class OpenCLGAServer(Logger):
         self.elitism_round = 0
         self.elitism_top = elitism_info.get('top', 0)
         self.elitism_every = elitism_info.get('every', 0)
+        self.is_elitism_mode = all([self.elitism_top, self.elitism_every])
         self.elites = []
 
         self.client_workers = {}
@@ -256,16 +257,26 @@ class OpenCLGAServer(Logger):
                 saved_filename = dict_msg['result']
             elif dict_msg['type'] == 'generationResult':
                 worker_id = dict_msg['data']['worker']
-                best_result = dict_msg['data']['result'].pop('best_result', None)
+                serialized_best_result = dict_msg['data']['result'].pop('best_result', None)
                 best_fitness = dict_msg['data']['result'].get('best_fitness', 0.0)
-                self.elites.append((best_fitness, best_result, worker_id))
-                self.elites.sort(key=lambda item : item[0])
-                if len(self.elites) >= self.elitism_top:
-                    self.elites = self.elites[:self.elitism_top]
-                self.elitism_round += 1
-                if self.elitism_round >= self.elitism_every:
-                    self.__update_elites(self.elites)
-                    self.elitism_round = 0
+
+                if self.is_elitism_mode:
+                    best_result = pickle.loads(serialized_best_result)
+                    elites = best_result['elites']
+                    elite_fitnesses = best_result['fitnesses']
+                    elite_size = best_result['dna_size']
+                    assert len(elite_fitnesses) == self.elitism_top
+                    assert len(elites) == elite_size * self.elitism_top
+
+                    for idx, fitness in enumerate(elite_fitnesses):
+                        self.elites.append((fitness, elites[idx*elite_size:(idx+1)*elite_size], worker_id))
+                    self.elites.sort(key=lambda item : item[0])
+                    if len(self.elites) >= self.elitism_top:
+                        self.elites = self.elites[:self.elitism_top]
+                    self.elitism_round += 1
+                    if self.elitism_round >= self.elitism_every:
+                        self.__update_elites(pickle.dumps(self.elites))
+                        self.elitism_round = 0
 
             self.__send_message_to_WSs(dict_msg)
         except:

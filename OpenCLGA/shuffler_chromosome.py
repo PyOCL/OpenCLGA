@@ -159,23 +159,23 @@ class ShufflerChromosome:
                                            dev_worst,
                                            dev_avg).wait()
 
-    def execute_get_current_elites(self, prg, queue, dev_fitnesses,
+    def execute_get_current_elites(self, prg, queue, top,
                                    dev_chromosomes, dev_current_elites,
-                                   dev_best):
+                                   dev_best_indices):
         prg.get_the_elites(queue, (1,), (1,),
-                           dev_fitnesses,
-                           dev_best,
+                           dev_best_indices,
                            dev_chromosomes,
-                           dev_current_elites).wait()
+                           dev_current_elites,
+                           numpy.int32(top)).wait()
 
-    def execute_update_current_elites(self, prg, queue, dev_fitnesses,
+    def execute_update_current_elites(self, prg, queue, top,
                                       dev_chromosomes, dev_updated_elites,
                                       dev_worst):
         prg.update_the_elites(queue, (1,), (1,),
-                              dev_fitnesses,
                               dev_worst,
                               dev_chromosomes,
-                              dev_updated_elites).wait()
+                              dev_updated_elites,
+                              numpy.int32(top)).wait()
 
     def execute_crossover(self, prg, queue, population, generation_idx, prob_crossover,
                           dev_chromosomes, dev_fitnesses, dev_rnum,
