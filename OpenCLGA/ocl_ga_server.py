@@ -70,6 +70,7 @@ class OpenCLGAServer(Logger):
         self.elitism_every = elitism_info.get('every', 0)
         self.is_elitism_mode = all([self.elitism_top, self.elitism_every])
         self.elites = []
+        self.optimized_for_max = options.get('opt_for_max', 'max') == 'max'
 
         self.client_workers = {}
         self.websockets = {'controller' : {}, 'viewers' : []}
@@ -147,6 +148,7 @@ class OpenCLGAServer(Logger):
             if not payload:
                 self.warning('Getting nothing in payload from UI to prepare. Use default configuration.')
             self.__options.update(payload)
+            self.optimized_for_max = self.__options.get('opt_for_max', 'max') == 'max'
             self.verbose('prepare with args: {}'.format(self.__options))
             packed = pickle.dumps(self.__options)
             self.__prepare(packed)
@@ -256,10 +258,9 @@ class OpenCLGAServer(Logger):
             elif dict_msg['type'] == 'save':
                 saved_filename = dict_msg['result']
             elif dict_msg['type'] == 'generationResult':
-                worker_id = dict_msg['data']['worker']
                 serialized_best_result = dict_msg['data']['result'].pop('best_result', None)
+                worker_id = dict_msg['data']['worker']
                 best_fitness = dict_msg['data']['result'].get('best_fitness', 0.0)
-
                 if self.is_elitism_mode:
                     best_result = pickle.loads(serialized_best_result)
                     elites = best_result['elites']
@@ -268,13 +269,16 @@ class OpenCLGAServer(Logger):
                     assert len(elite_fitnesses) == self.elitism_top
                     assert len(elites) == elite_size * self.elitism_top
 
+                    # append each elite from single worker to a single list.
                     for idx, fitness in enumerate(elite_fitnesses):
                         self.elites.append((fitness, elites[idx*elite_size:(idx+1)*elite_size], worker_id))
-                    self.elites.sort(key=lambda item : item[0])
-                    if len(self.elites) >= self.elitism_top:
-                        self.elites = self.elites[:self.elitism_top]
+
                     self.elitism_round += 1
                     if self.elitism_round >= self.elitism_every:
+                        # sort the list, the fronter the better.
+                        self.elites.sort(key=lambda item : item[0], reverse=self.optimized_for_max)
+                        if len(self.elites) >= self.elitism_top:
+                            self.elites = self.elites[:self.elitism_top]
                         self.__update_elites(pickle.dumps(self.elites))
                         self.elitism_round = 0
 

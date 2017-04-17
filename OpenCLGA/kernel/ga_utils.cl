@@ -150,48 +150,41 @@ void calc_min_max_fitness(global float* fitnesses, int num_of_chromosomes,
  * of OpenCLGA.
  * @param *fitness (global) the fitness value array of all chromosomes
  * @param *ratio (global, out) the probability array of each chromosomes
- * @param *best (global, out) the best fitness value
- * @param *worst (global, out) the worse fitness value
- * @param *avg (global, out) the average fitness value
  * @param num_of_chromosomes the number of chromosomes.
  */
 void utils_calc_ratio(global float* fitness,
                       global float* ratio,
-                      global float* best,
-                      global float* worst,
-                      global float* avg,
                       int num_of_chromosomes)
 {
   float local_min = INT_MAX;
   float local_max = 0;
   // OPTIMIZATION_FOR_MAX is set at ocl_ga.py
+  float best;
+  float worst;
 #if OPTIMIZATION_FOR_MAX
   calc_min_max_fitness(fitness, num_of_chromosomes, &local_max, &local_min);
-  *best = local_max;
-  *worst = local_min;
+  best = local_max;
+  worst = local_min;
 #else
   calc_min_max_fitness(fitness, num_of_chromosomes, &local_min, &local_max);
-  *best = local_min;
-  *worst = local_max;
+  best = local_min;
+  worst = local_max;
 #endif
 
-  float temp_worst = *worst;
+  float temp_worst = worst;
   float diffTotal = 0;
-  float avg_local = 0;
   int i;
   // we use total and diff to calculate the probability for each chromosome
   for (i = 0; i < num_of_chromosomes; i++) {
     // to have a significant different between better and worst, we use square
     // of diff to calculate the probability.
     diffTotal += (temp_worst - fitness[i]) * (temp_worst - fitness[i]);
-    avg_local += fitness[i] / num_of_chromosomes;
   }
   // calculate probability for each one
   for (i = 0; i < num_of_chromosomes; i++) {
     ratio[i] = (temp_worst - fitness[i]) * (temp_worst - fitness[i]) /
                diffTotal;
   }
-  *avg = avg_local;
 }
 
 #endif

@@ -148,16 +148,12 @@ class ShufflerChromosome:
                                          dev_chromosomes,
                                          dev_rnum).wait()
 
-    def selection_preparation(self, prg, queue, dev_fitnesses,
-                              dev_best, dev_worst, dev_avg):
+    def selection_preparation(self, prg, queue, dev_fitnesses):
         prg.shuffler_chromosome_calc_ratio(queue,
                                            (1,),
                                            (1,),
                                            dev_fitnesses,
-                                           self.__dev_ratios,
-                                           dev_best,
-                                           dev_worst,
-                                           dev_avg).wait()
+                                           self.__dev_ratios).wait()
 
     def execute_get_current_elites(self, prg, queue, top,
                                    dev_chromosomes, dev_current_elites,
@@ -178,8 +174,7 @@ class ShufflerChromosome:
                               numpy.int32(top)).wait()
 
     def execute_crossover(self, prg, queue, population, generation_idx, prob_crossover,
-                          dev_chromosomes, dev_fitnesses, dev_rnum,
-                          dev_best, dev_worst, dev_avg):
+                          dev_chromosomes, dev_fitnesses, dev_rnum, best_fitness):
         prg.shuffler_chromosome_pick_chromosomes(queue,
                                                  (population,),
                                                  (1,),
@@ -187,8 +182,6 @@ class ShufflerChromosome:
                                                  dev_fitnesses,
                                                  self.__dev_other_chromosomes,
                                                  self.__dev_ratios,
-                                                 dev_best,
-                                                 dev_worst,
                                                  dev_rnum).wait()
         prg.shuffler_chromosome_do_crossover(queue,
                                              (population,),
@@ -197,10 +190,8 @@ class ShufflerChromosome:
                                              dev_fitnesses,
                                              self.__dev_other_chromosomes,
                                              self.__dev_cross_map,
-                                             dev_best,
-                                             dev_worst,
-                                             dev_avg,
                                              dev_rnum,
+                                             numpy.float32(best_fitness),
                                              numpy.float32(prob_crossover)).wait()
 
 

@@ -110,8 +110,8 @@ class OpenCLGA():
     ## private properties
     @property
     def __early_terminated(self):
-        return self.__sample_chromosome.early_terminated(self.__best[0],
-                                                         self.__worst[0])
+        return self.__sample_chromosome.early_terminated(self.__best_fitnesses[0],
+                                                         self.__worst_fitnesses[0])
 
     @property
     def __args_codes(self):
@@ -183,14 +183,12 @@ class OpenCLGA():
         self.__is_elitism_mode = all([self.__elitism_top, self.__elitism_every])
         self.__elites_updated = False
 
-        self.__best = numpy.zeros(1, dtype=numpy.float32)
-        self.__worst = numpy.zeros(1, dtype=numpy.float32)
-        if self.__is_elitism_mode:
-            self.__best_fitnesses = numpy.zeros(self.__elitism_top, dtype=numpy.float32)
-            self.__worst_fitnesses = numpy.zeros(self.__elitism_top, dtype=numpy.float32)
-            self.__best_indices = numpy.zeros(self.__elitism_top, dtype=numpy.int32)
-            self.__worst_indices = numpy.zeros(self.__elitism_top, dtype=numpy.int32)
-        self.__avg = numpy.zeros(1, dtype=numpy.float32)
+        size_of_indices = self.__elitism_top if self.__is_elitism_mode else 1
+        self.__best_fitnesses = numpy.zeros(size_of_indices, dtype=numpy.float32)
+        self.__worst_fitnesses = numpy.zeros(size_of_indices, dtype=numpy.float32)
+        self.__best_indices = numpy.zeros(size_of_indices, dtype=numpy.int32)
+        self.__worst_indices = numpy.zeros(size_of_indices, dtype=numpy.int32)
+        self.__avg = 0
 
         self.__saved_filename = options.get('saved_filename', None)
         self.__prob_mutation = options.get('prob_mutation', 0)
@@ -330,18 +328,12 @@ class OpenCLGA():
                                                 dtype=numpy.int32)
             self.__dev_updated_elites = cl.Buffer(self.__ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
                                                   hostbuf=self.__udpated_elites)
-            self.__dev_best_indices = cl.Buffer(self.__ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
-                                                hostbuf=self.__best_indices)
-            self.__dev_worst_indices = cl.Buffer(self.__ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
-                                                 hostbuf=self.__worst_indices)
 
         # For statistics
-        self.__dev_best = cl.Buffer(self.__ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
-                                    hostbuf=self.__best)
-        self.__dev_worst = cl.Buffer(self.__ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
-                                     hostbuf=self.__worst)
-        self.__dev_avg = cl.Buffer(self.__ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
-                                   hostbuf=self.__avg)
+        self.__dev_best_indices = cl.Buffer(self.__ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
+                                            hostbuf=self.__best_indices)
+        self.__dev_worst_indices = cl.Buffer(self.__ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
+                                             hostbuf=self.__worst_indices)
 
         cl.enqueue_copy(self.__queue, self.__dev_fitnesses, self.__fitnesses)
 
@@ -394,6 +386,7 @@ class OpenCLGA():
         self.__examine_single_generation(index)
 
         if self.__is_elitism_mode and self.__elites_updated:
+            # Update current N elites to device memory.
             self.__sample_chromosome.execute_update_current_elites(self.__prg,
                                                                    self.__queue,
                                                                    self.__elitism_top,
@@ -403,7 +396,7 @@ class OpenCLGA():
             self.__elites_updated = False
 
         # We want to prevent the best one being changed.
-        if abs(self.__best[0] - self.__worst[0]) >= 0.00001:
+        if abs(self.__best_fitnesses[0] - self.__worst_fitnesses[0]) >= 0.00001:
             self.__sample_chromosome.execute_crossover(self.__prg,
                                                        self.__queue,
                                                        self.__population,
@@ -412,9 +405,7 @@ class OpenCLGA():
                                                        self.__dev_chromosomes,
                                                        self.__dev_fitnesses,
                                                        self.__dev_rnum,
-                                                       self.__dev_best,
-                                                       self.__dev_worst,
-                                                       self.__dev_avg)
+                                                       self.__best_fitnesses[0])
 
         self.__sample_chromosome.execute_mutation(self.__prg,
                                                   self.__queue,
@@ -433,14 +424,16 @@ class OpenCLGA():
 
         self.__sample_chromosome.selection_preparation(self.__prg,
                                                        self.__queue,
-                                                       self.__dev_fitnesses,
-                                                       self.__dev_best,
-                                                       self.__dev_worst,
-                                                       self.__dev_avg)
+                                                       self.__dev_fitnesses)
+        # We calculate best / worst / avg fitness in system memory for
+        # better efficiency & code simplicity.
         cl.enqueue_copy(self.__queue, self.__fitnesses, self.__dev_fitnesses)
+
         self.__update_fitness_index_pair()
 
         if self.__is_elitism_mode:
+            # Find current N elites and their corresponding indices, then read
+            # it back from device memory to system memory.
             self.__sample_chromosome.execute_get_current_elites(self.__prg,
                                                                 self.__queue,
                                                                 self.__elitism_top,
@@ -450,24 +443,31 @@ class OpenCLGA():
             cl.enqueue_copy(self.__queue, self.__current_elites, self.__dev_current_elites)
 
         self.__dictStatistics[index] = {}
-        self.__dictStatistics[index]['best'] = self.__best[0]
-        self.__dictStatistics[index]['worst'] = self.__worst[0]
-        self.__dictStatistics[index]['avg'] = self.__avg[0]
+        self.__dictStatistics[index]['best'] = self.__best_fitnesses[0]
+        self.__dictStatistics[index]['worst'] = self.__worst_fitnesses[0]
+        self.__dictStatistics[index]['avg'] = self.__avg
         if self.__generation_callback is not None:
             self.__generation_callback(index, self.__dictStatistics[index])
 
+    ## This is called at the end of each generation.
+    #  It helps to update current top N & bottom N fitnesses and indices of
+    #  all chromosomes and then calculate the avg fitness.
     def __update_fitness_index_pair(self):
         ori = []
         fitness_sum = 0.0
         for idx, fitness in enumerate(self.__fitnesses):
             ori.append((idx, fitness))
             fitness_sum += fitness
-        self.__avg = numpy.asarray([fitness_sum / len(self.__fitnesses)], dtype=numpy.float32)
+        self.__avg = fitness_sum / len(self.__fitnesses)
 
-        ori.sort(key=lambda item : item[1])
-        tops = ori[:self.__elitism_top]
-        bottoms = ori[len(ori)-self.__elitism_top:]
-        for idx in range(self.__elitism_top):
+        assert len(self.__best_indices) == len(self.__best_fitnesses)
+        assert len(self.__worst_indices) == len(self.__worst_fitnesses)
+        size_of_indices = len(self.__best_indices)
+
+        ori.sort(key=lambda item : item[1], reverse=self.__opt_for_max=='max')
+        tops = ori[:size_of_indices]
+        bottoms = ori[len(ori)-size_of_indices:]
+        for idx in range(size_of_indices):
             self.__best_indices[idx] = tops[idx][0]
             self.__best_fitnesses[idx] = tops[idx][1]
             self.__worst_indices[idx] = bottoms[idx][0]
@@ -538,9 +538,6 @@ class OpenCLGA():
 
         # read data from kernel
         rnum = numpy.zeros(self.__population, dtype=numpy.uint32)
-        cl.enqueue_copy(self.__queue, self.__best, self.__dev_best)
-        cl.enqueue_copy(self.__queue, self.__worst, self.__dev_worst)
-        cl.enqueue_copy(self.__queue, self.__avg, self.__dev_avg)
         cl.enqueue_copy(self.__queue, rnum, self.__dev_rnum)
         cl.enqueue_copy(self.__queue, self.__fitnesses, self.__dev_fitnesses)
         cl.enqueue_copy(self.__queue, self.__np_chromosomes, self.__dev_chromosomes)
@@ -549,8 +546,8 @@ class OpenCLGA():
         data['rnum'] = rnum
         data['fitnesses'] = self.__fitnesses
         data['chromosomes'] = self.__np_chromosomes
-        data['best'] = self.__best
-        data['worst'] = self.__worst
+        data['best'] = self.__best_fitnesses[0]
+        data['worst'] = self.__worst_fitnesses[0]
         data['avg'] = self.__avg
 
         # save algorithm information
@@ -572,8 +569,8 @@ class OpenCLGA():
         rnum = data['rnum']
         self.__fitnesses = data['fitnesses']
         self.__np_chromosomes = data['chromosomes']
-        self.__best = data['best']
-        self.__worst = data['worst']
+        self.__best_fitnesses = data['best']
+        self.__worst_fitnesses = data['worst']
         self.__avg = data['avg']
 
         # build CL memory from restored memory
@@ -584,12 +581,6 @@ class OpenCLGA():
                                     hostbuf=self.__np_chromosomes)
         self.__dev_fitnesses = cl.Buffer(self.__ctx, mf.WRITE_ONLY | mf.COPY_HOST_PTR,
                                          hostbuf=self.__fitnesses)
-        self.__dev_best = cl.Buffer(self.__ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
-                                    hostbuf=self.__best)
-        self.__dev_worst = cl.Buffer(self.__ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
-                                     hostbuf=self.__worst)
-        self.__dev_avg = cl.Buffer(self.__ctx, mf.READ_WRITE | mf.COPY_HOST_PTR,
-                                   hostbuf=self.__avg)
         self.__prepare_fitness_args()
 
         self.__sample_chromosome.restore(data, self.__ctx, self.__queue, self.__population)
@@ -657,6 +648,14 @@ class OpenCLGA():
     def get_statistics(self):
         return self.__dictStatistics
 
+    ## Return a dictionary containers current elites and their fitnesses
+    #  correspondingly. e.g.
+    #  elites : abcdedabcdefdeeacbadeadebcda
+    #  fitnesses : 4, 5.5, 3.7, 7.1
+    #  dna_size : 7
+    #  The total lenght of elites is 28. With dna_size being 7, you could
+    #  divided elites into 4 seperate array. Each standands for a chromosome
+    #  with corresponding fitnesses orderly.
     def get_current_elites_info(self):
         elites_info = {}
         if self.__is_elitism_mode:
@@ -678,15 +677,22 @@ class OpenCLGA():
         best = [v for v in self.__np_chromosomes[startGeneId:endGeneId]]
         return best, best_fitness, self.__sample_chromosome.from_kernel_value(best)
 
+    ## Update the top N(sorted) elites of all elites provided from all workers
+    #  to chromosomes device memory.
     def update_elites(self, elites):
         if not self.__is_elitism_mode:
             return
         assert len(elites) == self.__elitism_top
         elites_data = []
+        # Concatenate all elites' dna into a single continuous memory layout.
         for idx, elite_info in enumerate(elites):
             fitness, elite, worker_id = elite_info
             print('updating {}/{} elites ... fitness = {} from worker {}'.format(idx+1, len(elites), fitness, worker_id))
             elites_data.extend(elite)
+
+        # Convert the continuous memory to a device compatible memory layout.
         self.__udpated_elites = numpy.asarray(elites_data, dtype=numpy.int32)
+        # Transfer it into device meory.
         cl.enqueue_copy(self.__queue, self.__dev_updated_elites, self.__udpated_elites)
+
         self.__elites_updated = True

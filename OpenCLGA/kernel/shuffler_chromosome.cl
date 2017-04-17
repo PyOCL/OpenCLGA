@@ -172,23 +172,17 @@ __kernel void shuffler_chromosome_single_gene_mutate(global int* cs,
  * Note: this is a kernel function and will be called by python.
  * @param *fitness (global) the fitness value array of all chromosomes
  * @param *ratio (global, out) the probability array of each chromosomes
- * @param *best (global, out) the best fitness value
- * @param *worst (global, out) the worse fitness value
- * @param *avg (global, out) the average fitness value
  * @seealso ::utils_calc_ratio
  */
 __kernel void shuffler_chromosome_calc_ratio(global float* fitness,
-                                                global float* ratio,
-                                                global float* best,
-                                                global float* worst,
-                                                global float* avg)
+                                             global float* ratio)
 {
   int idx = get_global_id(0);
   // we use the first kernel to calculate the ratio
   if (idx > 0) {
     return;
   }
-  utils_calc_ratio(fitness, ratio, best, worst, avg, POPULATION_SIZE);
+  utils_calc_ratio(fitness, ratio, POPULATION_SIZE);
 }
 
 /**
@@ -264,22 +258,14 @@ __kernel void update_the_elites(global float* worst_indices,
  * @param *fitness (global) all fitness of chromosomes
  * @param *p_other (global) a spared space for storing another chromosome for
  *                          crossover.
- * @param *best (global) the best fitness of all chromosomes.
- * @param *worst (global) the worst fitness of all chromosomes.
  * @param *input_rand (global) all random seeds.
  */
 __kernel void shuffler_chromosome_pick_chromosomes(global int* cs,
                                                    global float* fitness,
                                                    global int* p_other,
                                                    global float* ratio,
-                                                   global float* best,
-                                                   global float* worst,
                                                    global uint* input_rand)
 {
-  // We want to prevent the best one being changed.
-  if (fabs(*worst - *best) < 0.00001) {
-    return;
-  }
   int idx = get_global_id(0);
   // out of bound kernel task for padding
   if (idx >= POPULATION_SIZE) {
@@ -308,25 +294,18 @@ __kernel void shuffler_chromosome_pick_chromosomes(global int* cs,
  *                          crossover.
  * @param *c_map (global) a temp int array for marking if a gene is already in
  *                        the chromosome.
- * @param *best (global) the best fitness of all chromosomes.
- * @param *worst (global) the worst fitness of all chromosomes.
- * @param *avg (global) the average fitness of all chromosomes.
  * @param *input_rand (global) all random seeds.
+ * @param best_index the index of best fitness of all chromosomes.
  * @param prob_crossover the threshold of crossover.
  */
 __kernel void shuffler_chromosome_do_crossover(global int* cs,
                                                global float* fitness,
                                                global int* p_other,
                                                global int* c_map,
-                                               global float* best,
-                                               global float* worst,
-                                               global float* avg,
                                                global uint* input_rand,
+                                               float best_fitness,
                                                float prob_crossover)
 {
-  if (fabs(*worst - *best) < 0.00001) {
-    return;
-  }
   int idx = get_global_id(0);
   // out of bound kernel task for padding
   if (idx >= POPULATION_SIZE) {
@@ -336,7 +315,7 @@ __kernel void shuffler_chromosome_do_crossover(global int* cs,
   init_rand(input_rand[idx], ra);
 
   // keep the shortest path, we have to return here to prevent async barrier if someone is returned.
-  if (fabs(fitness[idx] - *best) < 0.000001) {
+  if (fabs(fitness[idx] - best_fitness) < 0.000001) {
     input_rand[idx] = ra[0];
     return;
   } else if (rand_prob(ra) >= prob_crossover) {

@@ -151,16 +151,12 @@ class SimpleChromosome:
                                        dev_chromosomes,
                                        dev_rnum).wait()
 
-    def selection_preparation(self, prg, queue, dev_fitnesses,
-                              dev_best, dev_worst, dev_avg):
+    def selection_preparation(self, prg, queue, dev_fitnesses):
         prg.simple_chromosome_calc_ratio(queue,
                                          (1,),
                                          (1,),
                                          dev_fitnesses,
-                                         self.__dev_ratios,
-                                         dev_best,
-                                         dev_worst,
-                                         dev_avg).wait()
+                                         self.__dev_ratios).wait()
 
     def execute_get_current_elites(self, prg, queue, top,
                                    dev_chromosomes, dev_current_elites,
@@ -181,8 +177,7 @@ class SimpleChromosome:
                               numpy.int32(top)).wait()
 
     def execute_crossover(self, prg, queue, population, generation_idx, prob_crossover,
-                          dev_chromosomes, dev_fitnesses, dev_rnum,
-                          dev_best, dev_worst, dev_avg):
+                          dev_chromosomes, dev_fitnesses, dev_rnum, best_fitness):
         prg.simple_chromosome_pick_chromosomes(queue,
                                                (population,),
                                                (1,),
@@ -192,14 +187,14 @@ class SimpleChromosome:
                                                self.__dev_ratios,
                                                dev_rnum).wait()
         prg.simple_chromosome_do_crossover(queue,
-                                             (population,),
-                                             (1,),
-                                             dev_chromosomes,
-                                             dev_fitnesses,
-                                             self.__dev_other_chromosomes,
-                                             dev_best,
-                                             dev_rnum,
-                                             numpy.float32(prob_crossover)).wait()
+                                           (population,),
+                                           (1,),
+                                           dev_chromosomes,
+                                           dev_fitnesses,
+                                           self.__dev_other_chromosomes,
+                                           dev_rnum,
+                                           numpy.float32(best_fitness),
+                                           numpy.float32(prob_crossover)).wait()
 
 
     def execute_mutation(self, prg, queue, population, generation_idx, prob_mutate,

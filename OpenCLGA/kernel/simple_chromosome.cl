@@ -130,23 +130,17 @@ __kernel void simple_chromosome_mutate_all(global int* cs,
  * Note: this is a kernel function and will be called by python.
  * @param *fitness (global) the fitness value array of all chromosomes
  * @param *ratio (global, out) the probability array of each chromosomes
- * @param *best (global, out) the best fitness value
- * @param *worst (global, out) the worse fitness value
- * @param *avg (global, out) the average fitness value
  * @seealso ::utils_calc_ratio
  */
 __kernel void simple_chromosome_calc_ratio(global float* fitness,
-                                           global float* ratio,
-                                           global float* best,
-                                           global float* worst,
-                                           global float* avg)
+                                           global float* ratio)
 {
   int idx = get_global_id(0);
   // we use the first kernel to calculate the ratio
   if (idx > 0) {
     return;
   }
-  utils_calc_ratio(fitness, ratio, best, worst, avg, POPULATION_SIZE);
+  utils_calc_ratio(fitness, ratio, POPULATION_SIZE);
 }
 
 /**
@@ -202,8 +196,8 @@ __kernel void simple_chromosome_pick_chromosomes(global int* cs,
 __kernel void simple_chromosome_do_crossover(global int* cs,
                                              global float* fitness,
                                              global int* p_other,
-                                             global float* best_local,
                                              global uint* input_rand,
+                                             float best_fitness,
                                              float prob_crossover)
 {
   int idx = get_global_id(0);
@@ -216,7 +210,7 @@ __kernel void simple_chromosome_do_crossover(global int* cs,
 
   // keep the shortest path, we have to return here to prevent async barrier
   // if someone is returned.
-  if (fabs(fitness[idx] - *best_local) < 0.000001) {
+  if (fabs(fitness[idx] - best_fitness) < 0.000001) {
     input_rand[idx] = ra[0];
     return;
   } else if (rand_prob(ra) >= prob_crossover) {
