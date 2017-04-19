@@ -134,6 +134,13 @@ class OpenCLGAServer(Logger):
             return {'command' : 'exit'}
         return {}
 
+    def __update_members(self, payload):
+        self.__options.update(payload)
+        self.elitism_top = self.__options.get('top', 10)
+        self.elitism_every = self.__options.get('every', 100)
+        self.optimized_for_max = self.__options['opt_for_max'] == 'max'
+        self.verbose('prepare with args: {}'.format(self.__options))
+
     ## All input message will be handled here.
     def handle_message(self, msg):
         assert type(msg) == dict
@@ -147,9 +154,7 @@ class OpenCLGAServer(Logger):
             payload = msg.get('payload', {})
             if not payload:
                 self.warning('Getting nothing in payload from UI to prepare. Use default configuration.')
-            self.__options.update(payload)
-            self.optimized_for_max = self.__options.get('opt_for_max', 'max') == 'max'
-            self.verbose('prepare with args: {}'.format(self.__options))
+            self.__update_members(payload)
             packed = pickle.dumps(self.__options)
             self.__prepare(packed)
         elif cmd == 'pause':
