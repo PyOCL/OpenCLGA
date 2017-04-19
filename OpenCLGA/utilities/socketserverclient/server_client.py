@@ -118,16 +118,19 @@ def socket_send(socket, data):
 def loop_for_connections(evt_break, server_mh = None, client_mh = None):
     clients = {}
     read_list = []
+    error_list = []
     if server_mh:
         read_list.append(server_mh.socket)
+        error_list.append(server_mh.socket)
     if client_mh:
         read_list.append(client_mh.socket)
+        error_list.append(client_mh.socket)
         clients[client_mh] = ''
     try:
         while 1:
             if evt_break.is_set():
                 break
-            readable, writable, errored = select.select(read_list, [], [], 0)
+            readable, writable, errored = select.select(read_list, [], error_list, 0)
 
             # If server has queued data, send it to all clients.
             if server_mh and server_mh.sendq and clients:

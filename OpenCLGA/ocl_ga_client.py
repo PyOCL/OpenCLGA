@@ -83,16 +83,14 @@ class OpenCLGAWorker(Process, Logger):
                                                        'post': OP_MSG_END,
                                                        'callback' : self._process_data })
             self.__notify_client_online(self.client.get_address())
-        except ConnectionRefusedError:
-            self.error('Connection refused! Please check Server status.')
-            self.client = None
-            return
+            self.info('Worker [{0}] wait for commands'.format(self.device.name))
 
-        self.info('Worker [{0}] wait for commands'.format(self.device.name))
-        try:
             # If client is terminated by ctrl+c, exception will be caught in
             # worker process.
             self.exit_evt.wait()
+        except ConnectionRefusedError:
+            self.error('Connection refused! Please check Server status.')
+            self.client = None
         except KeyboardInterrupt:
             pass
         finally:
@@ -204,12 +202,21 @@ class OpenCLGAWorker(Process, Logger):
     #  will be closed here.
     def __shutdown(self):
         self.info('Worker [{0}] is exiting ...'.format(self.device.name))
-        self.__notify_client_offline()
+        try:
+            self.__notify_client_offline()
+        except:
+            print('[OpenCLGAClient] Exception while notifying server ...')
         # NOTE : A timer to make sure the notification be sent to UI.
         # TODO : Find a better way to make it.
-        time.sleep(1)
+        try:
+            time.sleep(1)
+        except:
+            pass
         if self.client:
-            self.client.shutdown()
+            try:
+                self.client.shutdown()
+            except:
+                print('[OpenCLGAClient] Exception while shutting down client socket ...')
         self.client = None
         self.running.value = 0
 
@@ -295,6 +302,7 @@ class OpenCLGAClient(Logger):
     ## Terminate all worker processes
     def __stop_workers(self):
         for worker in self.__workerProcesses:
+            self.verbose('stop_workers ... {} is alive {}'.format(worker, worker.is_alive()))
             if worker.is_alive():
                 worker.terminate()
                 self.info('process {} is terminated.'.format(worker))

@@ -99,6 +99,7 @@ class OpenCLGAServer(Logger):
                     data = self.__q_kb
                     self.__q_kb = ''
                 else:
+                    print(data)
                     self.__q_kb += data
                     data = None
         else:
@@ -138,6 +139,7 @@ class OpenCLGAServer(Logger):
         self.__options.update(payload)
         self.elitism_top = self.__options.get('top', 10)
         self.elitism_every = self.__options.get('every', 100)
+        print(self.elitism_top, self.elitism_every)
         self.optimized_for_max = self.__options['opt_for_max'] == 'max'
         self.verbose('prepare with args: {}'.format(self.__options))
 
@@ -271,7 +273,7 @@ class OpenCLGAServer(Logger):
                     elites = best_result['elites']
                     elite_fitnesses = best_result['fitnesses']
                     elite_size = best_result['dna_size']
-                    assert len(elite_fitnesses) == self.elitism_top
+                    assert len(elite_fitnesses) == self.elitism_top, 'len(elite_fitnesses)={}, self.elitism_top={}'.format(len(elite_fitnesses), self.elitism_top)
                     assert len(elites) == elite_size * self.elitism_top
 
                     # append each elite from single worker to a single list.
@@ -383,15 +385,28 @@ class OpenCLGAServer(Logger):
         self.socket_server.send(repr(data))
 
         # TODO : check if there's no existing clients
-        count = 0
-        while count < 10:
-            time.sleep(0.1)
-            count += 1
-        self.socket_server.shutdown()
-        self.socket_server = None
+        try:
+            count = 0
+            while count < 10:
+                time.sleep(0.1)
+                count += 1
+        except:
+            pass
+        try:
+            self.socket_server.shutdown()
+        except:
+            print("[OpenCLGAServer] exception while shutting down socket server ...")
+            traceback.print_exc()
+        finally:
+            self.socket_server = None
         if self.httpws_server:
-            self.httpws_server.shutdown()
-            self.httpws_server = None
+            try:
+                self.httpws_server.shutdown()
+            except:
+                print("[OpenCLGAServer] exception while shutting down http web socket server ...")
+                traceback.print_exc()
+            finally:
+                self.httpws_server = None
         self.client_workers = {}
         self.websockets = {}
 

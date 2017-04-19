@@ -60,7 +60,10 @@ class HttpWSTask(Task):
 
     def run(self):
         self.verbose('Http WS server is serving forever now !!')
-        self.server.serve_forever()
+        try:
+            self.server.serve_forever()
+        except:
+            pass
 
 ## Create threaded http server which is able to upgrade HTTP request to websocket
 #  @param ip IP for server.
