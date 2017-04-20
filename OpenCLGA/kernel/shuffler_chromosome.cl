@@ -186,17 +186,18 @@ __kernel void shuffler_chromosome_calc_ratio(global float* fitness,
 }
 
 /**
- * get_the_elites get the elites which meet the best_fitness
+ * shuffler_chromosome_get_the_elites get the elites which meet the
+ * best_fitness
  * Note: this is a kernel function and will be called by python.
  * @param top (global) the number of chromosomes in the indices.
  * @param *best_indices (global) the index list of top N best fitness chromosomes.
  * @param *cs (global) all chromosomes.
  * @param *elites (global) elite chromosomes.
  */
-__kernel void get_the_elites(global float* best_indices,
-                             global int* cs,
-                             global int* elites,
-                             int top)
+__kernel void shuffler_chromosome_get_the_elites(global float* best_indices,
+                                                 global int* cs,
+                                                 global int* elites,
+                                                 int top)
 {
   int idx = get_global_id(0);
   // we use the first kernel to get the best chromosome for now.
@@ -217,20 +218,25 @@ __kernel void get_the_elites(global float* best_indices,
 }
 
 /**
- * update_the_elites update sorted elites into chromosomes
+ * shuffler_chromosome_update_the_elites update sorted elites into
+ * chromosomes.
  * Note: this is a kernel function and will be called by python.
- * @param top (global) the number of chromosomes in the indices.
+ * @param top (local) the number of chromosomes in the indices.
  * @param *worst_indices (global) the index list of bottom N worst fitness chromosomes.
  * @param *cs (global) all chromosomes.
+ * @param *fitnesses (global) fitnesses of all chromosomes
  * @param *elites (global) elite chromosomes.
+ * @param *elite_fitnesses (global) fitnesses of all elite chromosomes.
  */
-__kernel void update_the_elites(global float* worst_indices,
-                                global int* cs,
-                                global int* elites,
-                                int top)
+__kernel void shuffler_chromosome_update_the_elites(int top,
+                                                    global int* worst_indices,
+                                                    global int* cs,
+                                                    global int* elites,
+                                                    global float* fitnesses,
+                                                    global float* elite_fitnesses)
 {
   int idx = get_global_id(0);
-  // we use the first kernel to get the best chromosome for now.
+  // we use the first kernel to update all elites and their fitnesses.
   if (idx > 0) {
     return;
   }
@@ -244,6 +250,7 @@ __kernel void update_the_elites(global float* worst_indices,
     for (j = 0; j < SHUFFLER_CHROMOSOME_GENE_SIZE; j++) {
       chromosomes[index].genes[j] = elites_chromosome[i].genes[j];
     }
+    fitnesses[index] = elite_fitnesses[index];
   }
 }
 

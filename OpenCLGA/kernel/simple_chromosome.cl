@@ -231,4 +231,72 @@ __kernel void simple_chromosome_do_crossover(global int* cs,
   input_rand[idx] = ra[0];
 }
 /* ============== end of crossover functions ============== */
+/* ============== elitism ================================= */
+/**
+ * simple_chromosome_get_the_elites get the elites which meet the best_fitness
+ * Note: this is a kernel function and will be called by python.
+ * @param top (global) the number of chromosomes in the indices.
+ * @param *best_indices (global) the index list of top N best fitness chromosomes.
+ * @param *cs (global) all chromosomes.
+ * @param *elites (global) elite chromosomes.
+ */
+__kernel void simple_chromosome_get_the_elites(global float* best_indices,
+                                               global int* cs,
+                                               global int* elites,
+                                               int top)
+{
+  int idx = get_global_id(0);
+  // we use the first kernel to get the best chromosome for now.
+  if (idx > 0) {
+    return;
+  }
+  int i;
+  int j;
+  int index;
+  global __SimpleChromosome* chromosomes = (global __SimpleChromosome*) cs;
+  global __SimpleChromosome* elites_chromosome = (global __SimpleChromosome*) elites;
+  for (i = 0; i < top; i++) {
+    index = best_indices[i];
+    for (j = 0; j < SIMPLE_CHROMOSOME_GENE_SIZE; j++) {
+      elites_chromosome[i].genes[j] = chromosomes[index].genes[j];
+    }
+  }
+}
+
+/**
+ * simple_chromosome_update_the_elites update sorted elites into chromosomes.
+ * Note: this is a kernel function and will be called by python.
+ * @param top (local) the number of chromosomes in the indices.
+ * @param *worst_indices (global) the index list of bottom N worst fitness chromosomes.
+ * @param *cs (global) all chromosomes.
+ * @param *fitnesses (global) fitnesses of all chromosomes
+ * @param *elites (global) elite chromosomes.
+ * @param *elite_fitnesses (global) fitnesses of all elite chromosomes.
+ */
+__kernel void simple_chromosome_update_the_elites(int top,
+                                                  global int* worst_indices,
+                                                  global int* cs,
+                                                  global int* elites,
+                                                  global float* fitnesses,
+                                                  global float* elite_fitnesses)
+{
+  int idx = get_global_id(0);
+  // we use the first kernel to update all elites and their fitnesses.
+  if (idx > 0) {
+    return;
+  }
+  int i;
+  int j;
+  int index;
+  global __SimpleChromosome* chromosomes = (global __SimpleChromosome*) cs;
+  global __SimpleChromosome* elites_chromosome = (global __SimpleChromosome*) elites;
+  for (i = 0 ; i < top; i++) {
+    index = worst_indices[i];
+    for (j = 0; j < SIMPLE_CHROMOSOME_GENE_SIZE; j++) {
+      chromosomes[index].genes[j] = elites_chromosome[i].genes[j];
+    }
+    fitnesses[index] = elite_fitnesses[index];
+  }
+}
+/* ============== end of elitism functions ============== */
 #endif

@@ -158,20 +158,22 @@ class ShufflerChromosome:
     def execute_get_current_elites(self, prg, queue, top,
                                    dev_chromosomes, dev_current_elites,
                                    dev_best_indices):
-        prg.get_the_elites(queue, (1,), (1,),
-                           dev_best_indices,
-                           dev_chromosomes,
-                           dev_current_elites,
-                           numpy.int32(top)).wait()
+        prg.shuffler_chromosome_get_the_elites(queue, (1,), (1,),
+                                               dev_best_indices,
+                                               dev_chromosomes,
+                                               dev_current_elites,
+                                               numpy.int32(top)).wait()
 
-    def execute_update_current_elites(self, prg, queue, top,
+    def execute_update_current_elites(self, prg, queue, top, dev_worst_indices,
                                       dev_chromosomes, dev_updated_elites,
-                                      dev_worst):
-        prg.update_the_elites(queue, (1,), (1,),
-                              dev_worst,
-                              dev_chromosomes,
-                              dev_updated_elites,
-                              numpy.int32(top)).wait()
+                                      dev_fitnesses, dev_updated_elite_fitness):
+        prg.shuffler_chromosome_update_the_elites(queue, (1,), (1,),
+                                                  numpy.int32(top),
+                                                  dev_worst_indices,
+                                                  dev_chromosomes,
+                                                  dev_updated_elites,
+                                                  dev_fitnesses,
+                                                  dev_updated_elite_fitness).wait()
 
     def execute_crossover(self, prg, queue, population, generation_idx, prob_crossover,
                           dev_chromosomes, dev_fitnesses, dev_rnum, best_fitness):

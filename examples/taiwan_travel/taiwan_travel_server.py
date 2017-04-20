@@ -73,7 +73,7 @@ def get_taiwan_travel_info():
                   'extinction': { 'type': 'best_avg',
                                   'diff': 1,
                                   'ratio': 0.9 },
-                  'elitism_mode' : { 'top' : 2, 'every' : 6 }}
+                  'elitism_mode' : { 'top' : 3, 'every' : 10 }}
     return dict_info
 
 lines_input = ''
