@@ -85,7 +85,7 @@ class MessageHandler(ReceiveDataHandler):
         try:
             self.socket.shutdown(socket.SHUT_RDWR)
         except:
-            traceback.print_exc()
+            pass
         finally:
             self.socket.close()
             self.socket = None

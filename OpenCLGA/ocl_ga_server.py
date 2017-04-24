@@ -64,12 +64,10 @@ class OpenCLGAServer(Logger):
         self.socket_server_port = port
         self._start_socket_server()
 
-        elitism_info = options.get('elitism_mode', {})
         self.elitism_round = 0
-        self.elitism_top = elitism_info.get('top', 0)
-        self.elitism_every = elitism_info.get('every', 0)
-        self.is_elitism_mode = all([self.elitism_top, self.elitism_every])
         self.elites = []
+        self.__update_elitism_members(options.get('elitism_mode', {}))
+
         self.optimized_for_max = options.get('opt_for_max', 'max') == 'max'
 
         self.client_workers = {}
@@ -135,11 +133,19 @@ class OpenCLGAServer(Logger):
             return {'command' : 'exit'}
         return {}
 
+    ## To centralized the default value for local initialization and parameters
+    #  from UI or example server.
+    def __update_elitism_members(self, elitism_info):
+        self.elitism_top = elitism_info.get('top', 0)
+        self.elitism_every = elitism_info.get('every', 0)
+        self.is_elitism_mode = all([self.elitism_top, self.elitism_every])
+        self.info('Elitism mode is {}, top({})/every({})'.format(self.is_elitism_mode,
+                                                                 self.elitism_top,
+                                                                 self.elitism_every))
+
     def __update_members(self, payload):
         self.__options.update(payload)
-        self.elitism_top = self.__options.get('top', 10)
-        self.elitism_every = self.__options.get('every', 100)
-        print(self.elitism_top, self.elitism_every)
+        self.__update_elitism_members(self.__options.get('elitism_mode', {}))
         self.optimized_for_max = self.__options['opt_for_max'] == 'max'
         self.verbose('prepare with args: {}'.format(self.__options))
 
