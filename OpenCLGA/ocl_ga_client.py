@@ -179,7 +179,7 @@ class OpenCLGAWorker(Process, Logger):
             elif cmd == 'run':
                 prob_mutate, prob_cross = payload
                 self.info('Worker [{}]: oclGA run with {}/{}'.format(self.device.name,
-                                                                            prob_mutate, prob_cross))
+                                                                     prob_mutate, prob_cross))
                 self.ocl_ga.run(prob_mutate, prob_cross)
             elif cmd == 'elites':
                 self.ocl_ga.update_elites(pickle.loads(payload))
@@ -203,6 +203,7 @@ class OpenCLGAWorker(Process, Logger):
     def __shutdown(self):
         self.info('Worker [{0}] is exiting ...'.format(self.device.name))
         try:
+            self.ocl_ga.stop()
             self.__notify_client_offline()
         except:
             print('[OpenCLGAClient] Exception while notifying server ...')

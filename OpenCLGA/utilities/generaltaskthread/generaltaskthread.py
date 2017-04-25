@@ -65,8 +65,10 @@ class TaskThread(Thread):
 
     def stop(self):
         self.log('stop ...', postfixname = True)
-        self.wati_for_stop.set()
-        self.wati_for_task.set()
+        if self.wati_for_stop:
+            self.wati_for_stop.set()
+        if self.wati_for_task:
+            self.wati_for_task.set()
         self.join()
         self.tasks.clear()
         self.wati_for_task = None

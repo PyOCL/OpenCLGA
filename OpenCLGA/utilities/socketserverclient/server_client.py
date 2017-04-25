@@ -30,10 +30,13 @@ class ReceiveDataHandler(object):
 
     def _check_for_recv(self, s):
         # Receive data from socket
-        data = s.recv(2048)
-        if data and len(data):
-            self.temp_data += data
-            return True
+        try:
+            data = s.recv(2048)
+            if data and len(data):
+                self.temp_data += data
+                return True
+        except:
+            return False
         return False
 
     ## Extract message from temp_data according to prefix/postfix.
@@ -80,8 +83,7 @@ class MessageHandler(ReceiveDataHandler):
         self.__postfix = callbacks_info['post']
 
     def shutdown(self):
-        if self.__is_done:
-            return
+        if self.__is_done: return
         try:
             self.socket.shutdown(socket.SHUT_RDWR)
         except:
@@ -92,7 +94,8 @@ class MessageHandler(ReceiveDataHandler):
             self.__is_done = True
 
     def send(self, msg):
-        assert not self.__is_done
+        if self.__is_done: return
+
         data = bytearray(msg, 'ASCII') if msg != None and type(msg) == str else msg
         # print('data:{} ,type:{}, current sendq:{}, type of sendq:{}'.format(data, type(data), self.sendq, type(self.sendq)))
         self.sendq += self.__prefix + data +  self.__postfix
@@ -130,6 +133,8 @@ def loop_for_connections(evt_break, server_mh = None, client_mh = None):
         while 1:
             if evt_break.is_set():
                 break
+            read_list = [skt for skt in read_list if skt.fileno() >=0]
+            error_list = [skt for skt in error_list if skt.fileno() >=0]
             readable, writable, errored = select.select(read_list, [], error_list, 0)
 
             # If server has queued data, send it to all clients.
