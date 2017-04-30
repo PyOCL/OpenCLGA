@@ -39,10 +39,11 @@ from .ocl_ga_wsserver import OclGAWSServer
 #                  controlling the whole operation ; viewers are only allowed
 #                  to receive results.
 #  @var elitism_round How many times that server received elites.
-#  @var elitism_pick The number of elites what we need to keep and sort.
-#  @var elitism_limit If elitism_round hits the limit, it's time for server
-#                     to send elites back to ocl_ga
-#  @var elites The list to store elites
+#  @var elitism_top The number of elites what we need to keep and sort.
+#  @var elitism_every If elitism_round hits the limit, it's time for server
+#                     to send elites back to ocl_ga.
+#  @var is_elitism_mode Indicate if it's in elitism mode.
+#  @var elites The list to store elites.
 class OpenCLGAServer(Logger):
     def __init__(self, options, port, base_path):
         Logger.__init__(self)

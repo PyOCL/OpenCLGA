@@ -154,6 +154,16 @@ class OpenCLGA():
     #                                                     'avg':   avg_fitness },
     #                                            'avg_time_per_gen': avg. elapsed time per generation }
     #  @var thread The thread runs the actual algorithm.
+    #  @var __population The number of population
+    #  @var __termination A dictionary to identify the termination condition.
+    #                     If type is 'time', it means that the iteration will be
+    #                     ended after it runs the amount of time.
+    #                     If type is 'count', it means that the iteration will be
+    #                     ended when it runs the amount of iterations.
+    #  @var __opt_for_max Larger fitness means better solution if 'max', smaller
+    #                     fitness is better if it's set to 'min'.
+    #  @var __np_chromosomes The numpy memory which stores the dna of genes of all
+    #                        chromosomes.
     #  @var __is_elitism_mode Off = 0, On = 1. If On, spare chromosomes memory will
     #                      be prepared to hold the best chromosomes of all clients.
     #                      Then put these best of bests into next-gen population.
@@ -162,6 +172,20 @@ class OpenCLGA():
     #                      that newly sorted elites are coming
     # @var __elites_updated Indicating that newly sorted elites are received.
     #                       These elites are going to be updated into dev memory.
+    # @var __best_fitnesses The list of top N best fitnesses
+    # @var __worst_fitnesses The list of bottom N worst fitnesses
+    # @var __best_indices The list of indices of top N best fitnesses
+    # @var __worst_indices The list of indices of bottom N worst fitnesses
+    # @var __avg The average of all fitnesses
+    # @var __extinction A dictionary to identify if a extinction is needed.
+    #                   If type is 'best_worst', an exticntion will be triggered
+    #                   when the difference between best fitness and worst fitness is
+    #                   smaller than expected value.
+    #                   If type is 'best_avg', the operation will be triggered
+    #                   when the difference between best fitness and avg fitness
+    #                   is smaller than expected value.
+    # @var _pausing_evt Wait when entering pausing state, it will be set right after
+    #                   that particular iteration ends.
     def __init_members(self, options):
         self.thread = TaskThread(name='GARun')
         self.thread.daemon = True
@@ -183,6 +207,7 @@ class OpenCLGA():
         self.__is_elitism_mode = all([self.__elitism_top, self.__elitism_every])
         self.__elites_updated = False
 
+        # List of fitness and index.
         size_of_indices = self.__elitism_top if self.__is_elitism_mode else 1
         self.__best_fitnesses = numpy.zeros(size_of_indices, dtype=numpy.float32)
         self.__worst_fitnesses = numpy.zeros(size_of_indices, dtype=numpy.float32)
