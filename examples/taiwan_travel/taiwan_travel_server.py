@@ -46,7 +46,6 @@ def get_taiwan_travel_info():
     random.seed()
 
     tsp_path = os.path.dirname(os.path.abspath(__file__))
-    ocl_kernels = os.path.realpath(os.path.join(tsp_path, '..', '..', 'kernel'))
     tsp_kernels = os.path.join(tsp_path, 'kernel')
 
     sample = ShufflerChromosome([SimpleGene(v, cities) for v in city_ids])
@@ -65,7 +64,6 @@ def get_taiwan_travel_info():
                   'fitness_func': 'taiwan_fitness',
                   'fitness_args': [{ 't': 'float', 'v': city_infoX, 'n': 'x' },
                                    { 't': 'float', 'v': city_infoY, 'n': 'y' }],
-                  'extra_include_path': [ocl_kernels],
                   'opt_for_max': 'min',
                   'saved_filename' : 'test%d%d.pickle',
                   'prob_mutation' : 0.1,

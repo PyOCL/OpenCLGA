@@ -8,14 +8,13 @@ def show_generation_info(index, data_dict):
 
 def run(num_chromosomes, generations):
     num_cities = 20
-    random.seed(119)
+    random.seed()
     city_ids = list(range(0, num_cities))
     city_info = {city_id: (random.random() * 100, random.random() * 100) for city_id in city_ids}
 
     sample = ShufflerChromosome([SimpleGene(v, city_ids) for v in city_ids])
 
     tsp_path = os.path.dirname(os.path.abspath(__file__))
-    ocl_kernels = os.path.realpath(os.path.join(tsp_path, '..', '..', 'kernel'))
     tsp_kernels = os.path.join(tsp_path, 'kernel')
 
     f = open(os.path.join(tsp_kernels, 'simple_tsp.cl'), 'r')
@@ -42,7 +41,6 @@ def run(num_chromosomes, generations):
                           'fitness_func': 'simple_tsp_fitness',
                           'fitness_args': [{'t': 'float', 'v': pointX, 'n': 'x'},
                                            {'t': 'float', 'v': pointY, 'n': 'y'}],
-                          'extra_include_path': [ocl_kernels],
                           'opt_for_max': 'min',
                           'debug': True,
                           'generation_callback': show_generation_info},

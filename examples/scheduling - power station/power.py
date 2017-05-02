@@ -7,7 +7,7 @@ def show_generation_info(index, data_dict):
     print('{0}\t\t==> {1}'.format(index, data_dict['best']))
 
 def run(num_chromosomes, generations):
-    random.seed(123)
+    random.seed()
 
     type1 = ['q12', 'q23', 'q34', 'q41']
     type2 = ['q1', 'q2', 'q3', 'q4']
@@ -40,7 +40,6 @@ def run(num_chromosomes, generations):
                           'population': num_chromosomes,
                           'fitness_kernel_str': fstr,
                           'fitness_func': 'power_station_fitness',
-                          'extra_include_path': [],
                           'opt_for_max': 'max',
                           'debug': True,
                           'generation_callback': show_generation_info},
@@ -60,4 +59,4 @@ def run(num_chromosomes, generations):
     print('1 ~ 7 units are maintained at: ' + ', '.join(str(g.dna) for g in best_info.genes))
 
 if __name__ == '__main__':
-    run(num_chromosomes=10, generations=100)
+    run(num_chromosomes=50, generations=100)
