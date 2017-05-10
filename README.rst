@@ -97,7 +97,7 @@ Run OpenCLGA examples
 
       $> source <NameOfEnv>/Scripts/activate
 
-* For Linux environment. ::
+* For Linux/Mac OS X environment. ::
 
       $> source ./NameOfEnv/bin/activate
 
