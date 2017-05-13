@@ -53,6 +53,7 @@ class OpenCLGAWorker(Process, Logger):
         self.ip = ip
         self.port = port
         self.uuid = uuid.uuid1().hex
+        self.ocl_ga = None
 
     ## Terminate worker process, this should be only called when OpenCLGAClient
     #  is shutting down. The exti_evt will be set to break the wait in the
@@ -203,7 +204,9 @@ class OpenCLGAWorker(Process, Logger):
     def __shutdown(self):
         self.info('Worker [{0}] is exiting ...'.format(self.device.name))
         try:
-            self.ocl_ga.stop()
+            if self.ocl_ga:
+                self.ocl_ga.stop()
+                self.ocl_ga = None
             self.__notify_client_offline()
         except:
             print('[OpenCLGAClient] Exception while notifying server ...')
