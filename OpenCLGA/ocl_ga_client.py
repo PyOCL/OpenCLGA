@@ -147,8 +147,8 @@ class OpenCLGAWorker(Process, Logger):
         payload = dict_msg['data']
         self.verbose('Worker [{}]: cmd received = {}'.format(self.device.name, cmd))
 
-        if cmd in ['pause', 'stop', 'restore', 'best', 'save', 'statistics'] and not self.ocl_ga:
-            self.error('Cmd "{}" will only be processed after prepared '.format(cmd))
+        if cmd in ['pause', 'stop', 'restore', 'best', 'save', 'statistics', 'elites'] and not self.ocl_ga:
+            self.error('Cmd "{}" will only be processed if ocl_ga exists '.format(cmd))
             return
         try:
             if cmd == 'prepare':
@@ -210,10 +210,12 @@ class OpenCLGAWorker(Process, Logger):
             self.__notify_client_offline()
         except:
             print('[OpenCLGAClient] Exception while notifying server ...')
-        # NOTE : A timer to make sure the notification be sent to UI.
-        # TODO : Find a better way to make it.
+
         try:
-            time.sleep(1)
+            # NOTE : Make sure all message is sent from clients, so that UI could
+            #        recieve the notification for client's offline.
+            while not self.client.is_message_sent():
+                time.sleep(0.1)
         except:
             pass
         if self.client:

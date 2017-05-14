@@ -82,6 +82,9 @@ class MessageHandler(ReceiveDataHandler):
         self.__prefix = callbacks_info['pre']
         self.__postfix = callbacks_info['post']
 
+    def is_nothing_to_send(self):
+        return len(self.sendq) == 0
+
     def shutdown(self):
         if self.__is_done: return
         try:
@@ -227,6 +230,11 @@ class Client(object):
         self.thread.daemon = True
         self.thread.start()
         self.thread.addtask(task)
+
+    def is_message_sent(self):
+        if self.msg_handler:
+            return self.msg_handler.is_nothing_to_send()
+        return True
 
     def get_address(self):
         return self.__ip
