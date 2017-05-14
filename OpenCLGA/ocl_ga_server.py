@@ -387,17 +387,21 @@ class OpenCLGAServer(Logger):
     ## Shut down all servers and correpsonding clients when receives
     # 'exit' command or KeyboardInterrupt.
     def __shutdown(self):
+        print('[OpenCLGAServer] __shutdown ... ')
         assert self.socket_server != None
         data = {'command' : 'exit', 'data' : None}
         self.socket_server.send(repr(data))
-
-        # TODO : check if there's no existing clients
         try:
-            count = 0
-            while count < 10:
+            start_time = time.time()
+            while len(self.socket_server.get_connected_lists()):
                 time.sleep(0.1)
-                count += 1
+                if time.time() - start_time >= 300:
+                    print('Force break while waiting for shutting down all clients ...')
+                    print('Wait for 30 seconds already !!')
+                    break
         except:
+            import traceback
+            traceback.print_exc()
             pass
         try:
             self.socket_server.shutdown()

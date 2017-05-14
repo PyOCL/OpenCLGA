@@ -100,14 +100,14 @@ class MessageHandler(ReceiveDataHandler):
         # print('data:{} ,type:{}, current sendq:{}, type of sendq:{}'.format(data, type(data), self.sendq, type(self.sendq)))
         self.sendq += self.__prefix + data +  self.__postfix
 
-def socket_send(socket, data):
-    assert (socket != None)
-    assert type(data) == bytearray
+def socket_send(skt, data):
+    assert skt != None
+    assert isinstance(data, bytearray)
     if data != None:
         totalsent = 0
         try:
             while totalsent < len(data):
-                sent = socket.send(data[totalsent:])
+                sent = skt.send(data[totalsent:])
                 if sent == 0:
                     raise RuntimeError('socket connection broken')
                 totalsent = totalsent + sent
@@ -118,7 +118,8 @@ def socket_send(socket, data):
             traceback.print_exc()
             print('Error while sending data via socket ...')
 
-def loop_for_connections(evt_break, server_mh = None, client_mh = None):
+def loop_for_connections(evt_break, server_mh = None, client_mh = None, info_cb = None):
+    assert info_cb is None or callable(info_cb)
     clients = {}
     read_list = []
     error_list = []
@@ -133,6 +134,7 @@ def loop_for_connections(evt_break, server_mh = None, client_mh = None):
         while 1:
             if evt_break.is_set():
                 break
+
             read_list = [skt for skt in read_list if skt.fileno() >=0]
             error_list = [skt for skt in error_list if skt.fileno() >=0]
             readable, writable, errored = select.select(read_list, [], error_list, 0)
@@ -174,6 +176,9 @@ def loop_for_connections(evt_break, server_mh = None, client_mh = None):
                                 read_list.remove(s)
                                 clients.pop(mh)
                                 mh.shutdown()
+
+            if info_cb is not None:
+                info_cb(list(clients.values()))
             time.sleep(0.001)
     except:
         traceback.print_exc()
@@ -192,14 +197,15 @@ def loop_for_connections(evt_break, server_mh = None, client_mh = None):
 
 ## A task runs in server's or client's thread to handle send/recv.
 class HandlerTask(Task):
-    def __init__(self, evt_break, server_mh = None, client_mh = None):
+    def __init__(self, evt_break, server_mh = None, client_mh = None, info_cb = None):
         Task.__init__(self)
         self.evt_break = evt_break
         self.server_mh = server_mh
         self.client_mh = client_mh
+        self.info_cb = info_cb
 
     def run(self):
-        loop_for_connections(self.evt_break, self.server_mh, self.client_mh)
+        loop_for_connections(self.evt_break, self.server_mh, self.client_mh, self.info_cb)
 
 ## A socket client which will connect to target ip/port
 #  @param server_ip Server's IP
@@ -258,8 +264,8 @@ class Server(object):
         skt.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         skt.bind((ip, port))
         skt.listen(max_client)
+        self.connections = []
         self.msg_handler = MessageHandler(skt, callbacks_info)
-
         self.thread = TaskThread(name='server_loop')
         self.thread.daemon = True
         self.evt_break = threading.Event()
@@ -270,6 +276,7 @@ class Server(object):
 
     def shutdown(self):
         print('[Server] Shutting down ...')
+        assert len(self.connections) == 0, 'All connections should be closed !!'
         if self.msg_handler:
             self.msg_handler.shutdown()
             self.msg_handler = None
@@ -280,14 +287,19 @@ class Server(object):
         print('[Server] Shutting down ... end')
 
     def get_connected_lists(self):
-        # TODO : Get connected clients from Server MessageHandler
-        return []
+        return self.connections
+
+    def __connections_info_callback(self, *args):
+        if len(args) == 1:
+            self.connections = args[0]
 
     ## Non-blocking, execute a task in thread which monitors the socket in/out.
     def run_server(self):
         assert (self.thread != None)
         print('Start the server ...')
         if self.thread and not self.thread.is_alive():
-            task = HandlerTask(self.evt_break, server_mh = self.msg_handler)
+            task = HandlerTask(self.evt_break,
+                               server_mh = self.msg_handler,
+                               info_cb = self.__connections_info_callback)
             self.thread.start()
             self.thread.addtask(task)
