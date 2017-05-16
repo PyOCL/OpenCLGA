@@ -77,13 +77,21 @@ class MessageHandler(ReceiveDataHandler):
         ReceiveDataHandler.__init__(self, callbacks_info)
         assert socket != None
         self.socket = socket
-        self.sendq = bytearray()
+        self.__q_lock = threading.Lock()
+        self.__sendq = bytearray()
         self.__is_done = False
         self.__prefix = callbacks_info['pre']
         self.__postfix = callbacks_info['post']
 
-    def is_nothing_to_send(self):
-        return len(self.sendq) == 0
+    def clone_sendq(self):
+        return self.__sendq[:]
+
+    def clear(self):
+        with self.__q_lock:
+            self.__sendq = bytearray()
+
+    def has_data_to_send(self):
+        return len(self.__sendq) != 0
 
     def shutdown(self):
         if self.__is_done: return
@@ -96,12 +104,13 @@ class MessageHandler(ReceiveDataHandler):
             self.socket = None
             self.__is_done = True
 
-    def send(self, msg):
+    def send_to_queue(self, msg):
         if self.__is_done: return
 
         data = bytearray(msg, 'ASCII') if msg != None and type(msg) == str else msg
-        # print('data:{} ,type:{}, current sendq:{}, type of sendq:{}'.format(data, type(data), self.sendq, type(self.sendq)))
-        self.sendq += self.__prefix + data +  self.__postfix
+        # print('data:{} ,type:{}, current sendq:{}, type of sendq:{}'.format(data, type(data), self.__sendq, type(self.__sendq)))
+        with self.__q_lock:
+            self.__sendq += self.__prefix + data +  self.__postfix
 
 def socket_send(skt, data):
     assert skt != None
@@ -143,14 +152,14 @@ def loop_for_connections(evt_break, server_mh = None, client_mh = None, info_cb 
             readable, writable, errored = select.select(read_list, [], error_list, 0)
 
             # If server has queued data, send it to all clients.
-            if server_mh and server_mh.sendq and clients:
+            if server_mh and server_mh.has_data_to_send() and clients:
                 for mh, a in list(clients.items()):
-                    socket_send(mh.socket, server_mh.sendq)
-                server_mh.sendq = bytearray()
+                    socket_send(mh.socket, server_mh.clone_sendq())
+                server_mh.clear()
             # If client has queued data, send it to server.
-            if client_mh and client_mh.sendq:
-                socket_send(client_mh.socket, client_mh.sendq)
-                client_mh.sendq = bytearray()
+            if client_mh and client_mh.has_data_to_send:
+                socket_send(client_mh.socket, client_mh.clone_sendq())
+                client_mh.clear()
 
             # Data arrived.
             for s in readable:
@@ -233,7 +242,7 @@ class Client(object):
 
     def is_message_sent(self):
         if self.msg_handler:
-            return self.msg_handler.is_nothing_to_send()
+            return not self.msg_handler.has_data_to_send()
         return True
 
     def get_address(self):
@@ -253,7 +262,7 @@ class Client(object):
 
     def send(self, msg):
         # Sample data to be sent !
-        self.msg_handler.send(msg)
+        self.msg_handler.send_to_queue(msg)
 
 ## A socker server which is able to return received messages through the
 #  callbacks_info and is able to send messages to clients
@@ -280,7 +289,7 @@ class Server(object):
         self.evt_break.clear()
 
     def send(self, msg):
-        self.msg_handler.send(msg)
+        self.msg_handler.send_to_queue(msg)
 
     def shutdown(self):
         print('[Server] Shutting down ...')
