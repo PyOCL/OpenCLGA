@@ -47,6 +47,28 @@ def plot_tsp_result(city_info, city_ids):
     plt.grid(True)
     plt.show()
 
+def plot_grouping_result(group_id_set, group_ids, city_info):
+    assert len(group_id_set) != 0
+    import matplotlib.pyplot as plt
+    markers = ['p', '*', '+', 'x', 'd', 'o', 'v', 's', 'h']
+    colors = [(random.random(), random.random(), random.random()) for x in range(len(group_id_set))]
+    while len(group_id_set) > 0:
+        group_id = group_id_set.pop()
+        clr = colors.pop()
+        makr = markers[random.randint(0, len(markers)-1)]
+        x = []
+        y = []
+        for idx, gid in enumerate(group_ids):
+            if gid == group_id:
+                x.append(city_info[idx][0])
+                y.append(city_info[idx][1])
+        plt.plot(x, y, color=clr, marker=makr)
+
+    plt.ylabel('y')
+    plt.xlabel('x')
+    plt.grid(True)
+    plt.show()
+
 def plot_ga_result(statistics):
     import matplotlib.pyplot as plt
 
