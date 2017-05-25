@@ -167,7 +167,8 @@ def start_tt_server():
     while True:
         user_input = get_input()
         if user_input == '1':
-            start_ocl_ga_server(tt_info, 12345, { 'message' : callback_from_client })
+            ui = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ui')
+            start_ocl_ga_server(tt_info, 12345, { 'message' : callback_from_client }, ui)
             break
         elif user_input == '2':
             start_ocl_ga_local(tt_info)
