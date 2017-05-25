@@ -206,6 +206,7 @@ class OpenCLGA():
         self.__elitism_every = elitism_info.get('every', 0)
         self.__is_elitism_mode = all([self.__elitism_top, self.__elitism_every])
         self.__elites_updated = False
+        self.__elite_lock = threading.Lock()
 
         # List of fitness and index.
         size_of_indices = self.__elitism_top if self.__is_elitism_mode else 1
@@ -415,16 +416,17 @@ class OpenCLGA():
         self.__examine_single_generation(index)
 
         if self.__is_elitism_mode and self.__elites_updated:
-            # Update current N elites to device memory.
-            self.__sample_chromosome.execute_update_current_elites(self.__prg,
-                                                                   self.__queue,
-                                                                   self.__elitism_top,
-                                                                   self.__dev_worst_indices,
-                                                                   self.__dev_chromosomes,
-                                                                   self.__dev_updated_elites,
-                                                                   self.__dev_fitnesses,
-                                                                   self.__dev_updated_elite_fitnesses)
-            self.__elites_updated = False
+            with self.__elite_lock:
+                # Update current N elites to device memory.
+                self.__sample_chromosome.execute_update_current_elites(self.__prg,
+                                                                    self.__queue,
+                                                                    self.__elitism_top,
+                                                                    self.__dev_worst_indices,
+                                                                    self.__dev_chromosomes,
+                                                                    self.__dev_updated_elites,
+                                                                    self.__dev_fitnesses,
+                                                                    self.__dev_updated_elite_fitnesses)
+                self.__elites_updated = False
 
         # We want to prevent the best one being changed.
         if abs(self.__best_fitnesses[0] - self.__worst_fitnesses[0]) >= 0.00001:
@@ -727,8 +729,11 @@ class OpenCLGA():
         # Convert the continuous memory to a device compatible memory layout.
         self.__updated_elites = numpy.asarray(elites_dna_data, dtype=numpy.int32)
         self.__updated_elite_fitnesses = numpy.asarray(elites_fitnesses, dtype=numpy.float32)
+
         # Transfer it into device meory.
-        cl.enqueue_copy(self.__queue, self.__dev_updated_elites, self.__updated_elites)
-        cl.enqueue_copy(self.__queue, self.__dev_updated_elite_fitnesses, self.__updated_elite_fitnesses)
+        with self.__elite_lock:
+            cl.enqueue_copy(self.__queue, self.__dev_updated_elites, self.__updated_elites)
+            cl.enqueue_copy(self.__queue, self.__dev_updated_elite_fitnesses, self.__updated_elite_fitnesses)
+            cl.enqueue_copy(self.__queue, self.__dev_worst_indices, self.__worst_indices)
 
         self.__elites_updated = True
