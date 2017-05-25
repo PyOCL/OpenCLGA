@@ -31,7 +31,7 @@ class ReceiveDataHandler(object):
     def _check_for_recv(self, s):
         # Receive data from socket
         try:
-            data = s.recv(2048)
+            data = s.recv(65536)
             if data and len(data):
                 self.temp_data += data
                 return True
@@ -157,7 +157,7 @@ def loop_for_connections(evt_break, server_mh = None, client_mh = None, info_cb 
                     socket_send(mh.socket, server_mh.clone_sendq())
                 server_mh.clear()
             # If client has queued data, send it to server.
-            if client_mh and client_mh.has_data_to_send:
+            if client_mh and client_mh.has_data_to_send():
                 socket_send(client_mh.socket, client_mh.clone_sendq())
                 client_mh.clear()
 

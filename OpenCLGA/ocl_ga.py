@@ -719,7 +719,8 @@ class OpenCLGA():
         # layout.
         for idx, elite_info in enumerate(elites):
             fitness, elite_dna, worker_id = elite_info
-            print('updating {}/{} elites ... fitness = {} from worker {}'.format(idx+1, len(elites), fitness, worker_id))
+            if idx == 0:
+                print('updating {}/{} elites ... fitness = {} from worker {}'.format(idx+1, len(elites), fitness, worker_id))
             elites_dna_data.extend(elite_dna)
             elites_fitnesses.append(fitness)
 
