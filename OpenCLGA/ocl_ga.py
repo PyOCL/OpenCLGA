@@ -415,8 +415,11 @@ class OpenCLGA():
     def __execute_single_generation(self, index, prob_mutate, prob_crossover):
         self.__examine_single_generation(index)
 
+        best_fitness = self.__best_fitnesses[0]
+
         if self.__is_elitism_mode and self.__elites_updated:
             with self.__elite_lock:
+                best_fitness = self.__updated_elite_fitnesses[0]
                 # Update current N elites to device memory.
                 self.__sample_chromosome.execute_update_current_elites(self.__prg,
                                                                     self.__queue,
@@ -428,6 +431,11 @@ class OpenCLGA():
                                                                     self.__dev_updated_elite_fitnesses)
                 self.__elites_updated = False
 
+        self.__sample_chromosome.selection_preparation(self.__prg,
+                                                       self.__queue,
+                                                       self.__dev_fitnesses)
+
+
         # We want to prevent the best one being changed.
         if abs(self.__best_fitnesses[0] - self.__worst_fitnesses[0]) >= 0.00001:
             self.__sample_chromosome.execute_crossover(self.__prg,
@@ -438,7 +446,7 @@ class OpenCLGA():
                                                        self.__dev_chromosomes,
                                                        self.__dev_fitnesses,
                                                        self.__dev_rnum,
-                                                       self.__best_fitnesses[0])
+                                                       best_fitness)
 
         self.__sample_chromosome.execute_mutation(self.__prg,
                                                   self.__queue,
@@ -455,9 +463,6 @@ class OpenCLGA():
                                             (1,),
                                             *self.__fitness_args_list).wait()
 
-        self.__sample_chromosome.selection_preparation(self.__prg,
-                                                       self.__queue,
-                                                       self.__dev_fitnesses)
         # We calculate best / worst / avg fitness in system memory for
         # better efficiency & code simplicity.
         cl.enqueue_copy(self.__queue, self.__fitnesses, self.__dev_fitnesses)
@@ -505,6 +510,10 @@ class OpenCLGA():
             self.__best_fitnesses[idx] = tops[idx][1]
             self.__worst_indices[idx] = bottoms[idx][0]
             self.__worst_fitnesses[idx] = bottoms[idx][1]
+
+        with self.__elite_lock:
+            cl.enqueue_copy(self.__queue, self.__dev_best_indices, self.__best_indices)
+            cl.enqueue_copy(self.__queue, self.__dev_worst_indices, self.__worst_indices)
 
     def __evolve_by_count(self, count, prob_mutate, prob_crossover):
         start_time = time.time()
@@ -734,6 +743,5 @@ class OpenCLGA():
         with self.__elite_lock:
             cl.enqueue_copy(self.__queue, self.__dev_updated_elites, self.__updated_elites)
             cl.enqueue_copy(self.__queue, self.__dev_updated_elite_fitnesses, self.__updated_elite_fitnesses)
-            cl.enqueue_copy(self.__queue, self.__dev_worst_indices, self.__worst_indices)
 
         self.__elites_updated = True

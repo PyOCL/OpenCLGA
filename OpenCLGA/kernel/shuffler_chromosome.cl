@@ -250,7 +250,7 @@ __kernel void shuffler_chromosome_update_the_elites(int top,
     for (j = 0; j < SHUFFLER_CHROMOSOME_GENE_SIZE; j++) {
       chromosomes[index].genes[j] = elites_chromosome[i].genes[j];
     }
-    fitnesses[index] = elite_fitnesses[index];
+    fitnesses[index] = elite_fitnesses[i];
   }
 }
 
