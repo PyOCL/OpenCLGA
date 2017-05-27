@@ -61,6 +61,10 @@ class OpenCLGAServer(Logger):
         self.__q_ws = queue.Queue()
         self.__ip = self.__get_host_ip()
 
+        # This is a filename variable for saving current elite list.
+        self.__save_elite_list_to = None
+        self.__restore_elite_list_from = None
+
         self.socket_server = None
         self.socket_server_port = port
         self._start_socket_server()
@@ -186,6 +190,10 @@ class OpenCLGAServer(Logger):
         elif cmd == 'exit':
             self.__shutdown()
             return False
+        elif cmd == 'save_e':
+            self.__save_elites()
+        elif cmd == 'restore_e':
+            self.__restore_elites()
         return True
 
     ## A callback function to notify OpenCLGAServer the connection of websocket
@@ -276,29 +284,54 @@ class OpenCLGAServer(Logger):
                 worker_id = dict_msg['data']['worker']
                 best_fitness = dict_msg['data']['result'].get('best_fitness', 0.0)
                 if self.is_elitism_mode:
-                    best_result = pickle.loads(serialized_best_result)
-                    elites = best_result['elites']
-                    elite_fitnesses = best_result['fitnesses']
-                    elite_size = best_result['dna_size']
-                    assert len(elite_fitnesses) == self.elitism_top, 'len(elite_fitnesses)={}, self.elitism_top={}'.format(len(elite_fitnesses), self.elitism_top)
-                    assert len(elites) == elite_size * self.elitism_top
-
-                    # append each elite from single worker to a single list.
-                    for idx, fitness in enumerate(elite_fitnesses):
-                        self.elites.append((fitness, elites[idx*elite_size:(idx+1)*elite_size], worker_id))
-
-                    self.elitism_round += 1
-                    if self.elitism_round >= self.elitism_every:
-                        # sort the list, the fronter the better.
-                        self.elites.sort(key=lambda item : item[0], reverse=self.optimized_for_max)
-                        if len(self.elites) >= self.elitism_top:
-                            self.elites = self.elites[:self.elitism_top]
-                        self.__update_elites(pickle.dumps(self.elites))
-                        self.elitism_round = 0
+                    self.__update_elite_list(pickle.loads(serialized_best_result), worker_id)
 
             self.__send_message_to_WSs(dict_msg)
         except:
             traceback.print_exc()
+
+    def __update_elite_list(self, best_result, worker_id):
+        self.__restore_elite_list()
+        elites = best_result['elites']
+        elite_fitnesses = best_result['fitnesses']
+        elite_size = best_result['dna_size']
+        assert len(elite_fitnesses) == self.elitism_top, 'len(elite_fitnesses)={}, self.elitism_top={}'.format(len(elite_fitnesses), self.elitism_top)
+        assert len(elites) == elite_size * self.elitism_top
+
+        # append each elite from single worker to a single list.
+        for idx, fitness in enumerate(elite_fitnesses):
+            self.elites.append((fitness, elites[idx*elite_size:(idx+1)*elite_size], worker_id))
+
+        self.elitism_round += 1
+        if self.elitism_round >= self.elitism_every:
+            # sort the list, the fronter the better.
+            self.elites.sort(key=lambda item : item[0], reverse=self.optimized_for_max)
+            if len(self.elites) >= self.elitism_top:
+                self.elites = self.elites[:self.elitism_top]
+            self.__update_elites(pickle.dumps(self.elites))
+            self.elitism_round = 0
+        self.__save_elite_list()
+
+
+    def __save_elite_list(self):
+        if not self.is_elitism_mode or self.__save_elite_list_to is None:
+            return
+        f = open(self.__save_elite_list_to, 'wb')
+        pickle.dump(self.elites, f)
+        f.close()
+        self.info('Elite list is saved to {} !! '.format(self.__save_elite_list_to))
+        self.__save_elite_list_to = None
+
+    def __restore_elite_list(self):
+        if not self.is_elitism_mode or self.__restore_elite_list_from is None:
+            return
+
+        f = open(self.__restore_elite_list_from, 'rb')
+        self.elites = pickle.load(f)
+        f.close()
+        self.elitism_round = self.elitism_every if len(self.elites) > self.elitism_top else len(self.elites)
+        self.info('Elite list is restore from {}, {} !! '.format(self.__restore_elite_list_from, self.elitism_round))
+        self.__restore_elite_list_from = None;
 
     ## Send message to UI through websockets
     def __send_message_to_WSs(self, msg):
@@ -384,6 +417,15 @@ class OpenCLGAServer(Logger):
         data = {'command' : 'elites', 'data' : elites}
         self.socket_server.send(repr(data))
 
+    def __save_elites(self, filename = 'elites.pickle'):
+        # If __save_elite_list_to is not None, it is saving now.
+        if self.__save_elite_list_to is None:
+            self.__save_elite_list_to = filename
+    def __restore_elites(self, filename = 'elites.pickle'):
+        if self.__restore_elite_list_from is None:
+            self.__restore_elite_list_from = filename
+            self.info('schedule restore elite list from {}.'.format(filename))
+
     ## Shut down all servers and correpsonding clients when receives
     # 'exit' command or KeyboardInterrupt.
     def __shutdown(self):
@@ -433,8 +475,10 @@ def start_ocl_ga_server(info, port, callbacks = {}, base_path = None):
         print('Press prepare    + <Enter> to prepare')
         print('Press run        + <Enter> to run');
         print('Press restore    + <Enter> to restore');
+        print('Press restore_e  + <Enter> to restore elites from elites.pickle');
         print('Press pause      + <Enter> to pause')
         print('Press save       + <Enter> to save (filename:test%d%d.pickle)')
+        print('Press save_e     + <Enter> to save elites to (filename: elites.pickle)')
         print('Press stop       + <Enter> to stop')
         print('Press get_st     + <Enter> to get statistics')
         print('Press get_best   + <Enter> to get best')
