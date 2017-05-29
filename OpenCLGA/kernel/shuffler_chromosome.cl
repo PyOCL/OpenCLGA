@@ -194,7 +194,7 @@ __kernel void shuffler_chromosome_calc_ratio(global float* fitness,
  * @param *cs (global) all chromosomes.
  * @param *elites (global) elite chromosomes.
  */
-__kernel void shuffler_chromosome_get_the_elites(global float* best_indices,
+__kernel void shuffler_chromosome_get_the_elites(global int* best_indices,
                                                  global int* cs,
                                                  global int* elites,
                                                  int top)

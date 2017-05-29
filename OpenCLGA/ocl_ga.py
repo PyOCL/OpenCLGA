@@ -464,6 +464,8 @@ class OpenCLGA():
 
         self.__update_fitness_index_pair()
 
+        best_result = None
+        elites_info = {}
         if self.__is_elitism_mode:
             # Find current N elites and their corresponding indices, then read
             # it back from device memory to system memory.
@@ -474,11 +476,15 @@ class OpenCLGA():
                                                                 self.__dev_current_elites,
                                                                 self.__dev_best_indices)
             cl.enqueue_copy(self.__queue, self.__current_elites, self.__dev_current_elites)
+            elites_info = self.__get_current_elites_info()
+        best_result = pickle.dumps(elites_info)
 
         self.__dictStatistics[index] = {}
         self.__dictStatistics[index]['best'] = self.__best_fitnesses[0]
         self.__dictStatistics[index]['worst'] = self.__worst_fitnesses[0]
         self.__dictStatistics[index]['avg'] = self.__avg
+        self.__dictStatistics[index]['best_result'] = best_result
+
         if self.__generation_callback is not None:
             self.__generation_callback(index, self.__dictStatistics[index])
 
@@ -696,7 +702,7 @@ class OpenCLGA():
     #  The total lenght of elites is 28. With dna_size being 7, you could
     #  divided elites into 4 seperate array. Each standands for a chromosome
     #  with corresponding fitnesses orderly.
-    def get_current_elites_info(self):
+    def __get_current_elites_info(self):
         elites_info = {}
         if self.__is_elitism_mode:
             elites_info = { 'elites' : self.__current_elites,

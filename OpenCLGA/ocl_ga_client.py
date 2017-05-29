@@ -112,14 +112,13 @@ class OpenCLGAWorker(Process, Logger):
         assert self.ocl_ga != None
         self.verbose('{0}\t\t==> {1} ~ {2} ~ {3}'.format(index, data['best'], data['avg'],
                                                                 data['worst']))
-        elites_info = self.ocl_ga.get_current_elites_info()
-        best_result = pickle.dumps(elites_info)
+
         self.__send({'type' : 'generationResult',
                      'data' : { 'worker' :   self.uuid,
                                 'result' : { 'best_fitness' : data['best'],
                                              'avg_fitness'  : data['avg'],
                                              'worst_fitness': data['worst'],
-                                             'best_result': best_result }}})
+                                             'best_result'  : data['best_result'] }}})
 
     ## The callback funciton for OpenCLGA to notify state change.
     def _state_changed(self, state):
