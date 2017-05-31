@@ -209,6 +209,8 @@ class OpenCLGA():
         self.__elitism_every = elitism_info.get('every', 0)
         self.__is_elitism_mode = all([self.__elitism_top, self.__elitism_every])
         self.__elites_updated = False
+        self.__elitism_interval = elitism_info.get('interval', 0)
+        self.__elitism_last_retrieval = time.time()
         self.__elite_lock = threading.Lock()
 
         # List of fitness and index.
@@ -469,7 +471,10 @@ class OpenCLGA():
 
         best_result = None
         elites_info = {}
-        if self.__is_elitism_mode:
+
+        if self.__is_elitism_mode and\
+           time.time() - self.__elitism_last_retrieval >= self.__elitism_interval:
+
             # Find current N elites and their corresponding indices, then read
             # it back from device memory to system memory.
             self.__sample_chromosome.execute_get_current_elites(self.__prg,
@@ -480,6 +485,7 @@ class OpenCLGA():
                                                                 self.__dev_best_indices)
             cl.enqueue_copy(self.__queue, self.__current_elites, self.__dev_current_elites)
             elites_info = self.__get_current_elites_info()
+            self.__elitism_last_retrieval = time.time()
         best_result = pickle.dumps(elites_info)
 
         self.__dictStatistics[index] = {}
