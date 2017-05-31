@@ -61,6 +61,9 @@ class StateMachine(Logger):
         if self.openclga.action_callbacks and 'state' in self.openclga.action_callbacks:
             self.openclga.action_callbacks['state'](next_state)
 
+    def is_running(self):
+        return self.__curr_state == 'running'
+
 ## A task to iterate GA generation in a separated thread.
 class GARun(Task):
     def __init__(self, ga, prob_mutation, prob_crossover, callback):
@@ -728,6 +731,8 @@ class OpenCLGA():
     def update_elites(self, elites):
         assert self.__is_elitism_mode, 'Elitism Mode is {}'.format(self.__is_elitism_mode)
         assert len(elites) == self.__elitism_top
+        if not self.state_machine.is_running():
+            return
         with self.__elite_lock:
             elites_dna_data = []
             elites_fitnesses = []
