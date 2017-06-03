@@ -6,6 +6,11 @@ We had implemented OpenCLGA at ocl_ga.py which encapsulate GA follow (population
 
 Please note that OpenCLGA is implemented at Python 3.5 or above. It should work at Python 2.x but it is not guaranteed.
 
+
+Demo Video
+==============================
+Taiwan Travel example: https://youtu.be/4pqmuV8RkMg
+
 Prerequisite: install PYOPENCL
 ==============================
 Option A. Please refer to https://wiki.tiker.net/PyOpenCL to find your OS or
