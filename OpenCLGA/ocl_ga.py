@@ -173,6 +173,8 @@ class OpenCLGA():
     # @var __elitism_top The number of elites to be picked in each generation.
     # @var __elitism_every The number of rounds for server to notify all clients
     #                      that newly sorted elites are coming
+    # @var __elitism_interval The interval to get current elites since last time.
+    # @var __elitism_last_retrieval The timestamp of last time when retrieving elites.
     # @var __elites_updated Indicating that newly sorted elites are received.
     #                       These elites are going to be updated into dev memory.
     # @var __best_fitnesses The list of top N best fitnesses
@@ -205,7 +207,7 @@ class OpenCLGA():
 
         # For elitism_mode
         elitism_info = options.get('elitism_mode', {})
-        self.__elitism_top = elitism_info.get('top', 0)
+        self.__elitism_top = elitism_info.get('top', 1)
         self.__elitism_every = elitism_info.get('every', 0)
         self.__is_elitism_mode = all([self.__elitism_top, self.__elitism_every])
         self.__elites_updated = False
