@@ -173,6 +173,8 @@ class OpenCLGA():
     # @var __elitism_top The number of elites to be picked in each generation.
     # @var __elitism_every The number of rounds for server to notify all clients
     #                      that newly sorted elites are coming
+    # @var __elitism_interval The interval to get current elites since last time.
+    # @var __elitism_last_retrieval The timestamp of last time when retrieving elites.
     # @var __elites_updated Indicating that newly sorted elites are received.
     #                       These elites are going to be updated into dev memory.
     # @var __best_fitnesses The list of top N best fitnesses
@@ -205,10 +207,12 @@ class OpenCLGA():
 
         # For elitism_mode
         elitism_info = options.get('elitism_mode', {})
-        self.__elitism_top = elitism_info.get('top', 0)
+        self.__elitism_top = elitism_info.get('top', 1)
         self.__elitism_every = elitism_info.get('every', 0)
         self.__is_elitism_mode = all([self.__elitism_top, self.__elitism_every])
         self.__elites_updated = False
+        self.__elitism_interval = elitism_info.get('interval', 0)
+        self.__elitism_last_retrieval = time.time()
         self.__elite_lock = threading.Lock()
 
         # List of fitness and index.
@@ -469,7 +473,10 @@ class OpenCLGA():
 
         best_result = None
         elites_info = {}
-        if self.__is_elitism_mode:
+
+        if self.__is_elitism_mode and\
+           time.time() - self.__elitism_last_retrieval >= self.__elitism_interval:
+
             # Find current N elites and their corresponding indices, then read
             # it back from device memory to system memory.
             self.__sample_chromosome.execute_get_current_elites(self.__prg,
@@ -480,6 +487,7 @@ class OpenCLGA():
                                                                 self.__dev_best_indices)
             cl.enqueue_copy(self.__queue, self.__current_elites, self.__dev_current_elites)
             elites_info = self.__get_current_elites_info()
+            self.__elitism_last_retrieval = time.time()
         best_result = pickle.dumps(elites_info)
 
         self.__dictStatistics[index] = {}

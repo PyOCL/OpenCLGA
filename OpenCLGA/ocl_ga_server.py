@@ -141,7 +141,7 @@ class OpenCLGAServer(Logger):
     ## To centralized the default value for local initialization and parameters
     #  from UI or example server.
     def __update_elitism_members(self, elitism_info):
-        self.elitism_top = elitism_info.get('top', 0)
+        self.elitism_top = elitism_info.get('top', 1)
         self.elitism_every = elitism_info.get('every', 0)
         self.is_elitism_mode = all([self.elitism_top, self.elitism_every])
         self.info('Elitism mode is {}, top({})/every({})'.format(self.is_elitism_mode,
@@ -292,6 +292,12 @@ class OpenCLGAServer(Logger):
 
     def __update_elite_list(self, best_result, worker_id):
         self.__restore_elite_list()
+
+        # Since client may not send elites back every generation.
+        # Return early if there's no elites.
+        if not all([k in best_result for k in ['elites', 'fitnesses', 'dna_size']]):
+            return
+
         elites = best_result['elites']
         elite_fitnesses = best_result['fitnesses']
         elite_size = best_result['dna_size']
