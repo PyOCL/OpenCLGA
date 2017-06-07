@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import json
+import zlib
 import os
 import pickle
 import queue
@@ -143,6 +144,7 @@ class OpenCLGAServer(Logger):
     def __update_elitism_members(self, elitism_info):
         self.elitism_top = elitism_info.get('top', 1)
         self.elitism_every = elitism_info.get('every', 0)
+        self.elitism_compressed = elitism_info.get('compress', False)
         self.is_elitism_mode = all([self.elitism_top, self.elitism_every])
         self.info('Elitism mode is {}, top({})/every({})'.format(self.is_elitism_mode,
                                                                  self.elitism_top,
@@ -284,7 +286,10 @@ class OpenCLGAServer(Logger):
                 worker_id = dict_msg['data']['worker']
                 best_fitness = dict_msg['data']['result'].get('best_fitness', 0.0)
                 if self.is_elitism_mode:
-                    self.__update_elite_list(pickle.loads(serialized_best_result), worker_id)
+                    if self.elitism_compressed:
+                        serialized_best_result = zlib.decompress(serialized_best_result)
+                    best_result = pickle.loads(serialized_best_result)
+                    self.__update_elite_list(best_result, worker_id)
 
             self.__send_message_to_WSs(dict_msg)
         except:
