@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import os
 import sys
+import zlib
 import time
 import random
 import numpy
@@ -213,6 +214,7 @@ class OpenCLGA():
         self.__elites_updated = False
         self.__elitism_interval = elitism_info.get('interval', 0)
         self.__elitism_last_retrieval = time.time()
+        self.__elitism_compressed = elitism_info.get('compress', False)
         self.__elite_lock = threading.Lock()
 
         # List of fitness and index.
@@ -473,7 +475,6 @@ class OpenCLGA():
 
         best_result = None
         elites_info = {}
-
         if self.__is_elitism_mode and\
            time.time() - self.__elitism_last_retrieval >= self.__elitism_interval:
 
@@ -488,7 +489,12 @@ class OpenCLGA():
             cl.enqueue_copy(self.__queue, self.__current_elites, self.__dev_current_elites)
             elites_info = self.__get_current_elites_info()
             self.__elitism_last_retrieval = time.time()
+
         best_result = pickle.dumps(elites_info)
+
+        if best_result and self.__elitism_compressed:
+            # Compress data with the highest level.
+            best_result = zlib.compress(best_result, 9)
 
         self.__dictStatistics[index] = {}
         self.__dictStatistics[index]['best'] = self.__best_fitnesses[0]
