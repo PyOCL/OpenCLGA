@@ -453,7 +453,6 @@ class OpenCLGAServer(Logger):
                     print('Wait for 30 seconds already !!')
                     break
         except:
-            import traceback
             traceback.print_exc()
             pass
         try:
