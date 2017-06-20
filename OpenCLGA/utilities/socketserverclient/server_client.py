@@ -20,7 +20,7 @@ OP_MSG_END         = bytearray('OPMsgE', 'ASCII')
 #                      Data in between 'pre' & 'post' is a pickled bitstream.
 #                      'callback' is going to be invoked when complete message
 #                      is received.
-class ReceiveDataHandler(object):
+class RecvDataHandler(object):
     def __init__(self, callbacks_info):
         assert 'pre' in callbacks_info
         assert 'post' in callbacks_info
@@ -70,47 +70,93 @@ class ReceiveDataHandler(object):
             self.temp_data = b''
         # print('after temp_data = {}'.format(self.temp_data))
 
-## A instance to encapsulate ReceiveDataHandler and hold a data queue for
-#  messages to be sent.
-class MessageHandler(ReceiveDataHandler):
-    def __init__(self, socket, callbacks_info):
-        ReceiveDataHandler.__init__(self, callbacks_info)
-        assert socket != None
-        self.socket = socket
+## A handler class holds a data queue for messages to be sent in another thread.
+class SendDataHandler(object):
+    def __init__(self, data_prefix = '', data_postfix = ''):
         self.__q_lock = threading.Lock()
         self.__sendq = bytearray()
-        self.__is_done = False
-        self.__prefix = callbacks_info['pre']
-        self.__postfix = callbacks_info['post']
+        self.__evt_wait_for_data = threading.Event()
+        self.__evt_wait_for_data.clear()
+        self.__evt_break_send = threading.Event()
+        self.__evt_break_send.clear()
+        self.__prefix = data_prefix
+        self.__postfix = data_postfix
 
-    def clone_sendq(self):
-        return self.__sendq[:]
+        self.thread_sender = TaskThread(name='msg_sender')
+        if self.thread_sender and not self.thread_sender.is_alive():
+            send_task = HandlerSendTask(self, self.__evt_break_send)
+            self.thread_sender.start()
+            self.thread_sender.addtask(send_task)
 
-    def clear(self):
-        with self.__q_lock:
-            self.__sendq = bytearray()
-
-    def has_data_to_send(self):
-        return len(self.__sendq) != 0
-
-    def shutdown(self):
-        if self.__is_done: return
-        try:
-            self.socket.shutdown(socket.SHUT_RDWR)
-        except:
-            pass
-        finally:
-            self.socket.close()
-            self.socket = None
-            self.__is_done = True
-
-    def send_to_queue(self, msg):
-        if self.__is_done: return
-
+    def append_data_to_queue(self, msg):
         data = bytearray(msg, 'ASCII') if msg != None and type(msg) == str else msg
         # print('data:{} ,type:{}, current sendq:{}, type of sendq:{}'.format(data, type(data), self.__sendq, type(self.__sendq)))
         with self.__q_lock:
             self.__sendq += self.__prefix + data +  self.__postfix
+
+        self.__evt_wait_for_data.set()
+
+    def clone_data_queue(self):
+        return self.__sendq[:]
+
+    def clear_data_queue(self):
+        with self.__q_lock:
+            self.__sendq = bytearray()
+        self.__evt_wait_for_data.clear()
+
+    def wait(self):
+        self.__evt_wait_for_data.wait()
+
+    def has_pending_data(self):
+        return len(self.__sendq) != 0
+
+    def shutdown(self):
+        if self.thread_sender:
+            self.__evt_break_send.set()
+            self.__evt_wait_for_data.set()
+            self.thread_sender.stop()
+            self.thread_sender = None
+
+## A instance to encapsulate SendDataHandler/RecvDataHandler.
+class MessageHandler(SendDataHandler, RecvDataHandler):
+    def __init__(self, socket, callbacks_info, mh_creator = None, mh_remover = None):
+        SendDataHandler.__init__(self,
+                                 data_prefix = callbacks_info['pre'],
+                                 data_postfix = callbacks_info['post'])
+        RecvDataHandler.__init__(self, callbacks_info)
+        assert socket != None
+        self.socket = socket
+        self.__is_done = False
+        self.mh_creator = mh_creator
+        self.mh_remover = mh_remover
+
+    def wait_for_msg(self):
+        self.wait()
+
+    def clone_msg(self):
+        return self.clone_data_queue()
+
+    def clear_msg(self):
+        self.clear_data_queue()
+
+    def has_pending_msg(self):
+        return self.has_pending_data()
+
+    def shutdown(self):
+        if self.__is_done: return
+        try:
+            SendDataHandler.shutdown(self)
+            self.socket.shutdown(socket.SHUT_RDWR)
+            self.socket.close()
+        except:
+            pass
+        finally:
+            self.socket = None
+            self.__is_done = True
+
+    def send_msg(self, msg):
+        if self.__is_done: return
+        self.append_data_to_queue(msg)
 
 def socket_send(skt, data):
     assert skt != None
@@ -130,8 +176,7 @@ def socket_send(skt, data):
             traceback.print_exc()
             print('Error while sending data via socket ...')
 
-def loop_for_connections(evt_break, server_mh = None, client_mh = None, info_cb = None):
-    assert info_cb is None or callable(info_cb)
+def loop_for_connections(evt_break, server_mh = None, client_mh = None):
     clients = {}
     read_list = []
     error_list = []
@@ -142,31 +187,23 @@ def loop_for_connections(evt_break, server_mh = None, client_mh = None, info_cb 
         read_list.append(client_mh.socket)
         error_list.append(client_mh.socket)
         clients[client_mh] = ''
+
+    time_out = 1.0
     try:
         while 1:
-            if evt_break.is_set():
-                break
-
             read_list = [skt for skt in read_list if skt.fileno() >=0]
             error_list = [skt for skt in error_list if skt.fileno() >=0]
-            readable, writable, errored = select.select(read_list, [], error_list, 0)
+            readable, writable, errored = select.select(read_list, [], error_list, time_out)
 
-            # If server has queued data, send it to all clients.
-            if server_mh and server_mh.has_data_to_send() and clients:
-                for mh, a in list(clients.items()):
-                    socket_send(mh.socket, server_mh.clone_sendq())
-                server_mh.clear()
-            # If client has queued data, send it to server.
-            if client_mh and client_mh.has_data_to_send():
-                socket_send(client_mh.socket, client_mh.clone_sendq())
-                client_mh.clear()
+            if evt_break.is_set():
+                break
 
             # Data arrived.
             for s in readable:
                 if server_mh and s is server_mh.socket:
                     # Accept connections from client's request.
                     connection, addr = s.accept()
-                    mh = MessageHandler(connection, server_mh.callbacks_info)
+                    mh = server_mh.mh_creator(connection, addr)
                     clients[mh] = addr
                     read_list.append(connection)
                     print('[%s] Connected !'%(str(addr)))
@@ -187,11 +224,10 @@ def loop_for_connections(evt_break, server_mh = None, client_mh = None, info_cb 
                                 # a disconnected socket.
                                 read_list.remove(s)
                                 clients.pop(mh)
+                                if server_mh:
+                                    server_mh.mh_remover(mh)
                                 mh.shutdown()
 
-            if info_cb is not None:
-                info_cb(list(clients.values()))
-            time.sleep(0.001)
     except:
         traceback.print_exc()
         print('[Exception] inside loop for connections.')
@@ -207,17 +243,33 @@ def loop_for_connections(evt_break, server_mh = None, client_mh = None, info_cb 
         except:
             traceback.print_exc()
 
-## A task runs in server's or client's thread to handle send/recv.
+## A task runs in server's or client's thread to receive data.
 class HandlerTask(Task):
-    def __init__(self, evt_break, server_mh = None, client_mh = None, info_cb = None):
+    def __init__(self, evt_break, server_mh = None, client_mh = None):
         Task.__init__(self)
         self.evt_break = evt_break
         self.server_mh = server_mh
         self.client_mh = client_mh
-        self.info_cb = info_cb
 
     def run(self):
-        loop_for_connections(self.evt_break, self.server_mh, self.client_mh, self.info_cb)
+        loop_for_connections(self.evt_break, self.server_mh, self.client_mh)
+
+## A task runs in server's or client's thread to send data.
+class HandlerSendTask(Task):
+    def __init__(self, mh, evt_break):
+        Task.__init__(self)
+        self.evt_break = evt_break
+        self.mh = mh
+
+    def run(self):
+        while 1:
+            if self.evt_break.is_set():
+                break
+            if not self.mh.has_pending_msg():
+                self.mh.wait_for_msg()
+            cloned_data = self.mh.clone_msg()
+            socket_send(self.mh.socket, cloned_data)
+            self.mh.clear_msg()
 
 ## A socket client which will connect to target ip/port
 #  @param server_ip Server's IP
@@ -235,14 +287,14 @@ class Client(object):
         self.evt_break = threading.Event()
         self.evt_break.clear()
         task = HandlerTask(self.evt_break, client_mh = self.msg_handler)
-        self.thread = TaskThread(name='client_loop')
+        self.thread = TaskThread(name='client_recv_loop')
         self.thread.daemon = True
         self.thread.start()
         self.thread.addtask(task)
 
     def is_message_sent(self):
         if self.msg_handler:
-            return not self.msg_handler.has_data_to_send()
+            return not self.msg_handler.has_pending_msg()
         return True
 
     def get_address(self):
@@ -250,19 +302,20 @@ class Client(object):
 
     def shutdown(self):
         try:
+            print(' Client is shutting down ...')
             self.msg_handler.shutdown()
             self.evt_break.set()
             self.thread.stop()
-            print(' Client goes down ... ')
+            print(' Client is down ...')
         except:
             pass
         finally:
-            self.thread = None
             self.msg_handler = None
+            self.thread = None
 
     def send(self, msg):
         # Sample data to be sent !
-        self.msg_handler.send_to_queue(msg)
+        self.msg_handler.send_msg(msg)
 
 ## A socker server which is able to return received messages through the
 #  callbacks_info and is able to send messages to clients
@@ -282,18 +335,35 @@ class Server(object):
         skt.bind((ip, port))
         skt.listen(max_client)
         self.connections = []
-        self.msg_handler = MessageHandler(skt, callbacks_info)
-        self.thread = TaskThread(name='server_loop')
+        self.clients = {}
+        self.msg_handler = MessageHandler(skt, callbacks_info,
+                                          mh_creator = self.client_mh_creator,
+                                          mh_remover = self.client_mh_remover)
+        self.thread = TaskThread(name='server_recv_loop')
         self.thread.daemon = True
+
         self.evt_break = threading.Event()
         self.evt_break.clear()
 
+    def client_mh_creator(self, connection, addr):
+        mh = MessageHandler(connection, self.msg_handler.callbacks_info)
+        self.clients[mh] = addr
+        return mh
+
+    def client_mh_remover(self, connection):
+        self.clients.pop(connection, None)
+        pass
+
     def send(self, msg):
-        self.msg_handler.send_to_queue(msg)
+        for mh in self.clients.keys():
+            mh.send_msg(msg)
 
     def shutdown(self):
         print('[Server] Shutting down ...')
         assert len(self.connections) == 0, 'All connections should be closed !!'
+        while self.clients:
+            mh, addr = self.clients.popitem()
+            mh.shutdown()
         if self.msg_handler:
             self.msg_handler.shutdown()
             self.msg_handler = None
@@ -304,11 +374,7 @@ class Server(object):
         print('[Server] Shutting down ... end')
 
     def get_connected_lists(self):
-        return self.connections
-
-    def __connections_info_callback(self, *args):
-        if len(args) == 1:
-            self.connections = args[0]
+        return list(self.clients.values())
 
     ## Non-blocking, execute a task in thread which monitors the socket in/out.
     def run_server(self):
@@ -316,7 +382,6 @@ class Server(object):
         print('Start the server ...')
         if self.thread and not self.thread.is_alive():
             task = HandlerTask(self.evt_break,
-                               server_mh = self.msg_handler,
-                               info_cb = self.__connections_info_callback)
+                               server_mh = self.msg_handler)
             self.thread.start()
             self.thread.addtask(task)
