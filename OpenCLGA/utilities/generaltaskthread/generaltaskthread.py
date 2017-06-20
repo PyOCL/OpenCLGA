@@ -69,6 +69,7 @@ class TaskThread(Thread):
             self.wati_for_stop.set()
         if self.wati_for_task:
             self.wati_for_task.set()
+        self.log('going to join ...', postfixname = True)
         self.join()
         self.tasks.clear()
         self.wati_for_task = None

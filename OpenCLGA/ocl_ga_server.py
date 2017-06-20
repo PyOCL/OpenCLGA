@@ -9,9 +9,24 @@ import sys
 import time
 import traceback
 from .utils import get_local_IP
-from .utilities.generaltaskthread import Logger
+from .utilities.generaltaskthread import Logger, Task, TaskThread
 from .utilities.socketserverclient import Server, OP_MSG_BEGIN, OP_MSG_END
 from .ocl_ga_wsserver import OclGAWSServer
+
+## This class is slow down the send-request to browser websocket.
+#  To get better browser UI response.
+class WS_SEND(Task):
+    def __init__(self, ws, msg, timeout = 0):
+        Task.__init__(self)
+        self.ws = ws
+        self.msg = msg
+        self.timeout = timeout
+
+    def run(self):
+        time.sleep(self.timeout)
+        jmsg = json.dumps(self.msg)
+        self.ws.send_message(jmsg)
+        pass
 
 ## OpenCLGAServer is responsible for
 #  1) Launch a http server and handle websocket connections.
@@ -82,6 +97,12 @@ class OpenCLGAServer(Logger):
         self.httpws_server_port = 8000
         self.base_path = base_path
         self._start_http_websocket_server()
+
+        # Send data via websocket through a specific thread.
+        # So that we could control the speed of sending.
+        self.ws_thread = TaskThread(name='ws_thread')
+        self.ws_thread.daemon = True
+        self.ws_thread.start()
 
     def __get_host_ip(self, use_all=True):
         ip = '0.0.0.0' if use_all else get_local_IP()
@@ -200,7 +221,7 @@ class OpenCLGAServer(Logger):
 
     ## A callback function to notify OpenCLGAServer the connection of websocket
     def _ws_connected(self, client_addr, wshandler):
-        viewers_addr = [addr for addr, handler in self.websockets['viewers']]
+        viewers_addr = [addr for addr, handler in self.websockets.get('viewers', [('', None)])]
         if not self.websockets['controller']:
             self.websockets['controller'] = (client_addr, wshandler)
             self.info('WS Controller {} is on !! '.format(client_addr))
@@ -213,7 +234,7 @@ class OpenCLGAServer(Logger):
 
     ## A callback function to notify OpenCLGAServer the disconnection of websocket
     def _ws_disconnected(self, client_addr):
-        viewers_addr = [addr for addr, handler in self.websockets['viewers']]
+        viewers_addr = [addr for addr, handler in self.websockets.get('viewers', [('', None)])]
         if client_addr in viewers_addr:
             self.websockets['viewers'] = [ws for ws in self.websockets['viewers'] if ws[0] != client_addr]
         if self.websockets['controller'] and client_addr == self.websockets['controller'][0]:
@@ -346,15 +367,16 @@ class OpenCLGAServer(Logger):
 
     ## Send message to UI through websockets
     def __send_message_to_WSs(self, msg):
-        contoller = self.websockets.get('controller', None)
-        jmsg = json.dumps(msg)
-        if contoller:
+        controller = self.websockets.get('controller', None)
+        if controller:
             self.info('Send to Controller : {}'.format(msg))
-            contoller[1].send_message(jmsg)
+            task = WS_SEND(controller[1], msg, 0.1)
+            self.ws_thread.addtask(task)
         viewers = self.websockets.get('viewers', [])
         for viewer in viewers:
             self.info('Send to Viewer : {}'.format(msg))
-            viewer[1].send_message(jmsg)
+            task = WS_SEND(viewer[1], msg, 0.1)
+            self.ws_thread.addtask(task)
 
     ## Notify correpsonding information back to the registrar.
     def __notify(self, name, data):
@@ -453,10 +475,12 @@ class OpenCLGAServer(Logger):
                     print('Wait for 30 seconds already !!')
                     break
         except:
-            import traceback
             traceback.print_exc()
             pass
         try:
+            if self.ws_thread:
+                self.ws_thread.stop()
+                self.ws_thread = None
             self.socket_server.shutdown()
         except:
             print("[OpenCLGAServer] exception while shutting down socket server ...")
