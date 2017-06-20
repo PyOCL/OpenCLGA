@@ -332,6 +332,10 @@ class Server(object):
         # Avoid 'Address already in use' error when trying to lanch server
         # again right after shutting it down.
         skt.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        skt.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        skt.setsockopt(socket.SOL_TCP, socket.TCP_KEEPIDLE, 60)
+        skt.setsockopt(socket.SOL_TCP, socket.TCP_KEEPCNT, 4)
+        skt.setsockopt(socket.SOL_TCP, socket.TCP_KEEPINTVL, 15)
         skt.bind((ip, port))
         skt.listen(max_client)
         self.connections = []
