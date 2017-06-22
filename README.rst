@@ -111,7 +111,14 @@ Run OpenCLGA examples
 
       <NameOfEnv>$> git clone https://github.com/PyOCL/OpenCLGA.git
 
-3. Execute the code. ::
+3. Install Extra package (optional) :
+
+* For Linux environment. ::
+
+      // To make matplotlib display correctly.
+      $> sudo apt-get install python3-tk
+
+4. Execute the code. ::
 
       <NameOfEnv>$> pip3 install git+git://github.com/PyOCL/OpenCLGA.git
       <NameOfEnv>$> unzip OpenCLGA-master.zip

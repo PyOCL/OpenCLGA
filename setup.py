@@ -33,6 +33,7 @@ setup(name='OpenCLGA',
         'OpenCLGA': package_files_paths,
       },
       install_requires=[
+          'matplotlib',
           'numpy',
           'pyopencl'
       ],
