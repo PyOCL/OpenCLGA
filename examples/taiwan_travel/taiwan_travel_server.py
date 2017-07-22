@@ -37,6 +37,9 @@ def read_all_cities(file_name):
 
     return cities, city_info, city_infoX, city_infoY
 
+def serializer(chromosome):
+    return json.dumps(chromosome.dna)
+
 def get_taiwan_travel_info():
     '''
     NOTE : Config TaiwanTravel GA parameters in dictionary 'dict_info'.
@@ -56,22 +59,23 @@ def get_taiwan_travel_info():
     # It seems we don't need to use this helper if we enlarge the population size. Please
     # re-evaluate and remove or uncomment the following line:
     # sample.use_improving_only_mutation('improving_only_mutation_helper')
-    dict_info = { 'sample_chromosome': sample,
-                  'termination': { 'type': 'count',
-                                   'count': 100 },
-                  'population': 10240,
-                  'fitness_kernel_str': fstr,
-                  'fitness_func': 'taiwan_fitness',
-                  'fitness_args': [{ 't': 'float', 'v': city_infoX, 'n': 'x' },
-                                   { 't': 'float', 'v': city_infoY, 'n': 'y' }],
-                  'opt_for_max': 'min',
+    dict_info = { 'sample_chromosome' : sample,
+                  'termination' : { 'type' : 'count',
+                                   'count' : 100 },
+                  'population' : 10240,
+                  'fitness_kernel_str' : fstr,
+                  'fitness_func' : 'taiwan_fitness',
+                  'fitness_args' : [{ 't' : 'float', 'v' : city_infoX, 'n' : 'x' },
+                                   { 't' : 'float', 'v' : city_infoY, 'n' : 'y' }],
+                  'opt_for_max' : 'min',
                   'saved_filename' : 'test%d%d.pickle',
                   'prob_mutation' : 0.1,
                   'prob_crossover' : 0.8,
-                  'extinction': { 'type': 'best_avg',
-                                  'diff': 1,
-                                  'ratio': 0.9 },
-                  'elitism_mode' : { 'every' : 2, 'interval' : 10, 'compress' : False }}
+                  'extinction' : { 'type' : 'best_avg',
+                                  'diff' : 1,
+                                  'ratio' : 0.9 },
+                  'elitism_mode' : { 'every' : 2, 'interval' : 10, 'compress' : False },
+                  'serializer': serializer}
     return dict_info
 
 lines_input = ''
@@ -157,8 +161,9 @@ def start_tt_server():
     def callback_from_client(info):
         nonlocal statistics, best, city_info
         if 'best' in info:
-            cities, city_info, city_infoX, city_infoY = read_all_cities('TW319_368Addresses-no-far-islands.json')
-            best = info['best']
+            cities = info['best'].dna
+            best = list(range(len(cities)))
+            city_info = [(float(c['x']), float(c['y'])) for c in cities]
         if 'statistics' in info:
             statistics = info['statistics']
             pass

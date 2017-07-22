@@ -191,7 +191,10 @@ class OpenCLGAServer(Logger):
             if not payload:
                 self.warning('Getting nothing in payload from UI to prepare. Use default configuration.')
             self.__update_members(payload)
-            packed = pickle.dumps(self.__options)
+            copied_options = self.__options.copy()
+            # serializer cannot be json dump and de-serialize from json
+            del copied_options['serializer']
+            packed = pickle.dumps(copied_options)
             self.__prepare(packed)
         elif cmd == 'pause':
             self.__pause()
@@ -298,8 +301,17 @@ class OpenCLGAServer(Logger):
                 st = dict_msg['result']
                 self.__notify('message', {'statistics' : st})
             elif dict_msg['type'] == 'best':
-                best_chromosome = eval(dict_msg['result'])
-                self.__notify('message', {'best' : best_chromosome})
+                best_worker = dict_msg['data']['worker']
+                if 'serializer' in self.__options:
+                    best_chromosome = pickle.loads(dict_msg['data']['result'])
+                    dict_msg['data']['result'] = self.__options['serializer'](best_chromosome)
+                    self.__notify('message', {'best' : best_chromosome,
+                                              'kernel_result': dict_msg['data']['kernel_result']})
+                else:
+                    # we need to delete the result because it is a python object not suitable for
+                    # websocket
+                    del dict_msg['data']['result']
+                    self.__notify('message', {'best' : dict_msg['data']['kernel_result']})
             elif dict_msg['type'] == 'save':
                 saved_filename = dict_msg['result']
             elif dict_msg['type'] == 'generationResult':

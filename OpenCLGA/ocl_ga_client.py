@@ -168,11 +168,11 @@ class OpenCLGAWorker(Process, Logger):
                              'result': None})
                 # state_file.close()
             elif cmd == 'best':
-                # TODO : A workaround to get best chromesome back for TSP
-                #       May need to pickle this tuple as it contains specific data structure.
-                best_chromosome, best_fitness, chromesome_kernel = self.ocl_ga.get_the_best()
+                chromesome_kernel, best_fitness, best_chromosome = self.ocl_ga.get_the_best()
                 self.__send({'type': 'best',
-                             'result': repr(best_chromosome)})
+                             'data': { 'worker': self.uuid,
+                                       'result': pickle.dumps(best_chromosome),
+                                       'kernel_result': repr(chromesome_kernel) }})
             elif cmd == 'statistics':
                 self.__send({'type': 'statistics',
                              'result': self.ocl_ga.get_statistics()})
