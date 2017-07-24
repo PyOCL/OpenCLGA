@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 from abc import ABCMeta
-from utils import calc_linear_distance, plot_tsp_result
+from utils import calc_linear_distance, plot_tsp_result, plot_grouping_result
 import math
 import random
 
@@ -19,6 +19,95 @@ class SAImpl(metaclass = ABCMeta):
     ## Start annealing
     def anneal(self):
         pass
+
+class GroupSolution(SAImpl):
+    def __init__(self, group_info):
+        SAImpl.__init__(self)
+        self.group_info = group_info
+        self.temperature = 1000.0
+        self.alpha = 0.9
+        self.terminate_temperature = 0.00001
+        self.iterations = 500
+
+    @staticmethod
+    def get_init_params():
+        # The number of points randomly generated
+        num_points = 40
+        random.seed()
+        point_ids = list(range(0, num_points))
+        point_info = {point_id: (random.random() * 100, random.random() * 100) for point_id in point_ids}
+        pointX = [point_info[v][0] for v in point_info]
+        pointY = [point_info[v][1] for v in point_info]
+
+        # The number of group you want to divide.
+        numOfGroups = 5
+        group_id_set = list(range(0, numOfGroups))
+        init_solution = [random.randint(0,numOfGroups-1) for x in range(num_points)]
+        info = { 'num_of_group' : numOfGroups, 'init_solution' : init_solution,
+                 'X' : pointX, 'Y' : pointY, 'g_set' : set(group_id_set),
+                 'point_info' : point_info}
+        return info
+
+    ## For TSP, we calculate the total distance between all cities.
+    def cost(self, solution):
+        total = len(solution)
+        cost = 0
+        for i in range(self.group_info['num_of_group']):
+            for j, gid in enumerate(solution):
+                k = (j + 1)
+                next_gid = gid
+                while k < total:
+                    next_gid = solution[k]
+                    if gid == i and next_gid == i:
+                        cost += calc_linear_distance(self.group_info['X'][j], self.group_info['Y'][j],
+                                                     self.group_info['X'][k], self.group_info['Y'][k])
+                    k += 1
+        return cost
+    
+    ## Find a neighbor solution by swapping random two nodes.
+    def neighbor(self, solution):
+        neighbor = solution[:]
+        total = len(solution)
+        a = random.randint(0, total-1)
+        b = random.randint(0, total-1)
+        while a == b:
+            b = random.randint(0, total-1)
+        neighbor[a] = solution[b]
+        neighbor[b] = solution[a]
+        return neighbor
+
+    def acceptance_probability(self, old_cost, new_cost, temperature):
+        if new_cost < old_cost:
+            return 1.0
+        else:
+            return math.exp(float(old_cost - new_cost) / temperature)
+ 
+    def anneal(self):
+        solution = self.group_info['init_solution']
+        random.shuffle(solution)
+
+        old_cost = self.cost(solution)
+        # print('1st round : cost = {} '.format(old_cost))
+        T = self.temperature
+        T_min = self.terminate_temperature
+        alpha = self.alpha
+        while T > T_min:
+            i = 1
+            print('T={}'.format(T))
+            while i <= self.iterations:
+                new_solution = self.neighbor(solution)
+                new_cost = self.cost(new_solution)
+                ap = self.acceptance_probability(old_cost, new_cost, T)
+                if ap > random.random():
+                    solution = new_solution
+                    old_cost = new_cost
+                    # print('i={} round : cost = {} '.format(T, i, old_cost))
+                i += 1
+            T = T*alpha
+
+        
+        plot_grouping_result(self.group_info['g_set'], solution, self.group_info['point_info'])
+        return solution
 
 class TSPSolution(SAImpl):
     def __init__(self, city_info):
@@ -112,5 +201,6 @@ class SimulatedAnnealing(object):
         best_solution = self.sas.anneal()
         pass
 
-sa = SimulatedAnnealing(TSPSolution)
+# sa = SimulatedAnnealing(TSPSolution)
+sa = SimulatedAnnealing(GroupSolution)
 sa.anneal()
