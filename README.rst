@@ -56,7 +56,7 @@ Option B. Install by ourself
 
       // Make sure dependencies for building wheel is available on system.
       $> sudo apt-get install build-essential libssl-dev libffi-dev python-dev
-      $> sudo apt-get install python3-pip python3-venv ocl-icd-*
+      $> sudo apt-get install python3-pip python3-venv python3-tk ocl-icd-*
       $> python3 -m venv [NameOfEnv]
       $> source ./NameOfEnv/bin/activate
       <NameOfEnv>$> pip3 install --upgrade pip
