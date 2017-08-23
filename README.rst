@@ -33,13 +33,13 @@ Option B. Install by ourself
 
      1. Intel CPU or Intel HD Graphics.
 
-        a. `OpenCL™ 2.0 GPU/CPU driver package for Linux* (64-bit) <https://software.intel.com/en-us/articles/opencl-drivers>`_
+        a. `OpenCL™ 2.0 GPU/CPU driver package(SRB_4.1) for Linux* (64-bit) <https://software.intel.com/en-us/articles/opencl-drivers>`_
 
-        b. `Installation instructions. <https://software.intel.com/sites/default/files/managed/48/96/SRB4_intel-opencl-installation-external.pdf>`_
+        b. `Installation instructions. <https://software.intel.com/en-us/articles/sdk-for-opencl-gsg-srb41>`_
 
 
 
-  * Step 2. Download `Intel SDK for Application & ICDs <https://software.intel.com/en-us/intel-opencl/download>`_ and install, if you have Intel devices : ::
+  * Step 2. Download `Intel SDK for Application (2016 R3)& ICDs <https://software.intel.com/en-us/intel-opencl/download>`_ and install, if you have Intel devices : ::
 
       $> sudo apt-get install libnuma1 alien
       $> tar -xvf ./intel_sdk_for_opencl_2016_ubuntu_6.3.0.1904_x64.tgz
