@@ -1,3 +1,9 @@
+
+We Are On Slack (歡迎上 Slack 交流 !!)
+===============
+https://join.slack.com/t/pyopenclopt/shared_invite/enQtMjQyNjU3NDk1NTA5LWRiODY5NTY3N2Y4ODY3YmI5Zjg2NGI4Nzg1NTMzZDYyNjBkOTdhNzU4MzAxNDYwNmE2YzEzODMzNzQ5YWQyYzU
+
+
 OpenCLGA
 ===============
 OpenCLGA is a python library for running genetic algorithm among Open CL devices, like GPU, CPU, DSP, etc. In the best case, you can run your GA parallelly at all of your Open CL devices which give you the maximum computing power of your machine. In the worse case, which you only have CPU, you still can run the code at parallel CPU mode.
