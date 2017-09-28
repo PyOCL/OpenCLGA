@@ -1,8 +1,6 @@
 
-We Are On Slack (歡迎上 Slack 交流 !!)
+Join us on  `slack <https://pyopenclopt.slack.com/>`_  (歡迎上 `slack <https://pyopenclopt.slack.com/>`_ 交流 !!)
 ===============
-https://join.slack.com/t/pyopenclopt/shared_invite/enQtMjQyNjU3NDk1NTA5LWRiODY5NTY3N2Y4ODY3YmI5Zjg2NGI4Nzg1NTMzZDYyNjBkOTdhNzU4MzAxNDYwNmE2YzEzODMzNzQ5YWQyYzU
-
 
 OpenCLGA
 ===============
