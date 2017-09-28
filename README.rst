@@ -1,6 +1,9 @@
 
 Join us on  `slack <https://pyopenclopt.slack.com/>`_  (歡迎上 `slack <https://pyopenclopt.slack.com/>`_ 交流 !!)
 ===============
+.. figure:: https://img.shields.io/badge/slack-n.n-pink.svg
+    :target: https://pyopenclopt.slack.com/
+
 
 OpenCLGA
 ===============
