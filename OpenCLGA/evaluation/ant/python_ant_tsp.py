@@ -87,14 +87,14 @@ class PythonAntTSP():
         for index, node in enumerate(visited_nodes):
             if index < len(visited_nodes) - 1:
                 if node < visited_nodes[index + 1]:
-                    self.__path_pheromones[(node, visited_nodes[index + 1])] = (1 - self.__evaporation) * self.__path_pheromones[(node, visited_nodes[index + 1])] + self.__q / fitness;
+                    self.__path_pheromones[(node, visited_nodes[index + 1])] += self.__q / fitness;
                 else:
-                    self.__path_pheromones[(visited_nodes[index + 1], node)] = (1 - self.__evaporation) * self.__path_pheromones[(visited_nodes[index + 1], node)] + self.__q / fitness;
+                    self.__path_pheromones[(visited_nodes[index + 1], node)] += self.__q / fitness;
             else:
                 if node < visited_nodes[0]:
-                    self.__path_pheromones[(node, visited_nodes[0])] = (1 - self.__evaporation) * self.__path_pheromones[(node, visited_nodes[0])] + self.__q / fitness;
+                    self.__path_pheromones[(node, visited_nodes[0])] += self.__q / fitness;
                 else:
-                    self.__path_pheromones[(visited_nodes[0], node)] = (1 - self.__evaporation) * self.__path_pheromones[(visited_nodes[0], node)] + self.__q / fitness;
+                    self.__path_pheromones[(visited_nodes[0], node)] += self.__q / fitness;
 
     def __calculate_visited_fitness(self, visited_nodes):
         result = 0.0;
@@ -128,6 +128,12 @@ class PythonAntTSP():
             if fitness < self.__best_fitness:
                 self.__best_fitness = fitness
                 self.__best_result = visited_nodes
+
+        # evaporate the pheromones on each path and increase a base value.
+        for start, value1 in enumerate(self.__path_pheromones):
+            for end, value2 in enumerate(value1):
+                self.__path_pheromones[(start, end)] *= (1 - self.__evaporation)
+                self.__path_pheromones[(start, end)] += 1
 
         # update pheromone
         for result in ant_result:
