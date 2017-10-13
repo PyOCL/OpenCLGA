@@ -1,4 +1,8 @@
 #!/usr/bin/python3
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
 from abc import ABCMeta
 from utils import calc_linear_distance, plot_tsp_result, plot_grouping_result
 import math
@@ -20,7 +24,7 @@ class SAImpl(metaclass = ABCMeta):
     def anneal(self):
         pass
 
-class GroupSolution(SAImpl):
+class ClassificationSolution(SAImpl):
     def __init__(self, group_info):
         SAImpl.__init__(self)
         self.group_info = group_info
@@ -48,7 +52,8 @@ class GroupSolution(SAImpl):
                  'point_info' : point_info}
         return info
 
-    ## For TSP, we calculate the total distance between all cities.
+    ## For classification, we calculate the total distance among all points in
+    ## the same group.
     def cost(self, solution):
         total = len(solution)
         cost = 0
@@ -63,7 +68,7 @@ class GroupSolution(SAImpl):
                                                      self.group_info['X'][k], self.group_info['Y'][k])
                     k += 1
         return cost
-    
+
     ## Find a neighbor solution by swapping random two nodes.
     def neighbor(self, solution):
         neighbor = solution[:]
@@ -81,7 +86,7 @@ class GroupSolution(SAImpl):
             return 1.0
         else:
             return math.exp(float(old_cost - new_cost) / temperature)
- 
+
     def anneal(self):
         solution = self.group_info['init_solution']
         random.shuffle(solution)
@@ -105,7 +110,7 @@ class GroupSolution(SAImpl):
                 i += 1
             T = T*alpha
 
-        
+
         plot_grouping_result(self.group_info['g_set'], solution, self.group_info['point_info'])
         return solution
 
@@ -118,7 +123,7 @@ class TSPSolution(SAImpl):
         self.alpha = 0.9
         self.terminate_temperature = 0.00001
         self.iterations = 500
-    
+
     @staticmethod
     def get_init_params():
         num_cities = 20
@@ -138,7 +143,7 @@ class TSPSolution(SAImpl):
             cost += calc_linear_distance(self.city_info[first_city][0], self.city_info[first_city][1],
                                          self.city_info[next_city][0], self.city_info[next_city][1])
         return cost
-    
+
     ## Find a neighbor solution by swapping random two nodes.
     def neighbor(self, solution):
         neighbor = solution[:]
@@ -150,13 +155,13 @@ class TSPSolution(SAImpl):
         neighbor[a] = solution[b]
         neighbor[b] = solution[a]
         return neighbor
-    
+
     def acceptance_probability(self, old_cost, new_cost, temperature):
         if new_cost < old_cost:
             return 1.0
         else:
             return math.exp(float(old_cost - new_cost) / temperature)
- 
+
     def anneal(self):
         solution = list(self.city_info.keys())
         random.shuffle(solution)
@@ -187,11 +192,11 @@ class SimulatedAnnealing(object):
     def __init__(self, cls_solution):
         self.sas = cls_solution(cls_solution.get_init_params())
         pass
-        
+
     ## To save the annealing state
     def save(self):
         pass
-    
+
     ## To restore the annealing state
     def restore(self):
         pass
@@ -201,6 +206,21 @@ class SimulatedAnnealing(object):
         best_solution = self.sas.anneal()
         pass
 
-# sa = SimulatedAnnealing(TSPSolution)
-sa = SimulatedAnnealing(GroupSolution)
-sa.anneal()
+def main():
+    print('Input 1 for SA-TSP ; 2 for SA-Classification')
+    try:
+        sa = None
+        int_choice = int(input())
+        if int_choice == 1:
+            sa = SimulatedAnnealing(TSPSolution)
+        elif int_choice == 2:
+            sa = SimulatedAnnealing(ClassificationSolution)
+        else:
+            print('Unsupported input, bye !')
+            return None
+        sa.anneal()
+    except:
+        print('Unrecognized input, bye !')
+
+if __name__ == '__main__':
+    main()
