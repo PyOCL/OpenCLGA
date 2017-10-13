@@ -1,7 +1,8 @@
 
-We Are On Slack (歡迎上 Slack 交流 !!)
+Join us on  `slack <https://pyopenclopt.slack.com/>`_  (歡迎上 `slack <https://pyopenclopt.slack.com/>`_ 交流 !!)
 ===============
-https://join.slack.com/t/pyopenclopt/shared_invite/enQtMjQyNjU3NDk1NTA5LWRiODY5NTY3N2Y4ODY3YmI5Zjg2NGI4Nzg1NTMzZDYyNjBkOTdhNzU4MzAxNDYwNmE2YzEzODMzNzQ5YWQyYzU
+.. figure:: https://img.shields.io/badge/slack-n.n-pink.svg
+    :target: https://pyopenclopt.slack.com/
 
 
 OpenCLGA
@@ -39,13 +40,13 @@ Option B. Install by ourself
 
      1. Intel CPU or Intel HD Graphics.
 
-        a. `OpenCL™ 2.0 GPU/CPU driver package for Linux* (64-bit) <https://software.intel.com/en-us/articles/opencl-drivers>`_
+        a. `OpenCL™ 2.0 GPU/CPU driver package(SRB_4.1) for Linux* (64-bit) <https://software.intel.com/en-us/articles/opencl-drivers>`_
 
-        b. `Installation instructions. <https://software.intel.com/sites/default/files/managed/48/96/SRB4_intel-opencl-installation-external.pdf>`_
+        b. `Installation instructions. <https://software.intel.com/en-us/articles/sdk-for-opencl-gsg-srb41>`_
 
 
 
-  * Step 2. Download `Intel SDK for Application & ICDs <https://software.intel.com/en-us/intel-opencl/download>`_ and install, if you have Intel devices : ::
+  * Step 2. Download `Intel SDK for Application (2016 R3)& ICDs <https://software.intel.com/en-us/intel-opencl/download>`_ and install, if you have Intel devices : ::
 
       $> sudo apt-get install libnuma1 alien
       $> tar -xvf ./intel_sdk_for_opencl_2016_ubuntu_6.3.0.1904_x64.tgz
@@ -62,7 +63,7 @@ Option B. Install by ourself
 
       // Make sure dependencies for building wheel is available on system.
       $> sudo apt-get install build-essential libssl-dev libffi-dev python-dev
-      $> sudo apt-get install python3-pip python3-venv ocl-icd-*
+      $> sudo apt-get install python3-pip python3-venv python3-tk ocl-icd-*
       $> python3 -m venv [NameOfEnv]
       $> source ./NameOfEnv/bin/activate
       <NameOfEnv>$> pip3 install --upgrade pip
