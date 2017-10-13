@@ -52,7 +52,7 @@ uint rand(uint* holder)
 }
 
 /**
- * rand_range generates a random number between 0 < return_vlue < range.
+ * rand_range generates a random number between 0 <= return_vlue < range.
  * @param *holder a pointer of uint for storing the last rand value.
  * @param range the max value of random number.
  * @return a random uint value in the range.
