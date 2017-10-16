@@ -45,7 +45,7 @@ void ant_tsp_calculate_path_probabilities(global int* ant_visited_nodes,
       tmp_pheromones[i] = 0;
     } else {
       tmp_pheromones[i] = pow(path_pheromones[current_node * NODE_COUNT + i], (float) ALPHA) *
-                          pow(1 / path_distances[current_node * NODE_COUNT + i], (float) BETA);
+                          pow(100 / path_distances[current_node * NODE_COUNT + i], (float) BETA);
       total += tmp_pheromones[i];
     }
   }
@@ -147,16 +147,16 @@ __kernel void ant_tsp_update_pheromones(global int* ant_visited_nodes,
                                         global float* ant_fitnesses,
                                         global float* path_pheromones)
 {
-  int idx = get_global_id(0);
+  int start = get_global_id(0);
+  int end = get_global_id(1);
   // out of bound kernel task for padding
-  if (idx >= NODE_COUNT * NODE_COUNT) {
+  if (start * end >= NODE_COUNT * NODE_COUNT) {
     return;
   }
 
   int ant_index, node_index, ant_start, ant_end;
-  int start = idx / NODE_COUNT;
-  int end = idx % NODE_COUNT;
   float bonus;
+  int idx = start * NODE_COUNT + end;
 
   for (ant_index = 0; ant_index < ANT_COUNT; ant_index++) {
     bonus = Q / ant_fitnesses[ant_index];

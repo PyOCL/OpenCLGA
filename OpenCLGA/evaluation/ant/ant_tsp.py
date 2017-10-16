@@ -170,10 +170,10 @@ if __name__ == '__main__':
     print(city_info)
     ant = AntTSP({
         'iterations': 100,
-        'ants': 1000,
+        'ants': 10000,
         'alpha': 1.1,
-        'beta': 2,
-        'evaporation': 0.1,
+        'beta': 1.5,
+        'evaporation': 0.85,
         'q': 10000,
         'nodes': city_info
     })
