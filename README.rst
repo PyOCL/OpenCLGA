@@ -1,5 +1,5 @@
 
-Join us on  `slack <https://pyopenclopt.slack.com/>`_  (歡迎上 `slack <https://pyopenclopt.slack.com/>`_ 交流 !!)
+Join us on  `slack <https://join.slack.com/t/pyopenclopt/shared_invite/enQtMjQyNjU3NDk1NTA5LWRiODY5NTY3N2Y4ODY3YmI5Zjg2NGI4Nzg1NTMzZDYyNjBkOTdhNzU4MzAxNDYwNmE2YzEzODMzNzQ5YWQyYzU>`_  (歡迎上 `slack <https://join.slack.com/t/pyopenclopt/shared_invite/enQtMjQyNjU3NDk1NTA5LWRiODY5NTY3N2Y4ODY3YmI5Zjg2NGI4Nzg1NTMzZDYyNjBkOTdhNzU4MzAxNDYwNmE2YzEzODMzNzQ5YWQyYzU>`_ 交流 !!)
 ===============
 .. figure:: https://img.shields.io/badge/slack-n.n-pink.svg
     :target: https://pyopenclopt.slack.com/
