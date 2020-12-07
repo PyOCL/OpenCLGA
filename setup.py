@@ -33,7 +33,7 @@ setup(name='OpenCLGA',
         'OpenCLGA': package_files_paths,
       },
       install_requires=[
-          'pybind11'
+          'pybind11',
           'matplotlib',
           'numpy',
           'pyopencl'
